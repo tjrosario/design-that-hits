@@ -175,47 +175,54 @@ export default async function HomePage({ searchParams }: HomeProps) {
       {/* Hero */}
       <section className="mx-auto max-w-screen-xl px-5 pb-6">
         <div
-          className="relative overflow-hidden rounded-3xl"
+          className="relative overflow-hidden rounded-3xl flex flex-col md:flex-row"
           style={{ backgroundColor: "#C8BEA8", minHeight: "460px" }}
         >
+          {/* Background gradient */}
           <div
-            className="absolute inset-0 opacity-20"
+            className="absolute inset-0 opacity-20 pointer-events-none"
             style={{
               backgroundImage:
                 "radial-gradient(ellipse at 30% 50%, #E8DCC8 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, #D4C4A8 0%, transparent 50%)",
             }}
           />
-          <div className="absolute inset-y-0 left-0 w-1/2 md:w-[55%]">
-            <div className="relative h-full flex items-end">
-              <div className="absolute bottom-0 left-8 w-36 h-48 md:w-48 md:h-64 rounded-2xl opacity-60" style={{ backgroundColor: "#7DC4A8" }} />
-              <div className="absolute bottom-0 left-28 md:left-40 w-32 h-56 md:w-44 md:h-72 rounded-2xl opacity-70" style={{ backgroundColor: "#2C2820" }} />
-              <div className="absolute bottom-0 left-16 md:left-24 w-36 h-52 md:w-48 rounded-2xl" style={{ backgroundColor: "#E8C070" }} />
-              <div
-                className="absolute bottom-6 left-1/2 -translate-x-1/2 text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap"
-                style={{ background: "rgba(255,255,255,0.3)", color: "var(--ink)", backdropFilter: "blur(8px)" }}
-              >
-                📸 Add hero image in page.tsx
-              </div>
+
+          {/* Decorative colour blocks — hidden on mobile, shown md+ */}
+          <div className="hidden md:flex md:w-[52%] relative items-end self-stretch overflow-hidden">
+            <div className="absolute bottom-0 left-8 w-44 h-60 rounded-2xl opacity-60"  style={{ backgroundColor: "#7DC4A8" }} />
+            <div className="absolute bottom-0 left-36 w-40 h-72 rounded-2xl opacity-70" style={{ backgroundColor: "#2C2820" }} />
+            <div className="absolute bottom-0 left-20 w-44 h-64 rounded-2xl"            style={{ backgroundColor: "#E8C070" }} />
+            <div
+              className="absolute bottom-6 left-1/2 -translate-x-1/2 text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap z-10"
+              style={{ background: "rgba(255,255,255,0.35)", color: "var(--ink)", backdropFilter: "blur(8px)" }}
+            >
+              📸 Add hero image in page.tsx
             </div>
           </div>
 
-          <div className="relative z-10 ml-auto w-1/2 md:w-[45%] h-full flex flex-col justify-center px-8 md:px-10 py-12">
-            <p className="text-xs font-semibold uppercase tracking-widest mb-3 fade-up" style={{ color: "var(--ink-soft)" }}>
+          {/* Text content — full width on mobile, right half on md+ */}
+          <div className="relative z-10 flex flex-col justify-center w-full md:w-[48%] px-7 py-12 md:px-10 md:py-16">
+            <p className="text-xs font-semibold uppercase tracking-widest mb-4 fade-up" style={{ color: "var(--ink-soft)" }}>
               Print-on-demand · Etsy shop
             </p>
             <h1
-              className="text-5xl md:text-6xl lg:text-7xl font-black uppercase leading-none mb-5 fade-up-2"
-              style={{ fontFamily: "var(--font-display)", color: "var(--ink)", letterSpacing: "-0.01em" }}
+              className="font-black uppercase leading-none mb-5 fade-up-2"
+              style={{
+                fontFamily: "var(--font-display)",
+                color: "var(--ink)",
+                letterSpacing: "-0.01em",
+                fontSize: "clamp(2.8rem, 8vw, 5.5rem)",
+              }}
             >
               Designs that<br />
               <span style={{ color: "var(--orange)" }}>Hit</span><br />
               Different.
             </h1>
-            <p className="text-sm leading-relaxed mb-8 max-w-xs fade-up-3" style={{ color: "var(--ink-soft)" }}>
+            <p className="text-sm leading-relaxed mb-8 fade-up-3" style={{ color: "var(--ink-soft)", maxWidth: "26rem" }}>
               Unique gifts, wrapping paper &amp; party designs that make every occasion feel extra special.
             </p>
             <div className="fade-up-3">
-              <a href="#listings" className="btn-cta">
+              <a href="#listings" className="btn-cta inline-flex">
                 Discover More
                 <span className="arrow-circle" aria-hidden="true">
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2.5}>
@@ -228,8 +235,8 @@ export default async function HomePage({ searchParams }: HomeProps) {
         </div>
       </section>
 
-      {/* Shop section */}
-      <section id="listings">
+      {/* Shop section — scroll-margin-top offsets the sticky header height (~65px) */}
+      <section id="listings" style={{ scrollMarginTop: '72px' }}>
         <Suspense>
           <ShopFront sections={sections} initialParams={params} initialData={initialData} />
         </Suspense>
