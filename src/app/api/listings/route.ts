@@ -8,8 +8,8 @@
 
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getListings, getListingsForRanking } from "@/lib/etsy";
-import type { EtsyErrorCode } from "@/lib/etsy";
+import { getListings, getListingsForRanking } from "@/lib/shop";
+import type { ShopErrorCode } from "@/lib/shop";
 import { parseQuery } from "@/lib/query";
 import { rankBestSellers, rankTrending } from "@/lib/rank";
 
@@ -18,9 +18,10 @@ const PAGE_SIZE = 24;
 export const runtime = "nodejs";
 
 /** Map internal error codes to HTTP status codes */
-function httpStatusFor(code: EtsyErrorCode): number {
+function httpStatusFor(code: ShopErrorCode): number {
   switch (code) {
     case "MISSING_API_KEY": return 503; // Service misconfigured
+    case "CATALOG_EMPTY":   return 503; // Catalog never populated — see npm run sync:catalog
     case "RATE_LIMITED":    return 429;
     case "NOT_FOUND":       return 404;
     case "NETWORK_ERROR":   return 502; // Bad gateway — upstream unreachable
@@ -30,9 +31,10 @@ function httpStatusFor(code: EtsyErrorCode): number {
 }
 
 /** User-facing messages — never expose internal details */
-function userMessageFor(code: EtsyErrorCode): string {
+function userMessageFor(code: ShopErrorCode): string {
   switch (code) {
     case "MISSING_API_KEY":
+    case "CATALOG_EMPTY":
       return "The shop is temporarily unavailable. Please check back soon.";
     case "RATE_LIMITED":
       return "We're receiving a lot of traffic. Please wait a moment and try again.";
@@ -51,27 +53,24 @@ export async function GET(req: NextRequest) {
     const rawParams: Record<string, string> = {};
     req.nextUrl.searchParams.forEach((v, k) => { rawParams[k] = v; });
 
-    const { q, sectionIds, sort, pill, page } = parseQuery(rawParams);
+    const { q, sectionIds, types, themes, priceBands, sort, pill, page } =
+      parseQuery(rawParams);
     const needsRanking = pill === "best" || pill === "trending";
+
+    // Every filter group, forwarded identically down both paths below.
+    const filters = {
+      q: q || undefined,
+      sectionIds: sectionIds.length > 0 ? sectionIds : undefined,
+      types: types.length > 0 ? types : undefined,
+      themes: themes.length > 0 ? themes : undefined,
+      priceBands: priceBands.length > 0 ? priceBands : undefined,
+    };
 
     // ── Trending / Best Sellers path ─────────────────────────────────────────
     if (needsRanking) {
-      const allListings = await getListingsForRanking(
-        sectionIds.length > 0 ? sectionIds : undefined
-      );
-
-      // getListingsForRanking degrades to [] on failure — we still return a valid
-      // (empty) response rather than an error, so the UI shows "no results" cleanly.
-      let filtered = allListings;
-      if (q) {
-        const ql = q.toLowerCase();
-        filtered = allListings.filter(
-          (l) =>
-            l.title.toLowerCase().includes(ql) ||
-            l.description.toLowerCase().includes(ql) ||
-            l.tags.some((t) => t.toLowerCase().includes(ql))
-        );
-      }
+      // Filtering (including the search term) happens inside getListingsForRanking, so
+      // the ranking sees exactly the set the shopper narrowed to.
+      const filtered = await getListingsForRanking(filters);
 
       const ranked = pill === "best" ? rankBestSellers(filtered) : rankTrending(filtered);
       const total  = ranked.length;
@@ -88,8 +87,7 @@ export async function GET(req: NextRequest) {
       sort === "price_asc" ? "asc" : "desc";
 
     const result = await getListings({
-      q: q || undefined,
-      sectionIds: sectionIds.length > 0 ? sectionIds : undefined,
+      ...filters,
       sortOn,
       sortOrder,
       page,

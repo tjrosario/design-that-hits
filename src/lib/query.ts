@@ -4,7 +4,7 @@
  * Utilities for parsing and serializing URL search params.
  * All params are stored in a canonical, stable order to ensure consistent cache keys.
  *
- * Canonical param order: q, sections, sort, pill, page
+ * Canonical param order: q, sections, types, themes, price, sort, pill, page
  */
 
 import type { ParsedQuery, SortOption, PillOption, SearchParams } from "@/types/etsy";
@@ -23,6 +23,24 @@ export function parseQuery(params: Record<string, string | string[] | undefined>
         .filter((n) => !isNaN(n) && n > 0)
     : [];
 
+  // Facet ids are opaque slugs from lib/facets.ts. Unknown values are harmless: the
+  // filter simply matches nothing for them, and they are dropped on the next serialize.
+  const idList = (raw: unknown): string[] =>
+    typeof raw === "string" && raw
+      ? Array.from(
+          new Set(
+            raw
+              .split(",")
+              .map((s) => s.trim().toLowerCase())
+              .filter((s) => /^[a-z0-9-]{1,32}$/.test(s))
+          )
+        )
+      : [];
+
+  const types = idList(params.types);
+  const themes = idList(params.themes);
+  const priceBands = idList(params.price);
+
   const sortRaw = typeof params.sort === "string" ? params.sort : "";
   const sort: SortOption = (VALID_SORTS as string[]).includes(sortRaw)
     ? (sortRaw as SortOption)
@@ -36,7 +54,7 @@ export function parseQuery(params: Record<string, string | string[] | undefined>
   const pageRaw = typeof params.page === "string" ? parseInt(params.page, 10) : 1;
   const page = isNaN(pageRaw) || pageRaw < 1 ? 1 : pageRaw;
 
-  return { q, sectionIds, sort, pill, page };
+  return { q, sectionIds, types, themes, priceBands, sort, pill, page };
 }
 
 export function serializeQuery(parsed: Partial<ParsedQuery>): URLSearchParams {
@@ -47,6 +65,15 @@ export function serializeQuery(parsed: Partial<ParsedQuery>): URLSearchParams {
   if (parsed.sectionIds && parsed.sectionIds.length > 0) {
     params.set("sections", [...parsed.sectionIds].sort((a, b) => a - b).join(","));
   }
+
+  // Sorted so the same selection always produces the same URL, which keeps cache keys
+  // and shared links stable regardless of the order boxes were ticked.
+  const setList = (key: string, values?: string[]) => {
+    if (values && values.length > 0) params.set(key, [...values].sort().join(","));
+  };
+  setList("types", parsed.types);
+  setList("themes", parsed.themes);
+  setList("price", parsed.priceBands);
 
   if (parsed.sort && parsed.sort !== "newest") params.set("sort", parsed.sort);
 
@@ -113,6 +140,41 @@ export function applySectionToggle(
   return { ...current, sectionIds: Array.from(ids), page: 1 };
 }
 
+/** Which ParsedQuery key each secondary facet group writes to. */
+export type FacetKey = "types" | "themes" | "priceBands";
+
+/** Toggles one option in a secondary facet group. */
+export function applyFacetToggle(
+  current: ParsedQuery,
+  key: FacetKey,
+  optionId: string
+): Partial<ParsedQuery> {
+  const values = new Set(current[key] ?? []);
+  if (values.has(optionId)) values.delete(optionId);
+  else values.add(optionId);
+  return { ...current, [key]: Array.from(values), page: 1 };
+}
+
 export function clearFilters(current: ParsedQuery): Partial<ParsedQuery> {
-  return { q: "", sectionIds: [], sort: "newest", pill: null, page: 1 };
+  return {
+    q: "",
+    sectionIds: [],
+    types: [],
+    themes: [],
+    priceBands: [],
+    sort: "newest",
+    pill: null,
+    page: 1,
+  };
+}
+
+/** True when anything narrowing the catalog is active. Drives the "Clear all" control. */
+export function hasActiveFilters(query: ParsedQuery): boolean {
+  return (
+    query.q !== "" ||
+    query.sectionIds.length > 0 ||
+    query.types.length > 0 ||
+    query.themes.length > 0 ||
+    query.priceBands.length > 0
+  );
 }

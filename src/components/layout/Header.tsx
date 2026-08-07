@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const navLinks = [
   { href: "/", label: "Home" },
-  { href: "/about", label: "About us" },
-  { href: "/contact", label: "Contacts" },
+  { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
 ];
 
 export function Header() {
@@ -16,21 +17,24 @@ export function Header() {
 
   return (
     <header
-      className="sticky top-0 z-40 px-5 py-4"
-      style={{ backgroundColor: 'var(--cream)' }}
+      className="sticky top-0 z-40 px-3 py-3 sm:px-5 sm:py-4 backdrop-blur-md"
+      style={{
+        backgroundColor: "color-mix(in srgb, var(--bg) 88%, transparent)",
+        borderBottom: "1px solid var(--border-soft)",
+      }}
     >
-      <div className="mx-auto max-w-screen-xl flex items-center justify-between">
-
-        {/* Logo */}
+      <div className="mx-auto max-w-screen-xl flex items-center justify-between gap-2 sm:gap-3 min-w-0">
+        {/* Wordmark — serif, with the middle word in brand pink. min-w-0 + truncate let
+            it give way rather than push the controls off-screen on narrow phones. */}
         <Link
           href="/"
-          className="text-base font-black tracking-[0.18em] uppercase"
-          style={{ fontFamily: 'var(--font-display)', color: 'var(--ink)', letterSpacing: '0.2em' }}
+          className="text-lg sm:text-xl md:text-2xl leading-none truncate min-w-0"
+          style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "var(--text)" }}
         >
-          Design That Hits
+          Design<span style={{ color: "var(--brand)", fontStyle: "italic" }}>That</span>Hits
         </Link>
 
-        {/* Desktop pill nav */}
+        {/* Desktop nav */}
         <nav aria-label="Main navigation" className="hidden md:flex">
           <div className="nav-pill">
             {navLinks.map((link) => (
@@ -46,49 +50,47 @@ export function Header() {
           </div>
         </nav>
 
-        {/* Right icons */}
-        <div className="hidden md:flex items-center gap-4">
+        {/* Right cluster — never shrinks, so the controls stay tappable */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           <a
             href="https://designthathits.etsy.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 text-sm font-semibold"
-            style={{ color: 'var(--ink)' }}
+            className="btn-cta hidden sm:inline-flex !py-2.5 !px-5 !text-[0.8125rem]"
             aria-label="Shop on Etsy"
           >
-            {/* Etsy bag icon */}
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-            </svg>
-            <span className="text-xs font-semibold tracking-wide" style={{ color: 'var(--ink-muted)' }}>Etsy Shop</span>
+            Shop on Etsy
           </a>
-          <button aria-label="Wishlist" style={{ color: 'var(--ink)' }}>
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+
+          <ThemeToggle />
+
+          {/* Mobile menu */}
+          <button
+            type="button"
+            className="icon-btn md:hidden"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-nav"
+            aria-label="Toggle navigation menu"
+          >
+            <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              {mobileOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M4 12h16M4 17h16" />
+              )}
             </svg>
           </button>
         </div>
-
-        {/* Mobile hamburger */}
-        <button
-          className="md:hidden rounded-full p-2"
-          style={{ color: 'var(--ink)' }}
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-expanded={mobileOpen}
-          aria-label="Toggle navigation menu"
-        >
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            {mobileOpen
-              ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            }
-          </svg>
-        </button>
       </div>
 
-      {/* Mobile nav */}
+      {/* Mobile nav panel */}
       {mobileOpen && (
-        <nav aria-label="Mobile navigation" className="md:hidden mt-3 rounded-2xl p-4" style={{ background: 'var(--ink)' }}>
+        <nav
+          id="mobile-nav"
+          aria-label="Mobile navigation"
+          className="md:hidden mt-3 panel p-3 mx-auto max-w-screen-xl"
+        >
           <ul className="space-y-1">
             {navLinks.map((link) => (
               <li key={link.href}>
@@ -97,8 +99,8 @@ export function Header() {
                   onClick={() => setMobileOpen(false)}
                   className="block rounded-xl px-4 py-2.5 text-sm font-medium transition-colors"
                   style={{
-                    color: pathname === link.href ? 'var(--ink)' : 'rgba(255,255,255,0.7)',
-                    background: pathname === link.href ? 'white' : 'transparent',
+                    color: pathname === link.href ? "var(--brand-ink)" : "var(--text-soft)",
+                    background: pathname === link.href ? "var(--gradient-brand)" : "transparent",
                   }}
                   aria-current={pathname === link.href ? "page" : undefined}
                 >
@@ -111,8 +113,9 @@ export function Header() {
                 href="https://designthathits.etsy.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block rounded-xl px-4 py-2.5 text-sm font-medium"
-                style={{ color: 'var(--orange)' }}
+                onClick={() => setMobileOpen(false)}
+                className="block rounded-xl px-4 py-2.5 text-sm font-semibold"
+                style={{ color: "var(--brand)" }}
               >
                 Shop on Etsy ↗
               </a>

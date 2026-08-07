@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { JsonLd } from "@/components/JsonLd";
+import { getRandomListings } from "@/lib/shop";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
 
@@ -8,6 +10,9 @@ export const metadata: Metadata = {
   description: "Learn about Design That Hits — a print-on-demand Etsy shop specialising in unique gifts, wrapping paper, and party designs crafted to make every occasion memorable.",
   alternates:  { canonical: `${SITE_URL}/about` },
   openGraph: {
+    type:        "website",
+    locale:      "en_US",
+    siteName:    "Design That Hits",
     title:       "About Design That Hits",
     description: "Learn about Design That Hits — a print-on-demand Etsy shop specialising in unique gifts, wrapping paper, and party designs crafted to make every occasion memorable.",
     url:         `${SITE_URL}/about`,
@@ -20,7 +25,19 @@ export const metadata: Metadata = {
   },
 };
 
-export default function AboutPage() {
+/*
+  Revalidated hourly rather than rendered per request. The tile photos are chosen at
+  random, so this keeps them changing over time without giving up caching on what is
+  otherwise a static page.
+*/
+export const revalidate = 3600;
+
+export default async function AboutPage() {
+  // Chosen in the data layer, not here: React 19 requires render to be pure, so the
+  // random pick lives in getRandomListings. Safe from hydration mismatches either way
+  // because this is a server component — the selection is baked into the payload and
+  // never recomputed on the client.
+  const tilePhotos = await getRandomListings(4);
   const aboutJsonLd = {
     "@context":  "https://schema.org",
     "@type":     "AboutPage",
@@ -46,25 +63,29 @@ export default function AboutPage() {
 
       {/* Hero */}
       <section className="mx-auto max-w-screen-xl px-5 pt-6 pb-14">
+        {/* Same treatment as the home hero: themed surface plus the brand glow, rather
+            than the old fixed sand/pastel palette which fought both themes. */}
         <div
-          className="rounded-3xl px-10 py-16 md:py-20 text-center relative overflow-hidden"
-          style={{ backgroundColor: "#C8BEA8" }}
+          className="rounded-3xl px-6 sm:px-10 py-16 md:py-20 text-center relative overflow-hidden"
+          style={{ background: "var(--bg-elevated)", border: "1px solid var(--border-soft)" }}
         >
-          <div className="absolute inset-0 opacity-30" style={{
-            backgroundImage: "radial-gradient(ellipse at 20% 50%, #E8C547 0%, transparent 40%), radial-gradient(ellipse at 80% 50%, #7DC4A8 0%, transparent 40%)",
-          }} />
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ backgroundImage: "var(--gradient-hero)" }}
+            aria-hidden="true"
+          />
           <div className="relative z-10">
-            <p className="text-xs font-black uppercase tracking-widest mb-4" style={{ color: "var(--orange)", fontFamily: "var(--font-display)" }}>
+            <p className="text-xs font-black uppercase tracking-widest mb-4" style={{ color: "var(--brand)", fontFamily: "var(--font-display)" }}>
               Our Story
             </p>
             <h1
               className="text-5xl md:text-7xl font-black uppercase leading-none mb-6"
-              style={{ fontFamily: "var(--font-display)", color: "var(--ink)" }}
+              style={{ fontFamily: "var(--font-display)", color: "var(--text)" }}
             >
               Crafted to make<br />every moment<br />
-              <span style={{ color: "var(--orange)" }}>Memorable.</span>
+              <span style={{ color: "var(--brand)" }}>Memorable.</span>
             </h1>
-            <p className="text-base max-w-xl mx-auto" style={{ color: "var(--ink-soft)" }}>
+            <p className="text-base max-w-xl mx-auto" style={{ color: "var(--text-soft)" }}>
               We believe the little things — the wrapping paper, the party decoration — are what people remember most.
             </p>
           </div>
@@ -73,27 +94,64 @@ export default function AboutPage() {
 
       <div className="mx-auto max-w-screen-xl px-5 pb-16">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-14">
+          {/*
+            These used to sit on hardcoded pastel backgrounds (#E8C547, #7DC4A8 …) with
+            themed foreground colours on top. In the dark theme that put near-white text
+            on pale yellow — 1.55:1, where WCAG AA needs 4.5:1. Using the shared panel
+            surface keeps text and background from the same palette, so contrast holds in
+            both themes.
+          */}
           {[
-            { color: "#E8C547", label: "Wrapping Paper", desc: "Stand-out patterns for every occasion" },
-            { color: "#7DC4A8", label: "Party Designs",  desc: "Banners, invites, decorations & more" },
-            { color: "#E88C6A", label: "Unique Gifts",   desc: "Thoughtful designs for people you love" },
-            { color: "#A8C4E8", label: "Print on Demand", desc: "Ordered and printed fresh, just for you" },
-          ].map((item) => (
-            <div key={item.label} className="rounded-2xl p-5 min-h-[130px] flex flex-col justify-between" style={{ backgroundColor: item.color }}>
-              <p className="font-black uppercase text-lg leading-tight" style={{ fontFamily: "var(--font-display)", color: "var(--ink)" }}>{item.label}</p>
-              <p className="text-xs leading-snug mt-2" style={{ color: "var(--ink-soft)" }}>{item.desc}</p>
+            { label: "Wrapping Paper",  desc: "Stand-out patterns for every occasion",  accent: "#FF6BA5" },
+            { label: "Party Designs",   desc: "Banners, invites, decorations & more",   accent: "#7DC4A8" },
+            { label: "Unique Gifts",    desc: "Thoughtful designs for people you love", accent: "#E8C547" },
+            { label: "Print on Demand", desc: "Ordered and printed fresh, just for you", accent: "#8FB4F0" },
+          ].map((item, i) => {
+            const photo = tilePhotos[i]?.image?.url ?? null;
+            return (
+            <div
+              key={item.label}
+              className="about-tile panel p-5 min-h-[300px] flex flex-col justify-between"
+              // Consumed by .about-tile's glow, dot and hover border in globals.css.
+              style={{ ["--tile-accent" as string]: item.accent }}
+            >
+              {photo && (
+                <Image
+                  src={photo}
+                  // Decorative: the tile's own heading already names the category, so
+                  // announcing the product behind it would just add noise.
+                  alt=""
+                  fill
+                  sizes="(max-width: 768px) 50vw, 25vw"
+                  className="about-tile__media"
+                />
+              )}
+              <span className="about-tile__scrim" aria-hidden="true" />
+              <span className="about-tile__dot" aria-hidden="true" />
+              <div className="about-tile__content mt-4">
+                <p
+                  className="text-lg leading-tight"
+                  style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "var(--text)" }}
+                >
+                  {item.label}
+                </p>
+                <p className="text-xs leading-snug mt-1.5" style={{ color: "var(--text-soft)" }}>
+                  {item.desc}
+                </p>
+              </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="max-w-2xl">
-          <h2 className="text-4xl font-black uppercase mb-4" style={{ fontFamily: "var(--font-display)", color: "var(--ink)" }}>
+          <h2 className="text-4xl font-black uppercase mb-4" style={{ fontFamily: "var(--font-display)", color: "var(--text)" }}>
             Where It All Began
           </h2>
-          <p className="text-base leading-relaxed mb-4" style={{ color: "var(--ink-muted)" }}>
+          <p className="text-base leading-relaxed mb-4" style={{ color: "var(--text-muted)" }}>
             Design That Hits was born from a love of bold, meaningful design. We started with a simple belief: the wrapping is part of the gift, and every party deserves something that looks as good as it feels.
           </p>
-          <p className="text-base leading-relaxed mb-8" style={{ color: "var(--ink-muted)" }}>
+          <p className="text-base leading-relaxed mb-8" style={{ color: "var(--text-muted)" }}>
             Our designs are print-on-demand — ordered when you need them, printed fresh and shipped directly. Every piece is made to be noticed, remembered, and treasured.
           </p>
           <a

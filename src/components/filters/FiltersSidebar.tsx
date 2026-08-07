@@ -1,8 +1,8 @@
 "use client";
 
-import type { ShopSection } from "@/types/etsy";
-
-const BADGE_COLORS = ['#E8C547','#7DC4A8','#E88C6A','#A8C4E8','#C8A8E8','#E8A8B8','#C4D4A0','#F0C090'];
+import type { FacetGroups, ShopSection } from "@/types/etsy";
+import type { FacetKey } from "@/lib/query";
+import { FacetGroup } from "./FacetGroup";
 
 interface FiltersSidebarProps {
   sections: ShopSection[];
@@ -10,9 +10,26 @@ interface FiltersSidebarProps {
   onToggle: (id: number) => void;
   onClear: () => void;
   hasFilters: boolean;
+  /** Secondary filter groups with counts. */
+  facets: FacetGroups;
+  selectedTypes: string[];
+  selectedThemes: string[];
+  selectedPriceBands: string[];
+  onFacetToggle: (key: FacetKey, optionId: string) => void;
 }
 
-export function FiltersSidebar({ sections, selectedIds, onToggle, onClear, hasFilters }: FiltersSidebarProps) {
+export function FiltersSidebar({
+  sections,
+  selectedIds,
+  onToggle,
+  onClear,
+  hasFilters,
+  facets,
+  selectedTypes,
+  selectedThemes,
+  selectedPriceBands,
+  onFacetToggle,
+}: FiltersSidebarProps) {
   const selectedSet = new Set(selectedIds);
 
   return (
@@ -20,7 +37,7 @@ export function FiltersSidebar({ sections, selectedIds, onToggle, onClear, hasFi
       <div className="flex items-center justify-between mb-5">
         <p
           className="text-xs font-black uppercase tracking-widest"
-          style={{ fontFamily: 'var(--font-display)', color: 'var(--ink)', fontSize: '0.85rem' }}
+          style={{ fontFamily: 'var(--font-display)', color: 'var(--text)', fontSize: '0.85rem' }}
         >
           Filters
         </p>
@@ -28,7 +45,7 @@ export function FiltersSidebar({ sections, selectedIds, onToggle, onClear, hasFi
           <button
             onClick={onClear}
             className="text-xs font-semibold underline underline-offset-2"
-            style={{ color: 'var(--orange)' }}
+            style={{ color: 'var(--brand)' }}
           >
             Clear all
           </button>
@@ -36,17 +53,19 @@ export function FiltersSidebar({ sections, selectedIds, onToggle, onClear, hasFi
       </div>
 
       {selectedIds.length > 0 && (
-        <p className="mb-4 text-xs font-medium px-3 py-2 rounded-xl" style={{ backgroundColor: 'var(--cream-dark)', color: 'var(--ink-soft)' }}>
+        <p className="mb-4 text-xs font-medium px-3 py-2 rounded-xl" style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text-soft)' }}>
           {selectedIds.length === 1 ? '1 category selected' : `${selectedIds.length} categories selected`}
         </p>
       )}
 
-      <fieldset>
-        <legend className="text-xs font-black uppercase tracking-wider mb-3" style={{ color: 'var(--ink-muted)', fontFamily: 'var(--font-display)' }}>
+      {/* Categories come from real Etsy shop sections. Hidden entirely when the shop
+          has none, rather than showing an empty group. */}
+      <fieldset className={sections.length === 0 ? "hidden" : undefined}>
+        <legend className="text-xs font-black uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-display)' }}>
           Categories
         </legend>
         <div className="space-y-1">
-          {sections.map((section, i) => {
+          {sections.map((section) => {
             const checked = selectedSet.has(section.id);
             const id = `sidebar-section-${section.id}`;
             return (
@@ -54,9 +73,15 @@ export function FiltersSidebar({ sections, selectedIds, onToggle, onClear, hasFi
                 key={section.id}
                 htmlFor={id}
                 className="flex items-center gap-3 cursor-pointer rounded-xl px-3 py-2 text-sm font-medium transition-colors"
+                /* Selected state used to paint a fixed pastel (#E8C547 …) behind themed
+                   text, which in dark mode meant near-white on pale yellow — the same
+                   sub-2:1 contrast failure found on the About and Contact pages. axe did
+                   not flag it here only because no Etsy sections are defined yet, so
+                   these labels never render. Using the theme surface keeps foreground and
+                   background from one palette. */
                 style={{
-                  backgroundColor: checked ? BADGE_COLORS[i % BADGE_COLORS.length] : 'transparent',
-                  color: 'var(--ink)',
+                  backgroundColor: checked ? 'var(--surface-2)' : 'transparent',
+                  color: 'var(--text)',
                 }}
               >
                 <input
@@ -64,24 +89,44 @@ export function FiltersSidebar({ sections, selectedIds, onToggle, onClear, hasFi
                   type="checkbox"
                   checked={checked}
                   onChange={() => onToggle(section.id)}
-                  className="h-3.5 w-3.5 rounded cursor-pointer"
-                  style={{ accentColor: 'var(--ink)' }}
+                  className="h-4 w-4 rounded cursor-pointer flex-shrink-0"
+                  style={{ accentColor: 'var(--brand)' }}
                   aria-label={`Filter by ${section.title}`}
                 />
                 <span className="flex-1 truncate">{section.title}</span>
                 {section.count > 0 && (
-                  <span className="text-xs flex-shrink-0 font-medium" style={{ color: checked ? 'var(--ink-soft)' : 'var(--ink-muted)' }}>
+                  <span className="text-xs flex-shrink-0 font-medium" style={{ color: checked ? 'var(--text-soft)' : 'var(--text-muted)' }}>
                     {section.count}
                   </span>
                 )}
               </label>
             );
           })}
-          {sections.length === 0 && (
-            <p className="text-xs px-2" style={{ color: 'var(--ink-muted)' }}>No categories available</p>
-          )}
         </div>
       </fieldset>
+
+      <FacetGroup
+        legend="Product Type"
+        options={facets.productTypes}
+        selected={selectedTypes}
+        onToggle={(id) => onFacetToggle("types", id)}
+      />
+
+      <FacetGroup
+        legend="Theme"
+        options={facets.themes}
+        selected={selectedThemes}
+        onToggle={(id) => onFacetToggle("themes", id)}
+        collapseAfter={6}
+      />
+
+      <FacetGroup
+        legend="Price"
+        options={facets.priceBands}
+        selected={selectedPriceBands}
+        onToggle={(id) => onFacetToggle("priceBands", id)}
+        collapseAfter={99}
+      />
     </div>
   );
 }

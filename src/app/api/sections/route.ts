@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getShopSections } from "@/lib/etsy";
+import { getShopSections } from "@/lib/shop";
 
 export const runtime = "nodejs";
 

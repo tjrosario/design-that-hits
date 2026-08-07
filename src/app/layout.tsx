@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { ThemeScript } from "@/components/ThemeScript";
 
 const SITE_URL  = process.env.NEXT_PUBLIC_SITE_URL  ?? "https://designthathits.com";
 const SITE_NAME = "Design That Hits";
@@ -134,21 +135,31 @@ export const viewport: Viewport = {
   width:         "device-width",
   initialScale:  1,
   maximumScale:  5,
-  themeColor:    [
-    { media: "(prefers-color-scheme: light)", color: "#F2E9D8" },
-    { media: "(prefers-color-scheme: dark)",  color: "#1A1814" },
+  // Matches the two theme backgrounds so the mobile browser chrome blends in.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FFF8FB" },
+    { media: "(prefers-color-scheme: dark)", color: "#121013" },
   ],
-  colorScheme: "light",
+  colorScheme: "dark light",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning is required and narrow in scope: ThemeScript sets
+    // data-theme on this element before React hydrates, so the attribute legitimately
+    // differs from what the server rendered. It suppresses the warning for <html>'s own
+    // attributes only, not for any content inside.
+    <html lang="en" data-theme="dark" suppressHydrationWarning>
+      {/* In <head> deliberately: the theme attribute has to be set during HTML parsing,
+          before the first paint, or light-theme visitors see a dark flash. */}
+      <head>
+        <ThemeScript />
+      </head>
       <body className="min-h-screen antialiased">
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:rounded focus:px-4 focus:py-2 focus:text-white focus:outline-none"
-          style={{ backgroundColor: "var(--orange)" }}
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:rounded focus:px-4 focus:py-2 focus:outline-none"
+          style={{ backgroundColor: "var(--brand)", color: "var(--brand-ink)" }}
         >
           Skip to main content
         </a>

@@ -2,8 +2,6 @@
 
 import type { ShopSection } from "@/types/etsy";
 
-const BADGE_COLORS = ['#E8C547','#7DC4A8','#E88C6A','#A8C4E8','#C8A8E8','#E8A8B8','#C4D4A0','#F0C090'];
-
 interface CategoryChipsProps {
   sections: ShopSection[];
   selectedIds: number[];
@@ -24,24 +22,23 @@ export function CategoryChips({ sections, selectedIds, onToggle }: CategoryChips
       >
         All
       </button>
-      {sections.map((section, i) => {
+      {sections.map((section) => {
         const isSelected = selectedSet.has(section.id);
         return (
           <button
             key={section.id}
             onClick={() => onToggle(section.id)}
             aria-pressed={isSelected}
-            className="filter-pill flex items-center gap-1.5 whitespace-nowrap"
-            style={isSelected ? {
-              background: BADGE_COLORS[i % BADGE_COLORS.length],
-              borderColor: BADGE_COLORS[i % BADGE_COLORS.length],
-              color: 'var(--ink)',
-            } : {}}
+            /* `.filter-pill.active` already carries the brand gradient with
+               --brand-ink on top, a pairing that is contrast-checked. The previous fixed
+               pastel backgrounds put themed text on an unthemed colour and failed WCAG
+               AA in dark mode. */
+            className={`filter-pill flex items-center gap-1.5 whitespace-nowrap ${isSelected ? 'active' : ''}`}
           >
             {isSelected && (
               <span
                 className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ backgroundColor: 'var(--ink)', opacity: 0.5 }}
+                style={{ backgroundColor: 'currentColor', opacity: 0.65 }}
               />
             )}
             {section.title}

@@ -2,10 +2,12 @@
 
 import { useState, useCallback, useTransition } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import type { ShopSection, Listing } from "@/types/etsy";
+import type { FacetGroups, ShopSection, Listing } from "@/types/etsy";
+import type { FacetKey } from "@/lib/query";
 import {
   parseQuery, serializeQuery,
-  applyPillChange, applySortChange, applySectionToggle, clearFilters,
+  applyPillChange, applySortChange, applySectionToggle, applyFacetToggle,
+  clearFilters, hasActiveFilters,
 } from "@/lib/query";
 import { SearchBar } from "@/components/filters/SearchBar";
 import { SegmentedPills } from "@/components/filters/SegmentedPills";
@@ -25,11 +27,12 @@ interface InitialData {
 
 interface ShopFrontProps {
   sections: ShopSection[];
+  facets: FacetGroups;
   initialParams: Record<string, string>;
   initialData: InitialData | null;
 }
 
-export function ShopFront({ sections, initialParams, initialData }: ShopFrontProps) {
+export function ShopFront({ sections, facets, initialParams, initialData }: ShopFrontProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
@@ -54,45 +57,74 @@ export function ShopFront({ sections, initialParams, initialData }: ShopFrontPro
   const handleSection = useCallback((id: number)         => navigate(applySectionToggle(parsed, id)), [navigate, parsed]);
   const handleClear   = useCallback(()                   => navigate(clearFilters(parsed)), [navigate, parsed]);
   const handlePage    = useCallback((page: number)       => navigate({ ...parsed, page }), [navigate, parsed]);
+  const handleFacet   = useCallback(
+    (key: FacetKey, optionId: string) => navigate(applyFacetToggle(parsed, key, optionId)),
+    [navigate, parsed]
+  );
 
-  const hasFilters = parsed.q !== "" || parsed.sectionIds.length > 0;
+  const hasFilters = hasActiveFilters(parsed);
 
-  const sectionLabel =
-    parsed.pill === "best"     ? "BEST SELLERS" :
-    parsed.pill === "trending" ? "TRENDING NOW" :
-    parsed.pill === "new"      ? "NEW ARRIVALS" :
-    "MAKE EVERY DESIGN MEMORABLE";
+  // Badge on the mobile Filters button. Counts every ticked box across all groups so it
+  // reflects what the drawer actually holds, not just the categories.
+  const activeFilterCount =
+    parsed.sectionIds.length +
+    parsed.types.length +
+    parsed.themes.length +
+    parsed.priceBands.length;
+
+  // Heading splits into a plain lead and an accented word, matching the display style
+  // used across the site ("Best <em>Sellers</em>").
+  const [headingLead, headingAccent] =
+    parsed.pill === "best"     ? ["Best", "Sellers"] :
+    parsed.pill === "trending" ? ["Trending", "Now"] :
+    parsed.pill === "new"      ? ["New", "Arrivals"] :
+    ["Best Designs", "For You"];
 
   return (
-    <div className="mx-auto max-w-screen-xl px-5 py-10">
-      {/* Section heading — Prismora-style bold headline */}
-      <div className="mb-8 text-center">
-        <h2
-          className="text-4xl md:text-5xl font-black uppercase"
-          style={{ fontFamily: 'var(--font-display)', color: 'var(--ink)', letterSpacing: '-0.01em' }}
-        >
-          {sectionLabel}
+    <div className="mx-auto max-w-screen-xl px-4 sm:px-5 py-10 sm:py-14">
+      <div className="mb-8 sm:mb-10 text-center">
+        <p className="eyebrow mb-3">The full collection</p>
+        <h2 className="display-title" style={{ fontSize: "clamp(1.9rem, 4.5vw, 3rem)" }}>
+          {headingLead} <span className="display-accent">{headingAccent}</span>
         </h2>
       </div>
 
-      <div className="flex gap-8">
+      <div className="flex gap-6 xl:gap-8">
         {/* Sidebar - desktop */}
-        <aside className="hidden lg:block w-56 flex-shrink-0">
-          <div className="sticky top-[73px] max-h-[calc(100vh-90px)] overflow-y-auto pr-1">
+        {/*
+          A <section> with a label, not an <aside>. <aside> is the complementary landmark,
+          and a complementary landmark nested inside <main> is a WCAG structure failure
+          (axe: landmark-complementary-is-top-level) — complementary content is meant to
+          sit alongside main, not within it. These filters belong to the product list, so
+          a labelled region is the correct role.
+        */}
+        <section
+          aria-label="Filter products"
+          className="hidden lg:block w-60 xl:w-64 flex-shrink-0"
+        >
+          <div className="sticky top-[84px] max-h-[calc(100vh-104px)] overflow-y-auto pr-1 scrollbar-hide">
             <FiltersSidebar
               sections={sections}
               selectedIds={parsed.sectionIds}
               onToggle={handleSection}
               onClear={handleClear}
               hasFilters={hasFilters}
+              facets={facets}
+              selectedTypes={parsed.types}
+              selectedThemes={parsed.themes}
+              selectedPriceBands={parsed.priceBands}
+              onFacetToggle={handleFacet}
             />
           </div>
-        </aside>
+        </section>
 
         <div className="flex-1 min-w-0">
           {/* Controls */}
           <div className="flex flex-col gap-3 mb-6">
-            <div className="flex items-center gap-2.5">
+            {/* Wraps rather than overflowing: at 320px the Filters button, search field
+                and sort select cannot sit on one line, and without wrapping the select
+                pushed the whole page into horizontal scroll. */}
+            <div className="flex flex-wrap items-center gap-2.5">
               <button
                 onClick={() => setDrawerOpen(true)}
                 className="lg:hidden filter-pill flex items-center gap-2"
@@ -102,13 +134,21 @@ export function ShopFront({ sections, initialParams, initialData }: ShopFrontPro
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4h18M7 12h10M11 20h2" />
                 </svg>
                 Filters
-                {parsed.sectionIds.length > 0 && (
-                  <span className="rounded-full w-4 h-4 flex items-center justify-center text-white text-[9px] font-black" style={{ backgroundColor: 'var(--orange)' }}>
-                    {parsed.sectionIds.length}
+                {activeFilterCount > 0 && (
+                  <span
+                    className="rounded-full w-4 h-4 flex items-center justify-center text-[9px] font-bold"
+                    style={{ background: 'var(--gradient-brand)', color: 'var(--brand-ink)' }}
+                  >
+                    {activeFilterCount}
                   </span>
                 )}
               </button>
-              <div className="flex-1"><SearchBar value={parsed.q} onSearch={handleSearch} /></div>
+              {/* order-first pulls search above the Filters/Sort controls on phones,
+                  where w-full gives it its own full-width line. From sm up it returns to
+                  the same row and simply takes the leftover space. */}
+              <div className="w-full order-first sm:order-none sm:w-auto sm:flex-1 sm:min-w-[150px]">
+                <SearchBar value={parsed.q} onSearch={handleSearch} />
+              </div>
               <SortDropdown value={parsed.sort} onChange={handleSort} />
             </div>
             <SegmentedPills value={parsed.pill} onChange={handlePill} />
@@ -133,6 +173,11 @@ export function ShopFront({ sections, initialParams, initialData }: ShopFrontPro
         onToggle={handleSection}
         onClear={handleClear}
         hasFilters={hasFilters}
+        facets={facets}
+        selectedTypes={parsed.types}
+        selectedThemes={parsed.themes}
+        selectedPriceBands={parsed.priceBands}
+        onFacetToggle={handleFacet}
       />
     </div>
   );

@@ -4,11 +4,6 @@ import type { Listing } from "@/types/etsy";
 import { ProductCard } from "./ProductCard";
 import { ProductCardSkeleton } from "./ProductCardSkeleton";
 
-const BADGE_COLORS = [
-  '#E8C547','#7DC4A8','#E88C6A','#A8C4E8',
-  '#C8A8E8','#E8A8B8','#C4D4A0','#F0C090',
-];
-
 interface ProductGridProps {
   listings: Listing[];
   loading: boolean;
@@ -22,11 +17,11 @@ export function ProductGrid({ listings, loading, error, onClear }: ProductGridPr
       <div className="flex flex-col items-center justify-center py-24 text-center" role="alert">
         <p
           className="text-4xl font-black uppercase mb-2"
-          style={{ fontFamily: 'var(--font-display)', color: 'var(--ink)' }}
+          style={{ fontFamily: 'var(--font-display)', color: 'var(--text)' }}
         >
           Something went wrong
         </p>
-        <p className="text-sm mb-6 max-w-sm" style={{ color: 'var(--ink-muted)' }}>{error}</p>
+        <p className="text-sm mb-6 max-w-sm" style={{ color: 'var(--text-muted)' }}>{error}</p>
         <a
           href="https://designthathits.etsy.com"
           target="_blank"
@@ -47,7 +42,7 @@ export function ProductGrid({ listings, loading, error, onClear }: ProductGridPr
   if (loading) {
     return (
       <div
-        className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4"
+        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4"
         aria-busy="true"
         aria-label="Loading products"
       >
@@ -61,11 +56,11 @@ export function ProductGrid({ listings, loading, error, onClear }: ProductGridPr
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <p
           className="text-4xl font-black uppercase mb-2"
-          style={{ fontFamily: 'var(--font-display)', color: 'var(--ink)' }}
+          style={{ fontFamily: 'var(--font-display)', color: 'var(--text)' }}
         >
           No Results
         </p>
-        <p className="text-sm mb-6" style={{ color: 'var(--ink-muted)' }}>
+        <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
           Try adjusting your search or filters.
         </p>
         <button onClick={onClear} className="filter-pill active">
@@ -76,10 +71,16 @@ export function ProductGrid({ listings, loading, error, onClear }: ProductGridPr
   }
 
   return (
-    <ul className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4" aria-label={`${listings.length} products`}>
-      {listings.map((listing, i) => (
-        <li key={listing.id}>
-          <ProductCard listing={listing} badgeColor={BADGE_COLORS[i % BADGE_COLORS.length]} />
+    // Single column on phones: at two-up the cards are too small for the artwork to
+    // read, which is the whole point of the product.
+    <ul
+      className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4"
+      aria-label={`${listings.length} products`}
+    >
+      {listings.map((listing) => (
+        // product-zone is the stationary hover target; the card inside it does the moving.
+        <li key={listing.id} className="product-zone">
+          <ProductCard listing={listing} />
         </li>
       ))}
     </ul>
