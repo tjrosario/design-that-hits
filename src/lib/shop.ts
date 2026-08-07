@@ -209,6 +209,49 @@ export async function getListingsForRanking(
  * Uses Fisher-Yates rather than `sort(() => Math.random() - 0.5)`, which is not a uniform
  * shuffle — comparator-based shuffles bias heavily toward the original order.
  */
+/** One tile's requirement: any listing whose derived product type is in this list. */
+export interface ListingPick {
+  /** Product type ids from lib/facets.ts, tried in order of preference. */
+  types?: string[];
+}
+
+/**
+ * Picks one listing per spec, matched to that spec's product types.
+ *
+ * The About tiles need this because they are labelled by category: a tile that says
+ * "Wrapping Paper" showing a t-shirt is simply wrong. Picking from one undifferentiated
+ * random pool, as before, made that the common case rather than the exception.
+ *
+ * Two properties matter beyond the matching itself:
+ *   - No repeats. A listing already used by an earlier spec is excluded, so four tiles
+ *     never show the same photo.
+ *   - Never empty. If a type has no products (or none left after dedupe), the spec falls
+ *     back to any unused listing. A tile with a slightly off photo beats a blank one.
+ */
+export async function getRandomListingsMatching(specs: ListingPick[]): Promise<(Listing | null)[]> {
+  // getListingsForRanking, not getListings: the latter is paginated and clamps limit to
+  // 100, so it would only ever see the 100 newest products. Smaller categories such as
+  // stationery and drinkware are older than that, so every tile but Wrapping Paper
+  // silently fell back to an unrelated product.
+  const pool = (await getListingsForRanking({})).filter((l) => l.image);
+
+  const used = new Set<number>();
+  const pickFrom = (candidates: Listing[]): Listing | null => {
+    const available = candidates.filter((l) => !used.has(l.id));
+    if (available.length === 0) return null;
+    const chosen = available[Math.floor(Math.random() * available.length)];
+    used.add(chosen.id);
+    return chosen;
+  };
+
+  return specs.map((spec) => {
+    const matching = spec.types?.length
+      ? pool.filter((l) => l.productType && spec.types!.includes(l.productType))
+      : pool;
+    return pickFrom(matching) ?? pickFrom(pool);
+  });
+}
+
 export async function getRandomListings(count: number): Promise<Listing[]> {
   const result = await getListings({ limit: 60 });
   const pool = (result.ok ? result.data.listings : []).filter((l) => l.image);

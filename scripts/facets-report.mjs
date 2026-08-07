@@ -49,6 +49,16 @@ const themeRules = parseRules("THEME_RULES");
 const listings = catalog.listings ?? [];
 const hay = (l) => `${l.title} ${(l.tags ?? []).join(" ")}`.toLowerCase();
 
+// Mirrors deriveProductType in src/lib/facets.ts: an explicit "wrapping paper" or
+// "gift wrap" in the TITLE names the product and beats motif words like "ornament";
+// otherwise the title is tried before the tags.
+const WRAPPING_PAPER_TITLE = /wrapping paper|gift ?wrap|giftwrap/i;
+function productTypeOf(l) {
+  const title = String(l.title || "").toLowerCase();
+  if (WRAPPING_PAPER_TITLE.test(title)) return typeRules.find((r) => r.id === "wrapping-paper");
+  return typeRules.find((r) => r.pattern.test(title)) || typeRules.find((r) => r.pattern.test(hay(l)));
+}
+
 console.log(`\ncatalog: ${listings.length} listings\n`);
 
 // ─── Product type (first match wins) ──────────────────────────────────────────
@@ -56,8 +66,7 @@ console.log("=== PRODUCT TYPE (exclusive, first rule wins) ===");
 const typeCounts = new Map();
 let untyped = 0;
 for (const l of listings) {
-  const h = hay(l);
-  const hit = typeRules.find((r) => r.pattern.test(h));
+  const hit = productTypeOf(l);
   if (hit) typeCounts.set(hit.label, (typeCounts.get(hit.label) ?? 0) + 1);
   else untyped++;
 }
@@ -90,7 +99,7 @@ console.log(
 );
 
 // ─── Uncategorised samples ────────────────────────────────────────────────────
-const samples = listings.filter((l) => !typeRules.some((r) => r.pattern.test(hay(l)))).slice(0, 10);
+const samples = listings.filter((l) => !productTypeOf(l)).slice(0, 10);
 if (samples.length) {
   console.log("=== sample of uncategorised products ===");
   for (const l of samples) console.log(`  ${l.title.slice(0, 78)}`);
