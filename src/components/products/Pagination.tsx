@@ -32,12 +32,20 @@ export function Pagination({
   }
 
   return (
-    // flex-wrap is load-bearing on small screens: a 16-page catalog renders ~9 number
-    // buttons plus Prev/Next, which overflows a 360px viewport and causes the whole page
-    // to scroll sideways. Wrapping keeps it contained at any width.
-    // justify-end on wide screens, centred once it wraps on narrow ones.
+    /*
+      Two layouts, not one that wraps.
+
+      A 16 page catalogue renders seven number buttons plus Prev and Next. Letting that
+      wrap on a phone produced a 166px tall block six rows deep at 320px — technically
+      contained, but unusable. Below sm the numbers are replaced by a single "8 / 16"
+      indicator and the row becomes Prev · position · Next, which fits on one line at
+      every width. From sm up the full number list returns.
+
+      Both variants are always in the DOM with CSS choosing between them, so there is no
+      viewport-dependent rendering for the server to get wrong.
+    */
     <nav
-      className={`flex flex-wrap items-center justify-center sm:justify-end gap-x-2 gap-y-2 transition-opacity ${className}`}
+      className={`flex items-center justify-between gap-2 w-full sm:w-auto sm:flex-wrap sm:justify-end sm:gap-x-2 sm:gap-y-2 transition-opacity ${className}`}
       aria-label={label}
       aria-busy={busy || undefined}
       // Faded rather than hidden while a page loads: it stays in place, keeps its size
@@ -47,12 +55,30 @@ export function Pagination({
       <button
         onClick={() => onPage(currentPage - 1)}
         disabled={currentPage === 1}
-        className="filter-pill disabled:opacity-30 disabled:cursor-not-allowed"
+        className="filter-pill disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
         aria-label="Previous page"
       >
-        ← Prev
+        <span aria-hidden="true">←</span>
+        <span className="hidden xs:inline sm:inline"> Prev</span>
       </button>
-      <div className="flex flex-wrap items-center justify-center gap-1.5">
+
+      {/*
+        Compact position readout, phones only.
+
+        Deliberately NOT aria-hidden. The numbered buttons that normally carry
+        aria-current are `hidden` below sm, and display:none removes them from the
+        accessibility tree — so on a phone this is the only thing telling a screen reader
+        user where they are. The visible "8 / 16" is hidden from assistive tech and a
+        spoken "Page 8 of 16" substituted, because a bare slash reads as noise.
+      */}
+      <span className="sm:hidden text-xs font-semibold tabular-nums" style={{ color: "var(--text-muted)" }}>
+        <span className="sr-only">Page {currentPage} of {totalPages}</span>
+        <span aria-hidden="true">
+          {currentPage} / {totalPages}
+        </span>
+      </span>
+
+      <div className="hidden sm:flex flex-wrap items-center justify-center gap-1.5">
         {pages.map((p, i) =>
           p === "..." ? (
             <span key={`e-${i}`} className="px-2 text-sm" style={{ color: 'var(--text-muted)' }}>…</span>
@@ -78,10 +104,11 @@ export function Pagination({
       <button
         onClick={() => onPage(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="filter-pill disabled:opacity-30 disabled:cursor-not-allowed"
+        className="filter-pill disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
         aria-label="Next page"
       >
-        Next →
+        <span className="hidden xs:inline sm:inline">Next </span>
+        <span aria-hidden="true">→</span>
       </button>
     </nav>
   );

@@ -6,6 +6,12 @@ module.exports = {
   ],
   theme: {
     extend: {
+      screens: {
+        // Below this, controls like the pagination buttons drop their text labels and
+        // show only their arrow. 400px covers the 320-390px phones where a full
+        // "← Prev" / "Next →" pair plus a position readout will not fit on one line.
+        xs: "400px",
+      },
       fontFamily: {
         display: ['"Playfair Display"', "Georgia", "serif"],
         body: ['"Poppins"', "system-ui", "sans-serif"],
