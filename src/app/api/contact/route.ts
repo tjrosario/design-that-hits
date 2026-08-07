@@ -1,32 +1,30 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const { name, email, message } = body;
-
-    if (!name || !email || !message) {
-      return NextResponse.json({ error: "All fields required." }, { status: 400 });
-    }
-
-    // PLACEHOLDER: Integrate with your email service here.
-    // Options: Resend, SendGrid, Nodemailer, Formspree, etc.
-    // Example with Resend:
-    // const resend = new Resend(process.env.RESEND_API_KEY);
-    // await resend.emails.send({
-    //   from: 'contact@designthathits.com',
-    //   to: process.env.CONTACT_EMAIL!,
-    //   subject: `Contact form: ${name}`,
-    //   text: `From: ${email}\n\n${message}`,
-    // });
-
-    console.log("[Contact form submission]", { name, email, message });
-
-    return NextResponse.json({ success: true });
-  } catch {
-    return NextResponse.json({ error: "Failed to send message." }, { status: 500 });
-  }
+/**
+ * Contact endpoint — intentionally disabled.
+ *
+ * This route used to accept a submission, console.log it, and return { success: true }.
+ * Nothing sent an email, so the UI told visitors their message had been delivered while
+ * it was silently dropped. Reporting success for work that did not happen is worse than
+ * having no endpoint at all: real enquiries were lost with no signal to anyone.
+ *
+ * It now refuses every request with 503 and points at the channels that actually work.
+ * The contact page no longer renders a form, so nothing in the app calls this; the 503
+ * exists for anything holding a stale reference, such as a cached page or a bookmarked
+ * POST.
+ *
+ * To re-enable: wire an email provider (Resend, SendGrid, Nodemailer) here, restore
+ * <ContactForm /> on src/app/contact/page.tsx — the component is still in the repo,
+ * unchanged — and delete this note.
+ */
+export async function POST() {
+  return NextResponse.json(
+    {
+      error:
+        "The contact form is temporarily unavailable. Please email hello@designthathits.com or message us on Etsy.",
+    },
+    { status: 503 }
+  );
 }
