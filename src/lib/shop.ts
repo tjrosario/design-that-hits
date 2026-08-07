@@ -50,6 +50,42 @@ function rssEnabled(): boolean {
   return process.env.SHOP_DISABLE_RSS !== "1";
 }
 
+// ─── Etsy circuit breaker ─────────────────────────────────────────────────────
+
+/**
+ * The Etsy API is treated as an enhancement, never a single point of failure.
+ *
+ * This exists because of a real outage: a stale ETSY_API_KEY left over in the deploy
+ * environment made `auto` resolve to the Etsy source, every request failed against the
+ * denied key, and /api/listings returned 502 — even though a complete local catalog was
+ * sitting right there. Falling back is strictly better than erroring when we hold the
+ * data ourselves.
+ *
+ * The cooldown matters as much as the fallback. etsyFetch retries with backoff, so
+ * without it every single request would burn several seconds discovering the same
+ * failure before serving the catalog. One failure parks the source for five minutes,
+ * long enough to stay fast and short enough to recover from a transient outage on its
+ * own.
+ */
+const ETSY_COOLDOWN_MS = 5 * 60_000;
+let etsyDownUntil = 0;
+
+function etsyUsable(): boolean {
+  return resolveDataSource() === "etsy" && Date.now() >= etsyDownUntil;
+}
+
+function markEtsyDown(code: string, message: string): void {
+  const firstFailure = Date.now() >= etsyDownUntil;
+  etsyDownUntil = Date.now() + ETSY_COOLDOWN_MS;
+  if (firstFailure) {
+    console.error(
+      `[shop] Etsy API unavailable (${code}: ${message}). Serving the local catalog and ` +
+        `skipping Etsy for ${ETSY_COOLDOWN_MS / 60_000} minutes. ` +
+        `If the key is no longer valid, unset ETSY_API_KEY or set SHOP_DATA_SOURCE=catalog.`
+    );
+  }
+}
+
 // ─── RSS overlay ──────────────────────────────────────────────────────────────
 
 /**
@@ -116,14 +152,24 @@ async function getMergedListings(): Promise<Listing[]> {
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export async function getShopSections(): Promise<ShopSection[]> {
-  if (resolveDataSource() === "etsy") return etsySource.getShopSections();
+  if (etsyUsable()) {
+    const sections = await etsySource.getShopSections();
+    // This one returns [] rather than a Result on failure, so an empty list is the only
+    // available signal. Falling through costs nothing: if the shop genuinely has no
+    // sections, the catalog returns an empty list too.
+    if (sections.length > 0) return sections;
+  }
   return catalogSource.getShopSections();
 }
 
 export async function getListings(
   opts: ListingsQueryOptions = {}
 ): Promise<ShopResult<FetchListingsResult>> {
-  if (resolveDataSource() === "etsy") return etsySource.getListings(opts);
+  if (etsyUsable()) {
+    const result = await etsySource.getListings(opts);
+    if (result.ok) return result;
+    markEtsyDown(result.error.code, result.error.message);
+  }
   return catalogSource.getListings(opts, await getMergedListings());
 }
 
@@ -132,8 +178,9 @@ export async function getListingsForRanking(
 ): Promise<Listing[]> {
   // The Etsy API can only narrow by section; the richer facets are a local-catalog
   // capability, so that path just ignores them.
-  if (resolveDataSource() === "etsy") {
-    return etsySource.getListingsForRanking(opts.sectionIds);
+  if (etsyUsable()) {
+    const listings = await etsySource.getListingsForRanking(opts.sectionIds);
+    if (listings.length > 0) return listings;
   }
   return catalogSource.getListingsForRanking(opts, await getMergedListings());
 }
@@ -164,8 +211,12 @@ export async function getRandomListings(count: number): Promise<Listing[]> {
 
 /** Secondary filter groups with counts, for the filter UI. */
 export async function getFacetGroups(): Promise<FacetGroups> {
-  if (resolveDataSource() === "etsy") {
-    // No catalog to derive facets from, so the UI renders sections only.
+  // Gated on etsyUsable rather than resolveDataSource so it stays consistent with
+  // getListings: the moment Etsy is marked down and catalog listings are being served,
+  // the facets that filter them appear too. Facets are a catalog capability — the Etsy
+  // API cannot narrow by them — so offering them alongside Etsy results would render
+  // controls that silently do nothing.
+  if (etsyUsable()) {
     return { productTypes: [], themes: [], priceBands: [] };
   }
   return catalogSource.getFacetGroups(await getMergedListings());
