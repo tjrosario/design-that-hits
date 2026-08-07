@@ -39,7 +39,11 @@ function recencyBoost(timestamp: number): number {
 export function rankBestSellers(listings: Listing[]): Listing[] {
   return [...listings].sort((a, b) => {
     if (b.numFavorers !== a.numFavorers) return b.numFavorers - a.numFavorers;
-    return b.views - a.views;
+    if (b.views !== a.views) return b.views - a.views;
+    // Final tiebreak on recency. This matters for the local catalog source, where
+    // favourites/views are 0 unless filled in by hand — without it every listing ties
+    // and the "order" is whatever the input array happened to be.
+    return b.createdAt - a.createdAt;
   });
 }
 
@@ -51,7 +55,9 @@ export function rankTrending(listings: Listing[]): Listing[] {
     return { ...l, score };
   });
 
-  return scored.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  return scored.sort(
+    (a, b) => (b.score ?? 0) - (a.score ?? 0) || b.createdAt - a.createdAt
+  );
 }
 
 export function rankNewest(listings: Listing[]): Listing[] {

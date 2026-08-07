@@ -36,28 +36,23 @@ const PAGE_SIZE = 24;
 
 // ─── Result type ──────────────────────────────────────────────────────────────
 
-export type EtsyErrorCode =
-  | "MISSING_API_KEY"   // ETSY_API_KEY env var not set
-  | "RATE_LIMITED"      // 429 after all retries
-  | "NOT_FOUND"         // 404 — shop/section doesn't exist
-  | "API_ERROR"         // Other non-2xx from Etsy
-  | "NETWORK_ERROR"     // fetch() threw (DNS, timeout, etc.)
-  | "UNKNOWN";          // Unexpected
+// These moved to types/shop.ts when the Etsy API stopped being the only data source,
+// so lib/catalog.ts could return the same shapes. Re-exported under the original names
+// because existing callers import them from here.
+import {
+  makeShopError,
+  type FetchListingsResult,
+  type ListingsQueryOptions,
+  type ShopError,
+  type ShopErrorCode,
+  type ShopResult,
+} from "@/types/shop";
 
-export interface EtsyError {
-  code: EtsyErrorCode;
-  message: string;
-  /** HTTP status if available */
-  status?: number;
-}
+export type EtsyErrorCode = ShopErrorCode;
+export type EtsyError = ShopError;
+export type EtsyResult<T> = ShopResult<T>;
 
-export type EtsyResult<T> =
-  | { ok: true;  data: T }
-  | { ok: false; error: EtsyError };
-
-function makeError(code: EtsyErrorCode, message: string, status?: number): EtsyError {
-  return { code, message, status };
-}
+const makeError = makeShopError;
 
 // ─── Internal fetch with retry/backoff ───────────────────────────────────────
 
@@ -198,19 +193,8 @@ export async function getShopSections(): Promise<ShopSection[]> {
 
 // ─── Listings ─────────────────────────────────────────────────────────────────
 
-export interface ListingsQueryOptions {
-  q?: string;
-  sectionIds?: number[];
-  sortOn?: "created" | "price" | "score";
-  sortOrder?: "asc" | "desc";
-  page?: number;
-  limit?: number;
-}
-
-export interface FetchListingsResult {
-  listings: Listing[];
-  total: number;
-}
+// Shared with lib/catalog.ts so both sources are drop-in replacements for each other.
+export type { ListingsQueryOptions, FetchListingsResult } from "@/types/shop";
 
 function mapListing(raw: EtsyListing): Listing {
   const primaryImage = raw.images?.[0] ?? null;

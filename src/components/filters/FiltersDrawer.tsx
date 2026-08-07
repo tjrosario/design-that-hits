@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { ShopSection } from "@/types/etsy";
+import type { FacetGroups, ShopSection } from "@/types/etsy";
+import type { FacetKey } from "@/lib/query";
 import { FiltersSidebar } from "./FiltersSidebar";
 
 interface FiltersDrawerProps {
@@ -12,9 +13,27 @@ interface FiltersDrawerProps {
   onToggle: (id: number) => void;
   onClear: () => void;
   hasFilters: boolean;
+  facets: FacetGroups;
+  selectedTypes: string[];
+  selectedThemes: string[];
+  selectedPriceBands: string[];
+  onFacetToggle: (key: FacetKey, optionId: string) => void;
 }
 
-export function FiltersDrawer({ open, onClose, sections, selectedIds, onToggle, onClear, hasFilters }: FiltersDrawerProps) {
+export function FiltersDrawer({
+  open,
+  onClose,
+  sections,
+  selectedIds,
+  onToggle,
+  onClear,
+  hasFilters,
+  facets,
+  selectedTypes,
+  selectedThemes,
+  selectedPriceBands,
+  onFacetToggle,
+}: FiltersDrawerProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => { if (open) closeButtonRef.current?.focus(); }, [open]);
@@ -41,12 +60,12 @@ export function FiltersDrawer({ open, onClose, sections, selectedIds, onToggle, 
         aria-modal="true"
         aria-label="Filters"
         className="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col shadow-2xl"
-        style={{ backgroundColor: 'var(--cream)' }}
+        style={{ backgroundColor: 'var(--bg)' }}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: 'var(--sand)' }}>
+        <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
           <p
             className="font-black uppercase text-lg"
-            style={{ fontFamily: 'var(--font-display)', color: 'var(--ink)' }}
+            style={{ fontFamily: 'var(--font-display)', color: 'var(--text)' }}
           >
             Filters
           </p>
@@ -54,7 +73,7 @@ export function FiltersDrawer({ open, onClose, sections, selectedIds, onToggle, 
             ref={closeButtonRef}
             onClick={onClose}
             className="rounded-full p-2 transition-colors"
-            style={{ background: 'var(--cream-dark)', color: 'var(--ink)' }}
+            style={{ background: 'var(--surface-2)', color: 'var(--text)' }}
             aria-label="Close filters"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -63,9 +82,20 @@ export function FiltersDrawer({ open, onClose, sections, selectedIds, onToggle, 
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-5">
-          <FiltersSidebar sections={sections} selectedIds={selectedIds} onToggle={onToggle} onClear={onClear} hasFilters={hasFilters} />
+          <FiltersSidebar
+            sections={sections}
+            selectedIds={selectedIds}
+            onToggle={onToggle}
+            onClear={onClear}
+            hasFilters={hasFilters}
+            facets={facets}
+            selectedTypes={selectedTypes}
+            selectedThemes={selectedThemes}
+            selectedPriceBands={selectedPriceBands}
+            onFacetToggle={onFacetToggle}
+          />
         </div>
-        <div className="p-5 border-t" style={{ borderColor: 'var(--sand)' }}>
+        <div className="p-5 border-t" style={{ borderColor: 'var(--border)' }}>
           <button onClick={onClose} className="btn-cta w-full justify-center">
             View Results
             <span className="arrow-circle">

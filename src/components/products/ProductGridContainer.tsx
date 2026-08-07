@@ -45,6 +45,13 @@ export function ProductGridContainer({
   // the redundant client fetch when initialData already matches the query.
   const isFirstRender = useRef(true);
 
+  // Each filter group collapsed to a stable string. Arrays get a new identity on every
+  // render, so using them directly as effect dependencies would refetch endlessly.
+  const sectionKey = query.sectionIds.join(",");
+  const typeKey = query.types.join(",");
+  const themeKey = query.themes.join(",");
+  const priceKey = query.priceBands.join(",");
+
   useEffect(() => {
     // Skip fetching on first render if SSR data already covers this query.
     // After navigation (pill/filter/page change), always fetch.
@@ -86,26 +93,54 @@ export function ProductGridContainer({
     return () => {
       cancelled = true;
     };
+  // Every field that narrows the result set has to appear here. Omitting one leaves the
+  // grid showing stale results — which is what happened when the type/theme/price facets
+  // were added: the URL updated and the sidebar checkbox ticked, but the products never
+  // refetched, so the filters looked broken.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query.q, query.sectionIds.join(","), query.sort, query.pill, query.page]);
+  }, [query.q, sectionKey, typeKey, themeKey, priceKey, query.sort, query.pill, query.page]);
 
   const isLoading = loading || isPending;
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
 
   return (
     <div>
-      {!isLoading && data && (
-        <p
-          className="mb-6 text-xs"
-          style={{ color: "var(--light)" }}
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          {data.total === 0
-            ? "No results found"
-            : `${data.total} design${data.total !== 1 ? "s" : ""} found`}
-        </p>
-      )}
+      {/* Result count and the top pager share a row: count reads left, paging sits right,
+          which keeps the controls out of the way until they are wanted. */}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+        {!isLoading && data ? (
+          <p
+            className="text-xs"
+            style={{ color: "var(--text-muted)" }}
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {data.total === 0
+              ? "No results found"
+              : `${data.total} design${data.total !== 1 ? "s" : ""} found`}
+          </p>
+        ) : (
+          // Placeholder keeps the pager right-aligned while results are loading.
+          <span aria-hidden="true" />
+        )}
+
+        {/*
+          Deliberately not gated on isLoading. `data` holds the previous page while the
+          next one loads, so the pager can keep rendering with the same totalPages. Hiding
+          it mid-request made it vanish on every page change — the controls disappeared
+          under the cursor and the layout jumped as the row collapsed.
+        */}
+        {!error && totalPages > 1 && (
+          <Pagination
+            currentPage={query.page}
+            totalPages={totalPages}
+            onPage={onPage}
+            className="ml-auto"
+            label="Pagination (top)"
+            busy={isLoading}
+          />
+        )}
+      </div>
 
       <ProductGrid
         listings={data?.listings ?? []}
@@ -114,8 +149,15 @@ export function ProductGridContainer({
         onClear={onClear}
       />
 
-      {!isLoading && !error && totalPages > 1 && (
-        <Pagination currentPage={query.page} totalPages={totalPages} onPage={onPage} />
+      {!error && totalPages > 1 && (
+        <Pagination
+          currentPage={query.page}
+          totalPages={totalPages}
+          onPage={onPage}
+          className="mt-10 sm:mt-12"
+          label="Pagination (bottom)"
+          busy={isLoading}
+        />
       )}
     </div>
   );

@@ -23,10 +23,14 @@ export function SortDropdown({ value, onChange }: SortDropdownProps) {
         onChange={(e) => onChange(e.target.value as SortOption)}
         className="filter-pill cursor-pointer appearance-none pr-8"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231A1814' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+          // Chevron is inlined as a data URI, so it cannot use a CSS variable. currentColor
+          // is unavailable in background-image too, hence the two theme-specific rules in
+          // globals.css that swap it. Kept neutral grey so it reads on both themes.
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23948A90' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'right 10px center',
           backgroundColor: 'transparent',
+          color: 'var(--text)',
         }}
         aria-label="Sort products"
       >

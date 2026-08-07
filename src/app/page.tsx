@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { getShopSections, getListings } from "@/lib/etsy";
+import { getShopSections, getListings, getFacetGroups } from "@/lib/shop";
 import { parseQuery } from "@/lib/query";
 import { ShopFront } from "@/components/ShopFront";
 import { JsonLd } from "@/components/JsonLd";
+import { HeroCarousel } from "@/components/HeroCarousel";
 import type { Listing } from "@/types/etsy";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
@@ -47,10 +48,25 @@ export async function generateMetadata({ searchParams }: HomeProps): Promise<Met
     robots: isSearch || isFiltered
       ? { index: false, follow: true }
       : { index: true,  follow: true },
+    // A page-level `openGraph` REPLACES the one in the root layout rather than merging
+    // into it, so every field the social preview needs has to be restated here. Omitting
+    // them silently dropped og:type and og:image from the home page.
     openGraph: {
+      type: "website",
+      locale: "en_US",
+      siteName: "Design That Hits",
       title,
       description,
       url: canonicalUrl,
+      images: [
+        {
+          url: `${SITE_URL}/og-image.jpg`,
+          width: 1200,
+          height: 630,
+          alt: "Design That Hits – Unique Print-on-Demand Designs",
+          type: "image/jpeg",
+        },
+      ],
     },
   };
 }
@@ -59,13 +75,17 @@ export default async function HomePage({ searchParams }: HomeProps) {
   const params = await searchParams;
   const parsed = parseQuery(params);
 
-  const [sections, listingsResult] = await Promise.all([
+  const [sections, facets, listingsResult] = await Promise.all([
     getShopSections(),
+    getFacetGroups(),
     parsed.pill === "best" || parsed.pill === "trending"
       ? Promise.resolve(null)
       : getListings({
           q:          parsed.q || undefined,
           sectionIds: parsed.sectionIds.length > 0 ? parsed.sectionIds : undefined,
+          types:      parsed.types.length > 0 ? parsed.types : undefined,
+          themes:     parsed.themes.length > 0 ? parsed.themes : undefined,
+          priceBands: parsed.priceBands.length > 0 ? parsed.priceBands : undefined,
           sortOn:     parsed.sort === "price_asc" || parsed.sort === "price_desc" ? "price" : "created",
           sortOrder:  parsed.sort === "price_asc" ? "asc" : "desc",
           page:       parsed.page,
@@ -78,9 +98,16 @@ export default async function HomePage({ searchParams }: HomeProps) {
       ? { listings: listingsResult.data.listings, total: listingsResult.data.total, page: parsed.page, pageSize: 24 }
       : null;
 
+  // Hero products are fetched independently of the grid. Sourcing them from initialData
+  // meant the hero went blank on the Best Sellers / Trending routes, where initialData is
+  // deliberately null so the grid can rank on the client.
+  const heroResult = await getListings({ limit: 12, sortOn: "created", sortOrder: "desc" });
+  const heroListings = (heroResult.ok ? heroResult.data.listings : [])
+    .filter((l) => l.image)
+    .slice(0, 8);
+
   // ── JSON-LD: WebSite with SearchAction ────────────────────────────────────
   const websiteJsonLd = {
-    "@context": "https://schema.org",
     "@type":    "WebSite",
     "@id":      `${SITE_URL}/#website`,
     name:        "Design That Hits",
@@ -96,7 +123,6 @@ export default async function HomePage({ searchParams }: HomeProps) {
 
   // ── JSON-LD: Organization ─────────────────────────────────────────────────
   const orgJsonLd = {
-    "@context":   "https://schema.org",
     "@type":      "Organization",
     "@id":        `${SITE_URL}/#organization`,
     name:          "Design That Hits",
@@ -121,7 +147,6 @@ export default async function HomePage({ searchParams }: HomeProps) {
 
   // ── JSON-LD: CollectionPage + ItemList of products ────────────────────────
   const collectionJsonLd: Record<string, unknown> = {
-    "@context":   "https://schema.org",
     "@type":      "CollectionPage",
     "@id":        `${SITE_URL}/#collection`,
     name:          "Design That Hits – Product Catalog",
@@ -158,7 +183,6 @@ export default async function HomePage({ searchParams }: HomeProps) {
 
   // ── JSON-LD: BreadcrumbList ───────────────────────────────────────────────
   const breadcrumbJsonLd = {
-    "@context":  "https://schema.org",
     "@type":     "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
@@ -167,127 +191,180 @@ export default async function HomePage({ searchParams }: HomeProps) {
 
   return (
     <>
-      <JsonLd data={websiteJsonLd} />
-      <JsonLd data={orgJsonLd} />
-      <JsonLd data={collectionJsonLd} />
-      <JsonLd data={breadcrumbJsonLd} />
+      {/*
+        All structured data goes out as a single @graph rather than four separate
+        <script> tags. Same meaning to crawlers — the entities already cross-reference
+        each other by @id — but one inline script instead of four, which is both cleaner
+        HTML and less React dev-console noise about scripts inside components.
+      */}
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@graph": [websiteJsonLd, orgJsonLd, collectionJsonLd, breadcrumbJsonLd],
+        }}
+      />
 
-      {/* Hero */}
-      <section className="mx-auto max-w-screen-xl px-5 pb-6">
+      {/* Hero — text first on mobile, side-by-side from md up */}
+      <section className="mx-auto max-w-screen-xl px-4 sm:px-5 pt-4 pb-8 sm:pb-10">
         <div
-          className="relative overflow-hidden rounded-3xl flex flex-col md:flex-row"
-          style={{ backgroundColor: "#C8BEA8", minHeight: "460px" }}
+          className="relative overflow-hidden rounded-[26px] sm:rounded-[32px] flex flex-col md:flex-row md:items-stretch md:min-h-[520px]"
+          style={{
+            background: "var(--bg-elevated)",
+            border: "1px solid var(--border-soft)",
+          }}
         >
-          {/* Background gradient */}
+          {/* Brand glow. Purely decorative, so it is hidden from assistive tech and
+              never intercepts pointer events. */}
           <div
-            className="absolute inset-0 opacity-20 pointer-events-none"
-            style={{
-              backgroundImage:
-                "radial-gradient(ellipse at 30% 50%, #E8DCC8 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, #D4C4A8 0%, transparent 50%)",
-            }}
+            className="absolute inset-0 pointer-events-none"
+            style={{ backgroundImage: "var(--gradient-hero)" }}
+            aria-hidden="true"
           />
 
-          {/* Decorative colour blocks — hidden on mobile, shown md+ */}
-          <div className="hidden md:flex md:w-[52%] relative items-end self-stretch overflow-hidden">
-            <div className="absolute bottom-0 left-8 w-44 h-60 rounded-2xl opacity-60"  style={{ backgroundColor: "#7DC4A8" }} />
-            <div className="absolute bottom-0 left-36 w-40 h-72 rounded-2xl opacity-70" style={{ backgroundColor: "#2C2820" }} />
-            <div className="absolute bottom-0 left-20 w-44 h-64 rounded-2xl"            style={{ backgroundColor: "#E8C070" }} />
-            <div
-              className="absolute bottom-6 left-1/2 -translate-x-1/2 text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap z-10"
-              style={{ background: "rgba(255,255,255,0.35)", color: "var(--ink)", backdropFilter: "blur(8px)" }}
-            >
-              📸 Add hero image in page.tsx
-            </div>
-          </div>
+          {/* Text */}
+          <div className="relative z-10 flex flex-col justify-center w-full md:w-[55%] px-6 py-12 sm:px-9 sm:py-14 md:px-12 md:py-20">
+            <p className="eyebrow mb-4 sm:mb-5 fade-up">The Special Taste</p>
 
-          {/* Text content — full width on mobile, right half on md+ */}
-          <div className="relative z-10 flex flex-col justify-center w-full md:w-[48%] px-7 py-12 md:px-10 md:py-16">
-            <p className="text-xs font-semibold uppercase tracking-widest mb-4 fade-up" style={{ color: "var(--ink-soft)" }}>
-              Print-on-demand · Etsy shop
-            </p>
             <h1
-              className="font-black uppercase leading-none mb-5 fade-up-2"
-              style={{
-                fontFamily: "var(--font-display)",
-                color: "var(--ink)",
-                letterSpacing: "-0.01em",
-                fontSize: "clamp(2.8rem, 8vw, 5.5rem)",
-              }}
+              className="display-title mb-5 fade-up-2"
+              style={{ fontSize: "clamp(2.5rem, 7.5vw, 4.5rem)" }}
             >
-              Designs that<br />
-              <span style={{ color: "var(--orange)" }}>Hit</span><br />
-              Different.
+              Get Your Own
+              <br />
+              Bite of <span className="display-accent">Satisfaction</span>
             </h1>
-            <p className="text-sm leading-relaxed mb-8 fade-up-3" style={{ color: "var(--ink-soft)", maxWidth: "26rem" }}>
-              Unique gifts, wrapping paper &amp; party designs that make every occasion feel extra special.
+
+            <p
+              className="text-sm sm:text-base leading-relaxed mb-8 fade-up-3"
+              style={{ color: "var(--text-soft)", maxWidth: "32rem" }}
+            >
+              Unique gifts, wrapping paper and party designs that make every occasion feel
+              extra special. Printed on demand, shipped from our Etsy shop.
             </p>
-            <div className="fade-up-3">
-              <a href="#listings" className="btn-cta inline-flex">
-                Discover More
+
+            <div className="fade-up-3 flex flex-wrap items-center gap-3">
+              <a href="#listings" className="btn-cta">
+                Browse Designs
                 <span className="arrow-circle" aria-hidden="true">
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2.5}>
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H7M17 7v10" />
                   </svg>
                 </span>
               </a>
+              <a
+                href="https://designthathits.etsy.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-outline"
+              >
+                Visit the Etsy shop
+              </a>
             </div>
           </div>
+
+          {/*
+            Rotating product showcase, filling the right half edge to edge.
+
+            Hidden below md: stacked under the copy it would push the CTAs well below the
+            fold on a phone, and the whole point of the hero is the call to action.
+          */}
+          {heroListings.length > 0 && (
+            // Absolutely positioned and deliberately wider than the visible image needs
+            // to be. The extra width slides under the text column, giving the mask a long
+            // ramp to fade across instead of a narrow, abrupt one.
+            <div className="hidden md:block absolute inset-y-0 right-0 w-[62%] overflow-hidden">
+              <HeroCarousel listings={heroListings} />
+            </div>
+          )}
+
         </div>
       </section>
 
       {/* Shop section — scroll-margin-top offsets the sticky header height (~65px) */}
       <section id="listings" style={{ scrollMarginTop: '72px' }}>
         <Suspense>
-          <ShopFront sections={sections} initialParams={params} initialData={initialData} />
+          <ShopFront
+            sections={sections}
+            facets={facets}
+            initialParams={params}
+            initialData={initialData}
+          />
         </Suspense>
       </section>
 
       {/* Category explore */}
       {sections.length > 0 && (
-        <section className="mx-auto max-w-screen-xl px-5 py-14">
-          <h2
-            className="text-4xl md:text-5xl font-black uppercase mb-8"
-            style={{ fontFamily: "var(--font-display)", color: "var(--ink)" }}
-          >
-            Shop by Category
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {sections.slice(0, 8).map((s, i) => {
-              const bgs = ["#E8C547","#7DC4A8","#E88C6A","#A8C4E8","#C8A8E8","#E8A8B8","#C4D4A0","#F0C090"];
-              return (
-                <a
-                  key={s.id}
-                  href={`/?sections=${s.id}`}
-                  className="group relative rounded-2xl p-5 flex flex-col justify-between min-h-[110px] transition-transform hover:-translate-y-1"
-                  style={{ backgroundColor: bgs[i % bgs.length] }}
-                  aria-label={`Browse ${s.title} designs`}
+        <section className="mx-auto max-w-screen-xl px-4 sm:px-5 py-12 sm:py-16">
+          <div className="text-center mb-8 sm:mb-10">
+            <p className="eyebrow mb-3">Browse the shop</p>
+            <h2 className="display-title" style={{ fontSize: "clamp(1.9rem, 4.5vw, 3rem)" }}>
+              Shop by <span className="display-accent">Category</span>
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            {sections.slice(0, 8).map((s) => (
+              <a
+                key={s.id}
+                href={`/?sections=${s.id}`}
+                className="panel group relative p-4 sm:p-5 flex flex-col justify-between min-h-[120px] transition-transform hover:-translate-y-1"
+                aria-label={`Browse ${s.title} designs`}
+              >
+                <span
+                  className="text-[11px] font-semibold tracking-wide px-2.5 py-1 rounded-full self-start"
+                  style={{ background: "var(--brand-wash)", color: "var(--brand)" }}
                 >
-                  <span
-                    className="text-xs font-bold uppercase tracking-wider px-2 py-1 rounded-full self-start"
-                    style={{ background: "rgba(0,0,0,0.12)", color: "var(--ink)" }}
+                  {s.count > 0 ? `${s.count} designs` : "Browse"}
+                </span>
+                <div className="flex items-end justify-between gap-2 mt-4">
+                  <p
+                    className="text-base sm:text-lg leading-tight"
+                    style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "var(--text)" }}
                   >
-                    {s.count > 0 ? `${s.count} designs` : "Browse"}
+                    {s.title}
+                  </p>
+                  <span
+                    className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-transform group-hover:rotate-45"
+                    style={{ background: "var(--gradient-brand)", color: "var(--brand-ink)" }}
+                    aria-hidden="true"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H7M17 7v10" />
+                    </svg>
                   </span>
-                  <div className="flex items-end justify-between mt-3">
-                    <p className="text-lg font-black uppercase leading-tight" style={{ fontFamily: "var(--font-display)", color: "var(--ink)" }}>
-                      {s.title}
-                    </p>
-                    <span
-                      className="w-7 h-7 rounded-full flex items-center justify-center ml-2 flex-shrink-0 transition-transform group-hover:rotate-45"
-                      style={{ background: "rgba(0,0,0,0.15)" }}
-                      aria-hidden="true"
-                    >
-                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="var(--ink)" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H7M17 7v10" />
-                      </svg>
-                    </span>
-                  </div>
-                </a>
-              );
-            })}
+                </div>
+              </a>
+            ))}
           </div>
         </section>
       )}
+
+      {/* Closing CTA band */}
+      <section className="mx-auto max-w-screen-xl px-4 sm:px-5 pb-14 sm:pb-20">
+        <div className="brand-band rounded-[26px] sm:rounded-[32px] px-6 py-12 sm:px-12 sm:py-16 text-center">
+          <h2
+            className="display-title mb-4"
+            style={{ fontSize: "clamp(1.8rem, 4.5vw, 2.9rem)", color: "var(--brand-ink)" }}
+          >
+            Let Us Help You Celebrate
+          </h2>
+          <p
+            className="text-sm sm:text-base mx-auto mb-8"
+            style={{ color: "rgba(255,255,255,0.88)", maxWidth: "34rem" }}
+          >
+            Birthdays, Valentine&apos;s Day, graduations, Christmas and everything in between.
+          </p>
+          <a
+            href="https://designthathits.etsy.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-outline"
+            style={{ borderColor: "rgba(255,255,255,0.5)", color: "var(--brand-ink)" }}
+          >
+            Shop all designs on Etsy
+          </a>
+        </div>
+      </section>
     </>
   );
 }

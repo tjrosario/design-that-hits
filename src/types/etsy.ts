@@ -85,6 +85,24 @@ export interface Listing {
     altText: string;
   } | null;
   score?: number;
+  /** Derived in lib/catalog.ts from lib/facets.ts rules — not stored in catalog.json. */
+  productType?: string | null;
+  /** Derived, multi-valued. A listing can be both "Cats" and "Gothic & Dark". */
+  themes?: string[];
+}
+
+/** A selectable option in one of the secondary filter groups. */
+export interface FacetOption {
+  id: string;
+  label: string;
+  count: number;
+}
+
+/** Everything the filter UI needs to render its secondary groups. */
+export interface FacetGroups {
+  productTypes: FacetOption[];
+  themes: FacetOption[];
+  priceBands: FacetOption[];
 }
 
 export type SortOption = 'newest' | 'price_asc' | 'price_desc';
@@ -93,6 +111,9 @@ export type PillOption = 'new' | 'best' | 'trending' | null;
 export interface SearchParams {
   q?: string;
   sections?: string; // comma-separated section IDs
+  types?: string;    // comma-separated product-type ids
+  themes?: string;   // comma-separated theme ids
+  price?: string;    // comma-separated price-band ids
   sort?: SortOption;
   pill?: PillOption;
   page?: string;
@@ -101,6 +122,10 @@ export interface SearchParams {
 export interface ParsedQuery {
   q: string;
   sectionIds: number[];
+  /** Secondary facets. Empty array means "no constraint", never "match nothing". */
+  types: string[];
+  themes: string[];
+  priceBands: string[];
   sort: SortOption;
   pill: PillOption;
   page: number;

@@ -7,31 +7,42 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"Playfair Display"', 'Georgia', 'serif'],
-        body: ['"DM Sans"', 'system-ui', 'sans-serif'],
-        sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
+        display: ['"Playfair Display"', "Georgia", "serif"],
+        body: ['"Poppins"', "system-ui", "sans-serif"],
+        sans: ['"Poppins"', "system-ui", "sans-serif"],
       },
+      /*
+        Colours map to the CSS custom properties in globals.css rather than fixed hex
+        values. That is what lets a single utility class (`bg-surface`, `text-muted`)
+        render correctly in both themes — swapping [data-theme] on <html> changes what
+        the variable resolves to, and every utility follows automatically.
+      */
       colors: {
-        cream:       '#F5EFE6',
-        beige:       '#EDE3D4',
-        sand:        '#D9CBBA',
-        terracotta:  '#C06B45',
-        'terra-lt':  '#E8A688',
-        sage:        '#7A9E87',
-        'sage-lt':   '#B5CFBC',
-        'dusty-rose':'#C97B84',
-        amber:       '#D4A843',
-        dark:        '#1C1A17',
-        mid:         '#5C5248',
-        light:       '#8C8278',
+        bg: "var(--bg)",
+        "bg-elevated": "var(--bg-elevated)",
+        surface: "var(--surface)",
+        "surface-2": "var(--surface-2)",
+        "surface-3": "var(--surface-3)",
+        ink: "var(--text)",
+        "ink-soft": "var(--text-soft)",
+        "ink-muted": "var(--text-muted)",
+        line: "var(--border)",
+        "line-soft": "var(--border-soft)",
+        brand: "var(--brand)",
+        "brand-strong": "var(--brand-strong)",
+        "brand-soft": "var(--brand-soft)",
+        "brand-ink": "var(--brand-ink)",
       },
       borderRadius: {
-        'xl':  '0.875rem',
-        '2xl': '1.25rem',
+        xl: "0.875rem",
+        "2xl": "1.25rem",
+        "3xl": "1.75rem",
+      },
+      backgroundImage: {
+        "gradient-brand": "var(--gradient-brand)",
+        "gradient-hero": "var(--gradient-hero)",
       },
     },
   },
-  plugins: [
-    require("@tailwindcss/typography"),
-  ],
+  plugins: [require("@tailwindcss/typography")],
 };

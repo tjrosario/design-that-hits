@@ -32,16 +32,16 @@ export function ContactForm() {
   if (status === "success") {
     return (
       <div className="text-center py-10" role="status">
-        <p className="text-3xl font-black uppercase mb-2" style={{ fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>Message Sent!</p>
-        <p className="text-sm mb-4" style={{ color: 'var(--ink-muted)' }}>We&apos;ll get back to you soon.</p>
+        <p className="text-3xl font-black uppercase mb-2" style={{ fontFamily: 'var(--font-display)', color: 'var(--text)' }}>Message Sent!</p>
+        <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>We&apos;ll get back to you soon.</p>
         <button onClick={() => setStatus("idle")} className="filter-pill">Send another</button>
       </div>
     );
   }
 
   const inputStyle = {
-    backgroundColor: 'var(--cream)',
-    color: 'var(--ink)',
+    backgroundColor: 'var(--bg)',
+    color: 'var(--text)',
     border: 'none',
     borderRadius: '14px',
     padding: '12px 16px',
@@ -49,41 +49,41 @@ export function ContactForm() {
     fontFamily: 'var(--font-body)',
     width: '100%',
     outline: 'none',
-    boxShadow: 'inset 0 0 0 1.5px var(--sand)',
+    boxShadow: 'inset 0 0 0 1.5px var(--border)',
     transition: 'box-shadow 0.15s ease',
   };
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-4">
       <div>
-        <label htmlFor="contact-name" className="block text-xs font-black uppercase tracking-wider mb-1.5" style={{ color: 'var(--ink-muted)', fontFamily: 'var(--font-display)' }}>Name *</label>
+        <label htmlFor="contact-name" className="block text-xs font-black uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-display)' }}>Name *</label>
         <input id="contact-name" type="text" required value={form.name}
           onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           style={inputStyle} placeholder="Your name" aria-required="true"
-          onFocus={e => (e.target as HTMLInputElement).style.boxShadow = `inset 0 0 0 2px var(--ink)`}
-          onBlur={e => (e.target as HTMLInputElement).style.boxShadow = `inset 0 0 0 1.5px var(--sand)`}
+          onFocus={e => (e.target as HTMLInputElement).style.boxShadow = `inset 0 0 0 2px var(--text)`}
+          onBlur={e => (e.target as HTMLInputElement).style.boxShadow = `inset 0 0 0 1.5px var(--border)`}
         />
       </div>
       <div>
-        <label htmlFor="contact-email" className="block text-xs font-black uppercase tracking-wider mb-1.5" style={{ color: 'var(--ink-muted)', fontFamily: 'var(--font-display)' }}>Email *</label>
+        <label htmlFor="contact-email" className="block text-xs font-black uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-display)' }}>Email *</label>
         <input id="contact-email" type="email" required value={form.email}
           onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
           style={inputStyle} placeholder="your@email.com" aria-required="true"
-          onFocus={e => (e.target as HTMLInputElement).style.boxShadow = `inset 0 0 0 2px var(--ink)`}
-          onBlur={e => (e.target as HTMLInputElement).style.boxShadow = `inset 0 0 0 1.5px var(--sand)`}
+          onFocus={e => (e.target as HTMLInputElement).style.boxShadow = `inset 0 0 0 2px var(--text)`}
+          onBlur={e => (e.target as HTMLInputElement).style.boxShadow = `inset 0 0 0 1.5px var(--border)`}
         />
       </div>
       <div>
-        <label htmlFor="contact-message" className="block text-xs font-black uppercase tracking-wider mb-1.5" style={{ color: 'var(--ink-muted)', fontFamily: 'var(--font-display)' }}>Message *</label>
+        <label htmlFor="contact-message" className="block text-xs font-black uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-display)' }}>Message *</label>
         <textarea id="contact-message" required rows={5} value={form.message}
           onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
           style={{ ...inputStyle, resize: 'none' }} placeholder="Tell us what's on your mind..." aria-required="true"
-          onFocus={e => (e.target as HTMLTextAreaElement).style.boxShadow = `inset 0 0 0 2px var(--ink)`}
-          onBlur={e => (e.target as HTMLTextAreaElement).style.boxShadow = `inset 0 0 0 1.5px var(--sand)`}
+          onFocus={e => (e.target as HTMLTextAreaElement).style.boxShadow = `inset 0 0 0 2px var(--text)`}
+          onBlur={e => (e.target as HTMLTextAreaElement).style.boxShadow = `inset 0 0 0 1.5px var(--border)`}
         />
       </div>
       {status === "error" && (
-        <p role="alert" className="text-sm font-medium" style={{ color: 'var(--orange)' }}>
+        <p role="alert" className="text-sm font-medium" style={{ color: 'var(--brand)' }}>
           {errorMsg || "Something went wrong. Please try again."}
         </p>
       )}

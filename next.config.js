@@ -1,5 +1,15 @@
+const path = require("path");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Pin Turbopack's workspace root to this project. Without it, Turbopack walks up the
+  // tree, finds the stray package.json/package-lock.json in the parent workspace
+  // directory, and warns on every dev start. Pinning also keeps module resolution
+  // deterministic regardless of where the repo is checked out.
+  turbopack: {
+    root: __dirname,
+  },
+
   images: {
     remotePatterns: [
       {
