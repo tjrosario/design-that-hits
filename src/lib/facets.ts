@@ -83,9 +83,28 @@ function haystack(listing: Listing): string {
   return `${listing.title} ${(listing.tags ?? []).join(" ")}`.toLowerCase();
 }
 
+/**
+ * A title that says "wrapping paper" or "gift wrap" names the product outright.
+ *
+ * This has to win over every other rule. Titles routinely describe the artwork printed
+ * on the paper — "Christmas Wrapping Paper | Skull & Black Ornament Gift Wrap",
+ * "Hot Cocoa Wrapping Paper" — and matching those motif words first filed 29 wrapping
+ * papers as ornaments or drinkware, which both mislabelled them on the About tiles and
+ * inflated the Ornaments filter to mostly non-ornaments.
+ */
+const WRAPPING_PAPER_TITLE = /wrapping paper|gift ?wrap|giftwrap/i;
+
 export function deriveProductType(listing: Listing): string | null {
-  const hay = haystack(listing);
-  const hit = PRODUCT_TYPE_RULES.find((rule) => rule.pattern.test(hay));
+  const title = listing.title.toLowerCase();
+
+  if (WRAPPING_PAPER_TITLE.test(title)) return "wrapping-paper";
+
+  // Title before tags: the title names the product, tags merely describe it. An ornament
+  // tagged "gift_wrap_idea" should stay an ornament, which testing tags first would break.
+  const byTitle = PRODUCT_TYPE_RULES.find((rule) => rule.pattern.test(title));
+  if (byTitle) return byTitle.id;
+
+  const hit = PRODUCT_TYPE_RULES.find((rule) => rule.pattern.test(haystack(listing)));
   return hit ? hit.id : null;
 }
 

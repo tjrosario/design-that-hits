@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { JsonLd } from "@/components/JsonLd";
-import { getRandomListings } from "@/lib/shop";
+import { getRandomListingsMatching } from "@/lib/shop";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
 
@@ -33,11 +33,21 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function AboutPage() {
-  // Chosen in the data layer, not here: React 19 requires render to be pure, so the
-  // random pick lives in getRandomListings. Safe from hydration mismatches either way
-  // because this is a server component — the selection is baked into the payload and
-  // never recomputed on the client.
-  const tilePhotos = await getRandomListings(4);
+  /*
+    Each tile is labelled with a category, so its photo has to come from that category —
+    a "Wrapping Paper" tile showing a t-shirt reads as a bug. Types are the derived
+    product types from lib/facets.ts, listed in preference order; getRandomListingsMatching
+    dedupes across tiles and falls back to any listing if a type has none left.
+
+    Kept in the same order as TILES below, which is the coupling to watch when editing
+    either list.
+  */
+  const tilePhotos = await getRandomListingsMatching([
+    { types: ["wrapping-paper"] },
+    { types: ["stationery", "drinkware"] },
+    { types: ["ornament", "phone-case", "tote"] },
+    { types: ["apparel", "hat"] },
+  ]);
   const aboutJsonLd = {
     "@context":  "https://schema.org",
     "@type":     "AboutPage",
