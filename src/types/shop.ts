@@ -10,12 +10,24 @@
 
 export type ShopErrorCode =
   | "MISSING_API_KEY" // Etsy source: ETSY_API_KEY env var not set
+  | "INVALID_API_KEY" // Etsy source: 401/403 — key rejected, revoked or never approved
   | "CATALOG_EMPTY" // Catalog source: no usable listings in src/data/catalog.json
   | "RATE_LIMITED" // 429 after all retries
   | "NOT_FOUND" // 404 — shop/section doesn't exist
   | "API_ERROR" // Other non-2xx from upstream
   | "NETWORK_ERROR" // fetch() threw (DNS, timeout, etc.)
   | "UNKNOWN"; // Unexpected
+
+/**
+ * Errors that will not fix themselves on a retry.
+ *
+ * A rejected key is a configuration state, not an outage: retrying it every few minutes
+ * and logging each failure produces noise on every request and every page of a static
+ * build, without any chance of succeeding.
+ */
+export function isPermanentShopError(code: ShopErrorCode): boolean {
+  return code === "MISSING_API_KEY" || code === "INVALID_API_KEY";
+}
 
 export interface ShopError {
   code: ShopErrorCode;

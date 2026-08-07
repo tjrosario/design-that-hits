@@ -21,6 +21,8 @@ export const runtime = "nodejs";
 function httpStatusFor(code: ShopErrorCode): number {
   switch (code) {
     case "MISSING_API_KEY": return 503; // Service misconfigured
+    case "INVALID_API_KEY": return 503; // Key rejected — should be unreachable now that
+                                        // lib/shop.ts falls back to the catalog
     case "CATALOG_EMPTY":   return 503; // Catalog never populated — see npm run sync:catalog
     case "RATE_LIMITED":    return 429;
     case "NOT_FOUND":       return 404;
@@ -34,6 +36,7 @@ function httpStatusFor(code: ShopErrorCode): number {
 function userMessageFor(code: ShopErrorCode): string {
   switch (code) {
     case "MISSING_API_KEY":
+    case "INVALID_API_KEY":
     case "CATALOG_EMPTY":
       return "The shop is temporarily unavailable. Please check back soon.";
     case "RATE_LIMITED":

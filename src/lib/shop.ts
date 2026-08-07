@@ -27,7 +27,8 @@
  */
 
 import type { FacetGroups, Listing, ShopSection } from "@/types/etsy";
-import type { FetchListingsResult, ListingsQueryOptions, ShopResult } from "@/types/shop";
+import type { FetchListingsResult, ListingsQueryOptions, ShopErrorCode, ShopResult } from "@/types/shop";
+import { isPermanentShopError } from "@/types/shop";
 import * as catalogSource from "./catalog";
 import * as etsySource from "./etsy";
 import { fetchRssListings } from "./rss";
@@ -69,19 +70,31 @@ function rssEnabled(): boolean {
  */
 const ETSY_COOLDOWN_MS = 5 * 60_000;
 let etsyDownUntil = 0;
+/** Set for errors that retrying cannot fix, so the source is never attempted again. */
+let etsyDisabled = false;
 
 function etsyUsable(): boolean {
+  if (etsyDisabled) return false;
   return resolveDataSource() === "etsy" && Date.now() >= etsyDownUntil;
 }
 
-function markEtsyDown(code: string, message: string): void {
+function markEtsyDown(code: ShopErrorCode, message: string): void {
+  // A rejected or missing key will still be rejected in five minutes. Disabling outright
+  // stops the retry timer from re-running the same doomed request, and — more visibly —
+  // stops it logging once per request and once per page of a static build. lib/etsy.ts
+  // has already reported the underlying cause with remediation steps, so nothing more is
+  // printed here.
+  if (isPermanentShopError(code)) {
+    etsyDisabled = true;
+    return;
+  }
+
   const firstFailure = Date.now() >= etsyDownUntil;
   etsyDownUntil = Date.now() + ETSY_COOLDOWN_MS;
   if (firstFailure) {
-    console.error(
+    console.warn(
       `[shop] Etsy API unavailable (${code}: ${message}). Serving the local catalog and ` +
-        `skipping Etsy for ${ETSY_COOLDOWN_MS / 60_000} minutes. ` +
-        `If the key is no longer valid, unset ETSY_API_KEY or set SHOP_DATA_SOURCE=catalog.`
+        `retrying in ${ETSY_COOLDOWN_MS / 60_000} minutes.`
     );
   }
 }

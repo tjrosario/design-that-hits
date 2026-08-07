@@ -56,16 +56,38 @@ const makeError = makeShopError;
 
 // ─── Internal fetch with retry/backoff ───────────────────────────────────────
 
+/**
+ * Latched once Etsy rejects the key.
+ *
+ * Every later call short-circuits before touching the network. Without this, code paths
+ * that swallow errors and return a default — getShopSections returns [] rather than a
+ * Result — would keep firing doomed requests, one per call and one per page of a static
+ * build, with no way for the caller to know it should stop.
+ */
+let keyRejected = false;
+let missingKeyReported = false;
+
 async function etsyFetch<T>(
   path: string,
   options: RequestInit & { next?: { revalidate?: number; tags?: string[] } } = {},
   retries = 3
 ): Promise<EtsyResult<T>> {
+  if (keyRejected) {
+    return {
+      ok: false,
+      error: makeError("INVALID_API_KEY", "Etsy API key was rejected earlier in this process"),
+    };
+  }
+
   const apiKey = process.env.ETSY_API_KEY;
 
   if (!apiKey) {
-    // Log server-side only — never expose config issues to the client
-    console.error("[etsy] ETSY_API_KEY is not set");
+    // Logged server-side only, and once: a missing key is a static condition, so
+    // repeating it per call adds nothing.
+    if (!missingKeyReported) {
+      missingKeyReported = true;
+      console.warn("[etsy] ETSY_API_KEY is not set; serving the local catalog instead.");
+    }
     return {
       ok: false,
       error: makeError("MISSING_API_KEY", "Etsy API key is not configured"),
@@ -117,6 +139,26 @@ async function etsyFetch<T>(
       return { ok: false, error: makeError("NOT_FOUND", `Resource not found: ${path}`, 404) };
     }
 
+    // 401/403 mean the key is rejected, revoked, or was never approved. That is a
+    // configuration state, not an outage: retrying cannot help, and logging the raw body
+    // on every call floods request logs and repeats once per page during a static build.
+    // Reported once per process, then handed back as a distinct code so callers can
+    // disable this source outright rather than re-attempting on a timer.
+    if (res.status === 401 || res.status === 403) {
+      if (!keyRejected) {
+        keyRejected = true;
+        console.warn(
+          `[etsy] API key rejected (HTTP ${res.status}). The Etsy source is disabled for ` +
+            `this process and the local catalog will be served instead. Unset ETSY_API_KEY ` +
+            `or set SHOP_DATA_SOURCE=catalog to silence this.`
+        );
+      }
+      return {
+        ok: false,
+        error: makeError("INVALID_API_KEY", `Etsy rejected the API key (${res.status})`, res.status),
+      };
+    }
+
     if (!res.ok) {
       const body = await res.text().catch(() => "(unreadable)");
       // Retry on 5xx server errors from Etsy
@@ -139,6 +181,15 @@ async function etsyFetch<T>(
 
   // Should be unreachable but TypeScript needs this
   return { ok: false, error: makeError("UNKNOWN", "Etsy fetch failed unexpectedly") };
+}
+
+/**
+ * True when the failure has already been announced with remediation, so a second,
+ * lower-level message would only add noise. A rejected or missing key is reported once
+ * by etsyFetch; every downstream function then fails for the same reason.
+ */
+function alreadyReported(code: ShopErrorCode): boolean {
+  return code === "INVALID_API_KEY" || code === "MISSING_API_KEY";
 }
 
 function sleep(ms: number): Promise<void> {
@@ -170,7 +221,9 @@ export async function getShopSections(): Promise<ShopSection[]> {
   const shopResult = await getShopId();
 
   if (!shopResult.ok) {
-    console.warn(`[etsy] getShopSections: could not resolve shop ID (${shopResult.error.code}). Returning empty sections.`);
+    if (!alreadyReported(shopResult.error.code)) {
+      console.warn(`[etsy] getShopSections: could not resolve shop ID (${shopResult.error.code}). Returning empty sections.`);
+    }
     return [];
   }
 
@@ -180,7 +233,9 @@ export async function getShopSections(): Promise<ShopSection[]> {
   );
 
   if (!result.ok) {
-    console.warn(`[etsy] getShopSections failed (${result.error.code}): ${result.error.message}. Returning empty sections.`);
+    if (!alreadyReported(result.error.code)) {
+      console.warn(`[etsy] getShopSections failed (${result.error.code}): ${result.error.message}. Returning empty sections.`);
+    }
     return [];
   }
 
@@ -280,7 +335,9 @@ export async function getListingsForRanking(
 ): Promise<Listing[]> {
   const shopResult = await getShopId();
   if (!shopResult.ok) {
-    console.warn(`[etsy] getListingsForRanking: shop ID unavailable (${shopResult.error.code})`);
+    if (!alreadyReported(shopResult.error.code)) {
+      console.warn(`[etsy] getListingsForRanking: shop ID unavailable (${shopResult.error.code})`);
+    }
     return [];
   }
 
@@ -298,7 +355,9 @@ export async function getListingsForRanking(
   );
 
   if (!result.ok) {
-    console.warn(`[etsy] getListingsForRanking failed (${result.error.code}): ${result.error.message}`);
+    if (!alreadyReported(result.error.code)) {
+      console.warn(`[etsy] getListingsForRanking failed (${result.error.code}): ${result.error.message}`);
+    }
     return [];
   }
 
