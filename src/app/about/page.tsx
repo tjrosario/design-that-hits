@@ -16,7 +16,6 @@ export const metadata: Metadata = {
     title:       "About Design That Hits",
     description: "Learn about Design That Hits — a print-on-demand Etsy shop specialising in unique gifts, wrapping paper, and party designs crafted to make every occasion memorable.",
     url:         `${SITE_URL}/about`,
-    images: [{ url: `${SITE_URL}/og-image.jpg`, width: 1200, height: 630, alt: "Design That Hits – About Us" }],
   },
   twitter: {
     card:        "summary_large_image",

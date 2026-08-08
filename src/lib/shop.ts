@@ -143,12 +143,39 @@ export function mergeRssOverCatalog(catalogListings: Listing[], rssListings: Lis
   return [...Array.from(byId.values()), ...merged];
 }
 
+/*
+  In-process memo for the merged catalogue.
+
+  Static generation renders 366 product pages in the same worker, and each one asks for
+  the full listing set (once to resolve itself, once to pick related products). Without
+  this, that is ~730 RSS round-trips in a single build — slow, and rude to Etsy. The TTL
+  keeps the overlay reasonably fresh for long-lived server processes.
+
+  The promise itself is cached, not the resolved value, so concurrent callers share one
+  in-flight fetch rather than each starting their own.
+*/
+const MERGED_TTL_MS = 5 * 60_000;
+let mergedCache: { at: number; value: Promise<Listing[]> } | null = null;
+
 /**
  * The catalog with the RSS overlay applied. Falls back to the bare catalog whenever
  * the feed is unreachable — a storefront that renders slightly stale products beats
  * one that renders an error.
  */
-async function getMergedListings(): Promise<Listing[]> {
+function getMergedListings(): Promise<Listing[]> {
+  const now = Date.now();
+  if (mergedCache && now - mergedCache.at < MERGED_TTL_MS) return mergedCache.value;
+
+  const value = buildMergedListings().catch((err) => {
+    // Never cache a rejection: the next caller should be free to retry.
+    mergedCache = null;
+    throw err;
+  });
+  mergedCache = { at: now, value };
+  return value;
+}
+
+async function buildMergedListings(): Promise<Listing[]> {
   const catalogListings = catalogSource.getCatalogListings();
 
   if (!rssEnabled()) return catalogListings;
@@ -209,6 +236,46 @@ export async function getListingsForRanking(
  * Uses Fisher-Yates rather than `sort(() => Math.random() - 0.5)`, which is not a uniform
  * shuffle — comparator-based shuffles bias heavily toward the original order.
  */
+/** Every listing, unpaginated. Backs the sitemap and product page generation. */
+export async function getAllListings(): Promise<Listing[]> {
+  return getListingsForRanking({});
+}
+
+/**
+ * A single listing by its Etsy ID, or null.
+ *
+ * Product pages resolve by ID rather than by matching the title, because titles are
+ * neither unique in this catalogue nor stable over time. See lib/slug.ts.
+ */
+export async function getListingById(id: number): Promise<Listing | null> {
+  const all = await getAllListings();
+  return all.find((l) => l.id === id) ?? null;
+}
+
+/**
+ * Other products a visitor might want next, preferring the same product type.
+ * Falls back to filling from the wider catalogue so the section is never half empty.
+ */
+export async function getRelatedListings(listing: Listing, count = 4): Promise<Listing[]> {
+  const all = (await getAllListings()).filter((l) => l.id !== listing.id && l.image);
+
+  const sameType = all.filter((l) => l.productType && l.productType === listing.productType);
+  const themes = new Set(listing.themes ?? []);
+  const sameTheme = sameType.filter((l) => (l.themes ?? []).some((t) => themes.has(t)));
+
+  // Closest first: same type and theme, then same type, then anything.
+  const ordered = [...sameTheme, ...sameType, ...all];
+  const seen = new Set<number>();
+  const out: Listing[] = [];
+  for (const l of ordered) {
+    if (seen.has(l.id)) continue;
+    seen.add(l.id);
+    out.push(l);
+    if (out.length === count) break;
+  }
+  return out;
+}
+
 /** One tile's requirement: any listing whose derived product type is in this list. */
 export interface ListingPick {
   /** Product type ids from lib/facets.ts, tried in order of preference. */

@@ -8,7 +8,6 @@ const SITE_URL  = process.env.NEXT_PUBLIC_SITE_URL  ?? "https://designthathits.c
 const SITE_NAME = "Design That Hits";
 const SITE_DESCRIPTION =
   "Print-on-demand gifts, wrapping paper, and party designs. Unique, high-quality designs that make every occasion special.";
-const OG_IMAGE = `${SITE_URL}/og-image.jpg`;
 
 export const metadata: Metadata = {
   // ── Core ────────────────────────────────────────────────────────────────────
@@ -62,15 +61,6 @@ export const metadata: Metadata = {
     siteName:    SITE_NAME,
     title:       `${SITE_NAME} – Unique Print-on-Demand Designs`,
     description: SITE_DESCRIPTION,
-    images: [
-      {
-        url:    OG_IMAGE,
-        width:  1200,
-        height: 630,
-        alt:    `${SITE_NAME} – Unique Print-on-Demand Designs`,
-        type:   "image/jpeg",
-      },
-    ],
   },
 
   // ── Twitter / X ──────────────────────────────────────────────────────────
@@ -80,7 +70,6 @@ export const metadata: Metadata = {
     creator:     "@designthathits",
     title:       `${SITE_NAME} – Unique Print-on-Demand Designs`,
     description: SITE_DESCRIPTION,
-    images: [{ url: OG_IMAGE, alt: `${SITE_NAME} – Unique Print-on-Demand Designs` }],
   },
 
   // ── App / PWA ────────────────────────────────────────────────────────────
@@ -88,21 +77,12 @@ export const metadata: Metadata = {
   category:        "shopping",
   classification:  "E-Commerce, Gifts, Print on Demand",
 
-  // ── Icons ────────────────────────────────────────────────────────────────
-  // Place these files in /public:
-  //   favicon.ico, icon.png (32×32), apple-icon.png (180×180)
-  icons: {
-    icon:             [
-      { url: "/favicon.ico",         sizes: "any"     },
-      { url: "/icon.png",            type: "image/png", sizes: "32x32"   },
-      { url: "/icon-192.png",        type: "image/png", sizes: "192x192" },
-    ],
-    apple:            [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
-    shortcut:         "/favicon.ico",
-  },
-
-  // ── Manifest ─────────────────────────────────────────────────────────────
-  manifest: "/manifest.json",
+  // ── Icons and manifest ───────────────────────────────────────────────────
+  // Deliberately not declared here. app/icon.tsx, app/apple-icon.tsx and
+  // app/manifest.ts generate them and Next emits the tags automatically. The previous
+  // hand-written entries pointed at /favicon.ico, /icon.png, /icon-192.png,
+  // /apple-icon.png and /manifest.json — none of which existed, because the project has
+  // no public/ directory. Every one returned 404.
 
   // ── Site verification ─────────────────────────────────────────────────────
   // Add your real tokens from each platform's Search Console / Webmaster Tools.
