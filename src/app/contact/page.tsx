@@ -51,7 +51,6 @@ export const metadata: Metadata = {
     title:       "Contact Design That Hits",
     description: "Get in touch with Design That Hits. Ask about custom orders, wholesale enquiries, or just say hello.",
     url:         `${SITE_URL}/contact`,
-    images: [{ url: `${SITE_URL}/og-image.jpg`, width: 1200, height: 630, alt: "Contact Design That Hits" }],
   },
   twitter: {
     card:        "summary_large_image",

@@ -1,7 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 // import { useState } from "react"; // re-enable with the favourite button below
+import { listingName, listingPath } from "@/lib/slug";
 import type { Listing } from "@/types/etsy";
 
 interface ProductCardProps {
@@ -28,6 +30,9 @@ function badgeTitle(title: string): string {
 }
 
 export function ProductCard({ listing }: ProductCardProps) {
+  // Etsy titles are pipe-separated keyword blocks. Screen readers would otherwise read
+  // the whole 150-character blob as the link name for every card in the grid.
+  const name = listingName(listing);
   // Favourite button is parked for now — see the commented block below. It was purely
   // local state with nothing persisting it, so nothing is lost by disabling it.
   // const [liked, setLiked] = useState(false);
@@ -66,12 +71,17 @@ export function ProductCard({ listing }: ProductCardProps) {
           </div>
         )}
 
-        {/* Stretched link — sits above the image, below the badge and heart */}
-        <a
-          href={listing.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`View ${listing.title} on Etsy`}
+        {/*
+          Stretched link — sits above the image, below the badge and heart.
+
+          This goes to the on-site product page rather than straight to Etsy. The page
+          carries the full description and Product structured data, which is what makes
+          the catalogue indexable at all; the arrow button below still links out to Etsy
+          directly, so buying is never more than one click from the grid.
+        */}
+        <Link
+          href={listingPath(listing)}
+          aria-label={name}
           className="absolute inset-0 z-10"
         />
 
@@ -146,7 +156,7 @@ export function ProductCard({ listing }: ProductCardProps) {
             target="_blank"
             rel="noopener noreferrer"
             className="card-action"
-            aria-label={`View ${listing.title} on Etsy`}
+            aria-label={`View ${name} on Etsy`}
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H7M17 7v10" />

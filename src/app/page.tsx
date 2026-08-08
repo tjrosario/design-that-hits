@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getShopSections, getListings, getFacetGroups } from "@/lib/shop";
 import { parseQuery } from "@/lib/query";
+import { productTypeLabel, themeLabel } from "@/lib/facets";
 import { ShopFront } from "@/components/ShopFront";
 import { JsonLd } from "@/components/JsonLd";
 import { HeroCarousel } from "@/components/HeroCarousel";
@@ -15,37 +16,77 @@ interface HomeProps {
   searchParams: Promise<Record<string, string>>;
 }
 
+/**
+ * Human-readable name for a filtered view, used in its title and description.
+ * Returns null for the unfiltered grid.
+ */
+function describeFilters(parsed: ReturnType<typeof parseQuery>): string | null {
+  const parts = [
+    ...parsed.types.map(productTypeLabel),
+    ...parsed.themes.map(themeLabel),
+  ];
+  if (parts.length > 0) return parts.join(" & ");
+  if (parsed.sectionIds.length > 0) return "Category";
+  if (parsed.priceBands.length > 0) return "By Price";
+  return null;
+}
+
 export async function generateMetadata({ searchParams }: HomeProps): Promise<Metadata> {
   const params = await searchParams;
-  const { q, sectionIds } = parseQuery(params);
+  const parsed = parseQuery(params);
+  const { q, page } = parsed;
 
-  const isSearch   = q.length > 0;
-  const isFiltered = sectionIds.length > 0;
+  const isSearch = q.length > 0;
+  const filterName = describeFilters(parsed);
+
+  const pageSuffix = page > 1 ? ` – Page ${page}` : "";
 
   const title = isSearch
-    ? `Search: "${q}" – Design That Hits`
-    : isFiltered
-    ? "Browse by Category – Design That Hits"
-    : "Design That Hits – Unique Print-on-Demand Gifts & Designs";
+    ? `Search: "${q}"${pageSuffix} – Design That Hits`
+    : filterName
+    ? `${filterName}${pageSuffix} – Design That Hits`
+    : `Design That Hits – Unique Print-on-Demand Gifts & Designs${pageSuffix}`;
 
   const description = isSearch
     ? `Search results for "${q}" — print-on-demand gifts, wrapping paper, and party designs.`
-    : isFiltered
-    ? "Browse our curated collections of print-on-demand gifts, wrapping paper, and party designs."
+    : filterName
+    ? `${filterName} designs from Design That Hits — print-on-demand gifts, wrapping paper, and party designs, printed fresh and shipped direct.`
     : "Print-on-demand gifts, wrapping paper, and party designs. Unique, high-quality designs that make every occasion special.";
 
-  // Build canonical URL — filtered/search pages are indexable with canonical pointing here
+  /*
+    CANONICALS
+
+    Self-referencing, built from the parsed values rather than the raw query string, so
+    parameter order and junk params can't mint duplicate URLs. Two deliberate omissions:
+
+      - `sort` and `pill` only reorder the same set of products, so they collapse onto
+        the unsorted view rather than becoming separate indexable duplicates.
+      - `page` IS included. Paginated views used to canonicalise to page 1, which tells
+        Google the deeper pages are duplicates and quietly discourages crawling past the
+        first 24 products. Each page now canonicalises to itself.
+  */
   const qs = new URLSearchParams();
-  if (q)                   qs.set("q",        q);
-  if (sectionIds.length > 0) qs.set("sections", sectionIds.join(","));
-  const canonicalUrl = qs.toString() ? `${SITE_URL}?${qs}` : SITE_URL;
+  if (q)                          qs.set("q",        q);
+  if (parsed.sectionIds.length)   qs.set("sections", parsed.sectionIds.join(","));
+  if (parsed.types.length)        qs.set("types",    parsed.types.join(","));
+  if (parsed.themes.length)       qs.set("themes",   parsed.themes.join(","));
+  if (parsed.priceBands.length)   qs.set("price",    parsed.priceBands.join(","));
+  if (page > 1)                   qs.set("page",     String(page));
+  const canonicalUrl = qs.toString() ? `${SITE_URL}/?${qs}` : SITE_URL;
 
   return {
     title,
     description,
     alternates: { canonical: canonicalUrl },
-    // Prevent search/filter result pages from competing with the main page
-    robots: isSearch || isFiltered
+    /*
+      Category views are indexable. They are genuine landing pages — "wrapping paper",
+      "cats", "gothic & dark" are what people actually search for, and each shows a
+      distinct set of products with its own copy.
+
+      Search stays out of the index: `q` is visitor-supplied, so it can generate
+      unbounded near-duplicate URLs. `follow` keeps the product links crawlable.
+    */
+    robots: isSearch
       ? { index: false, follow: true }
       : { index: true,  follow: true },
     // A page-level `openGraph` REPLACES the one in the root layout rather than merging
@@ -58,15 +99,6 @@ export async function generateMetadata({ searchParams }: HomeProps): Promise<Met
       title,
       description,
       url: canonicalUrl,
-      images: [
-        {
-          url: `${SITE_URL}/og-image.jpg`,
-          width: 1200,
-          height: 630,
-          alt: "Design That Hits – Unique Print-on-Demand Designs",
-          type: "image/jpeg",
-        },
-      ],
     },
   };
 }
@@ -129,7 +161,7 @@ export default async function HomePage({ searchParams }: HomeProps) {
     url:            SITE_URL,
     logo: {
       "@type":    "ImageObject",
-      url:        `${SITE_URL}/icon-192.png`,
+      url:        `${SITE_URL}/brand-logo.png`,
       width:      192,
       height:     192,
     },
