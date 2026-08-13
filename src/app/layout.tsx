@@ -3,6 +3,55 @@ import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ThemeScript } from "@/components/ThemeScript";
+import { Playfair_Display, Poppins } from "next/font/google";
+
+/*
+  SELF-HOSTED WEBFONTS
+
+  These used to load through `@import url('https://fonts.googleapis.com/…')` at the top of
+  globals.css, which is about the slowest way to deliver a font. That built a four-level
+  request chain — HTML, then globals.css, then Google's 17.5KB stylesheet, then the twelve
+  font files — so the browser could not discover a single font until the app's own
+  stylesheet had downloaded and parsed, and then had to reach a third-party origin with
+  its own DNS lookup and TLS handshake to get them.
+
+  next/font downloads the files at build time and serves them from our own origin.
+
+  Declared HERE rather than in a separate module on purpose: Next attaches the <link
+  rel="preload"> hints based on the file where the font function is called, and only a
+  call in the root layout preloads across every route. Moved into a separate module, everything
+  still worked but no preload tag was emitted.
+*/
+/**
+ * Display face: headings, the logo, prices.
+ *
+ * No `weight` because Playfair Display ships as a variable font — one file covers the
+ * whole 400–900 axis. That is both fewer bytes than the seven static cuts the old
+ * @import pulled, and a correctness fix: the old list stopped at 800, so the seventeen
+ * `font-black` (900) headings across the app were silently rendering at 800, and the
+ * italic logo at 700.
+ */
+const fontDisplay = Playfair_Display({
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  display: "swap",
+  variable: "--font-playfair",
+});
+
+/**
+ * Body face.
+ *
+ * Poppins has no variable cut, so the weights are listed explicitly. Only the four the
+ * app actually uses are here: the old @import also fetched 300, which nothing renders.
+ * 900 is deliberately absent — every `font-black` in the codebase is paired with the
+ * display face, never this one.
+ */
+const fontBody = Poppins({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-poppins",
+});
 
 const SITE_URL  = process.env.NEXT_PUBLIC_SITE_URL  ?? "https://designthathits.com";
 const SITE_NAME = "Design That Hits";
@@ -129,7 +178,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // data-theme on this element before React hydrates, so the attribute legitimately
     // differs from what the server rendered. It suppresses the warning for <html>'s own
     // attributes only, not for any content inside.
-    <html lang="en" data-theme="dark" suppressHydrationWarning>
+    // The two font classes only declare --font-playfair and --font-poppins; globals.css
+    // composes them into --font-display and --font-body. They sit on <html> so the
+    // variables are in scope for everything, including portalled overlays.
+    <html
+      lang="en"
+      data-theme="dark"
+      className={`${fontDisplay.variable} ${fontBody.variable}`}
+      suppressHydrationWarning
+    >
       {/* In <head> deliberately: the theme attribute has to be set during HTML parsing,
           before the first paint, or light-theme visitors see a dark flash. */}
       <head>
