@@ -12,10 +12,16 @@ module.exports = {
         // "← Prev" / "Next →" pair plus a position readout will not fit on one line.
         xs: "400px",
       },
+      /*
+        Point at the same semantic tokens the components use rather than naming the
+        families again. next/font generates a hashed family name per build, so a literal
+        "Playfair Display" here would silently miss the self-hosted file and fall through
+        to Georgia. See the next/font declarations in app/layout.tsx.
+      */
       fontFamily: {
-        display: ['"Playfair Display"', "Georgia", "serif"],
-        body: ['"Poppins"', "system-ui", "sans-serif"],
-        sans: ['"Poppins"', "system-ui", "sans-serif"],
+        display: ["var(--font-display)"],
+        body: ["var(--font-body)"],
+        sans: ["var(--font-body)"],
       },
       /*
         Colours map to the CSS custom properties in globals.css rather than fixed hex

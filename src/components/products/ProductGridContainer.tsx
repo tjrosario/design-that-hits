@@ -103,6 +103,18 @@ export function ProductGridContainer({
   const isLoading = loading || isPending;
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
 
+  /*
+    The URL a given page really lives at. Passed to Pagination so its controls are proper
+    links: crawlers can follow them, and cmd-click opens a new tab as expected. Built from
+    the same serializeQuery the client fetch uses, so the href always matches the state
+    the click produces.
+  */
+  const hrefForPage = (page: number) => {
+    const params = serializeQuery({ ...query, page });
+    const qs = params.toString();
+    return qs ? `/?${qs}` : "/";
+  };
+
   return (
     <div>
       {/* Result count and the top pager share a row: count reads left, paging sits right,
@@ -135,6 +147,7 @@ export function ProductGridContainer({
             currentPage={query.page}
             totalPages={totalPages}
             onPage={onPage}
+            hrefForPage={hrefForPage}
             className="ml-auto"
             label="Pagination (top)"
             busy={isLoading}
@@ -154,6 +167,7 @@ export function ProductGridContainer({
           currentPage={query.page}
           totalPages={totalPages}
           onPage={onPage}
+          hrefForPage={hrefForPage}
           className="mt-10 sm:mt-12"
           label="Pagination (bottom)"
           busy={isLoading}

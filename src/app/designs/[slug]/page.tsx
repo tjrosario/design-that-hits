@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { getAllListings, getListingById, getRelatedListings } from "@/lib/shop";
 import { idFromSlug, listingName, listingPath, listingSlug } from "@/lib/slug";
 import { productTypeLabel, themeLabel } from "@/lib/facets";
+import { parseDescription } from "@/lib/description";
 import { JsonLd } from "@/components/JsonLd";
 import { ProductCard } from "@/components/products/ProductCard";
 import type { Listing } from "@/types/etsy";
@@ -101,9 +102,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function DesignPage({ params }: PageProps) {
   const listing = await resolveListing(params);
+  /*
+    A miss here returns a correct 404 status, which is what deindexes the URL. Note that
+    Next does not server-render the not-found body for a notFound() raised in an on-demand
+    dynamic route — the markup arrives in the RSC payload and paints after hydration.
+    Verified against a production build with both the root boundary and a trivial
+    segment-level not-found.tsx, so it is framework behaviour rather than something this
+    page controls. A top-level miss such as /nope renders app/not-found.tsx normally.
+  */
   if (!listing) notFound();
 
   const name = listingName(listing);
+  const descriptionBlocks = parseDescription(listing.description);
   const related = await getRelatedListings(listing, 4);
   const url = `${SITE_URL}${listingPath(listing)}`;
   const typeLabel = listing.productType ? productTypeLabel(listing.productType) : null;
@@ -243,7 +253,7 @@ export default async function DesignPage({ params }: PageProps) {
             </Link>
           </div>
 
-          {listing.description && (
+          {descriptionBlocks.length > 0 && (
             <div className="mb-8">
               <h2
                 className="text-lg mb-3"
@@ -252,15 +262,41 @@ export default async function DesignPage({ params }: PageProps) {
                 About this design
               </h2>
               {/*
-                whitespace-pre-line keeps the paragraph breaks Etsy authors write into the
-                description. Rendering it as one block would turn 260 words into a wall.
+                Rendered from parsed blocks rather than dumped into one whitespace-pre-line
+                paragraph. Sellers write real headings and bullet lists into Etsy's plain
+                text field; as a single <p> that structure was visible but not readable —
+                a screen reader got a run-on paragraph full of stray hyphens, and crawlers
+                got no list markup at all. See lib/description.ts.
               */}
-              <p
-                className="text-sm leading-relaxed whitespace-pre-line"
-                style={{ color: "var(--text-soft)" }}
-              >
-                {listing.description}
-              </p>
+              <div className="text-sm leading-relaxed" style={{ color: "var(--text-soft)" }}>
+                {descriptionBlocks.map((block, i) => {
+                  if (block.kind === "heading") {
+                    return (
+                      <h3
+                        key={i}
+                        className="text-sm mt-5 mb-2 first:mt-0"
+                        style={{ fontWeight: 600, color: "var(--text)" }}
+                      >
+                        {block.text}
+                      </h3>
+                    );
+                  }
+                  if (block.kind === "list") {
+                    return (
+                      <ul key={i} className="list-disc pl-5 space-y-1 mb-4 marker:text-[var(--brand)]">
+                        {block.items.map((item, j) => (
+                          <li key={j}>{item}</li>
+                        ))}
+                      </ul>
+                    );
+                  }
+                  return (
+                    <p key={i} className="mb-4 whitespace-pre-line">
+                      {block.text}
+                    </p>
+                  );
+                })}
+              </div>
             </div>
           )}
 

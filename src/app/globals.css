@@ -1,12 +1,11 @@
 /*
-  Font @import must stay above the @tailwind directives.
+  No font @import here.
 
-  CSS requires @import to precede every rule except @charset and @layer. Tailwind
-  expands `@tailwind base` into ~1250 rules, so an @import placed after it lands in the
-  middle of the generated stylesheet. Next 16 builds with Turbopack, whose CSS parser
-  enforces that rule and fails the build; the old webpack pipeline silently tolerated it.
+  The fonts are self-hosted through next/font — see app/layout.tsx, which declares them
+  and puts the generated variables on <html>. Loading them here instead
+  meant the browser could not discover a single font file until this stylesheet had
+  downloaded and parsed, and then had to reach a third-party origin to get them.
 */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,500;1,600;1,700&family=Poppins:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -62,8 +61,18 @@
       radial-gradient(ellipse 80% 60% at 75% 35%, rgba(239, 46, 123, 0.28) 0%, transparent 65%),
       radial-gradient(ellipse 60% 50% at 10% 80%, rgba(196, 21, 92, 0.18) 0%, transparent 60%);
 
-    --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
-    --font-body:    'Poppins', system-ui, -apple-system, sans-serif;
+    /*
+      --font-playfair and --font-poppins come from next/font (app/layout.tsx). Each holds
+      the hashed family name plus a metric-matched fallback that next/font generates to
+      keep layout shift near zero while the real file loads. The system fallbacks after
+      them cover the case where the font request fails outright.
+
+      Composing them into the existing semantic tokens means every `var(--font-display)`
+      and `var(--font-body)` in this file and across the components keeps working
+      unchanged.
+    */
+    --font-display: var(--font-playfair), Georgia, 'Times New Roman', serif;
+    --font-body:    var(--font-poppins), system-ui, -apple-system, sans-serif;
 
     color-scheme: dark;
   }
