@@ -33,6 +33,22 @@ export function listingName(listing: Listing): string {
   return first || listing.title.trim();
 }
 
+/**
+ * Alt text for a listing's photo.
+ *
+ * The catalogue's `altText` defaults to the raw Etsy title whenever the entry has no
+ * hand-written one, which is the case for all 366 products today: pipe-separated keyword
+ * blocks running a median of 123 characters. As alt text that is keyword stuffing, and it
+ * is genuinely hostile to a screen reader reading a grid of two dozen cards.
+ *
+ * A hand-written alt is respected. Anything that is merely the title falls back to the
+ * readable product name.
+ */
+export function listingAltText(listing: Listing): string {
+  const alt = listing.image?.altText?.trim();
+  return alt && alt !== listing.title.trim() ? alt : listingName(listing);
+}
+
 function slugifyTitle(title: string): string {
   return (
     title
