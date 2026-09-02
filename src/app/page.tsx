@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { getShopSections, getListings, getFacetGroups } from "@/lib/shop";
 import { parseQuery } from "@/lib/query";
 import { productTypeLabel, themeLabel } from "@/lib/facets";
+import { collectionPagePath, resolveCollection } from "@/lib/collections";
 import { ShopFront } from "@/components/ShopFront";
 import { JsonLd } from "@/components/JsonLd";
 import { HeroCarousel } from "@/components/HeroCarousel";
@@ -72,21 +73,62 @@ export async function generateMetadata({ searchParams }: HomeProps): Promise<Met
   if (parsed.themes.length)       qs.set("themes",   parsed.themes.join(","));
   if (parsed.priceBands.length)   qs.set("price",    parsed.priceBands.join(","));
   if (page > 1)                   qs.set("page",     String(page));
-  const canonicalUrl = qs.toString() ? `${SITE_URL}/?${qs}` : SITE_URL;
+
+  /*
+    A single-facet filter view has a real page of its own now — `/collections/stickers`
+    rather than `/?types=sticker` — showing exactly the same products with better copy.
+    Canonicalising to it consolidates every link and every share of the filtered URL onto
+    the one URL meant to rank, instead of splitting them across two.
+
+    Only a lone facet qualifies. `?types=sticker&themes=cats` is a genuine intersection
+    with no page of its own, so it keeps its own canonical and is handled by `robots`.
+  */
+  const soleFacet =
+    !q && !parsed.sectionIds.length && !parsed.priceBands.length
+      ? parsed.types.length === 1 && !parsed.themes.length
+        ? parsed.types[0]
+        : parsed.themes.length === 1 && !parsed.types.length
+        ? parsed.themes[0]
+        : null
+      : null;
+  const facetCollection = soleFacet ? await resolveCollection(soleFacet) : null;
+
+  const canonicalUrl = facetCollection
+    ? `${SITE_URL}${collectionPagePath(facetCollection.slug, page)}`
+    : qs.toString()
+    ? `${SITE_URL}/?${qs}`
+    : SITE_URL;
+
+  /*
+    Combinations of two or more facets, price bands and section filters are near-duplicate
+    slices of the catalogue, and the number of them grows multiplicatively with the facet
+    list. They were indexable back when they were the only category views that existed;
+    now that every single facet has a collection page, indexing the combinations spends
+    crawl budget on pages that will never outrank the collection they overlap. `follow`
+    keeps the product links inside them crawlable.
+  */
+  const isFacetCombination =
+    !isSearch &&
+    !facetCollection &&
+    parsed.types.length + parsed.themes.length + parsed.priceBands.length + parsed.sectionIds.length > 1;
 
   return {
     title,
     description,
     alternates: { canonical: canonicalUrl },
     /*
-      Category views are indexable. They are genuine landing pages — "wrapping paper",
-      "cats", "gothic & dark" are what people actually search for, and each shows a
-      distinct set of products with its own copy.
+      What stays out of the index here:
 
-      Search stays out of the index: `q` is visitor-supplied, so it can generate
-      unbounded near-duplicate URLs. `follow` keeps the product links crawlable.
+        - Search. `q` is visitor-supplied, so it can generate unbounded near-duplicate
+          URLs.
+        - Facet combinations. See isFacetCombination above.
+
+      Single-facet views are not excluded — they canonicalise to their collection page
+      instead, which consolidates rather than discards them. Everything else, the plain
+      home grid and its pagination, stays indexable and self-canonical. `follow` is set
+      throughout so product links stay crawlable either way.
     */
-    robots: isSearch
+    robots: isSearch || isFacetCombination
       ? { index: false, follow: true }
       : { index: true,  follow: true },
     // A page-level `openGraph` REPLACES the one in the root layout rather than merging

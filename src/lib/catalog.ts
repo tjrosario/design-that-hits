@@ -146,6 +146,17 @@ function allListings(): Listing[] {
   return _listings;
 }
 
+/**
+ * True when a listing's ID came from Etsy rather than being synthesised from its title.
+ *
+ * Structured data uses this to decide whether it can publish an identifier: a synthetic
+ * ID is an internal hash that means nothing outside this codebase, and quoting one as a
+ * product `sku` would be inventing an identifier rather than reporting one.
+ */
+export function hasRealEtsyId(listing: Listing): boolean {
+  return listing.id > 0 && listing.id < SYNTHETIC_ID_BASE;
+}
+
 /** Exposed for lib/shop.ts, which merges live RSS results over the catalog. */
 export function getCatalogListings(): Listing[] {
   return allListings();
