@@ -2,21 +2,16 @@
 
 import Link from "next/link";
 
-interface PaginationProps {
+interface PaginationBaseProps {
   currentPage: number;
   totalPages: number;
-  onPage: (page: number) => void;
   /**
-   * Real URL for a given page number.
-   *
-   * Every control that has somewhere to go is an <a> carrying this href, rather than the
-   * bare <button> they all used to be. The click handler still drives the fast
-   * client-side update, but the href is what makes the catalogue crawlable: without it a
-   * search engine could not reach page 2 of any view by following links, so 342 of the
-   * 366 products were discoverable only through the sitemap. It also restores what users
-   * expect from a link — middle-click, cmd-click, "copy link address", hover preview.
+   * Fast client-side page change. Optional: on a server-rendered view such as a
+   * collection page there is no client state to update, and the control works as plain
+   * links. Leaving it off is what keeps this component usable from a server component,
+   * where a function prop could not be passed at all.
    */
-  hrefForPage: (page: number) => string;
+  onPage?: (page: number) => void;
   /** Spacing is left to the caller so the same control works above and below the grid. */
   className?: string;
   /** Distinguishes the two instances for assistive tech. */
@@ -24,6 +19,31 @@ interface PaginationProps {
   /** A page change is in flight. The control stays visible and usable, just marked. */
   busy?: boolean;
 }
+
+/**
+ * Where each page number links to.
+ *
+ * Every control that has somewhere to go is an <a> carrying a real href, rather than the
+ * bare <button> they all used to be. The click handler still drives the fast client-side
+ * update, but the href is what makes the catalogue crawlable: without it a search engine
+ * could not reach page 2 of any view by following links, so 342 of the 366 products were
+ * discoverable only through the sitemap. It also restores what users expect from a link —
+ * middle-click, cmd-click, "copy link address", hover preview.
+ *
+ * Two ways to supply it, because this renders from both sides of the boundary:
+ *
+ *   - `hrefForPage`, a function, from a client component.
+ *   - `hrefs`, one URL per page in order, from a server component. Functions cannot be
+ *     passed to a client component at all, so a server caller precomputes the list. It
+ *     also copes with pagination whose first page is not shaped like the rest, which a
+ *     string template could not express: a collection's page one is `/collections/tote`
+ *     while its page two is `/collections/tote/pages/2`.
+ */
+type PaginationHrefProps =
+  | { hrefForPage: (page: number) => string; hrefs?: never }
+  | { hrefs: string[]; hrefForPage?: never };
+
+type PaginationProps = PaginationBaseProps & PaginationHrefProps;
 
 /**
  * True when a click should be left alone for the browser to handle natively — a new tab,
@@ -39,11 +59,17 @@ export function Pagination({
   totalPages,
   onPage,
   hrefForPage,
+  hrefs,
   className = "",
   label = "Pagination",
   busy = false,
 }: PaginationProps) {
   if (totalPages <= 1) return null;
+
+  // Out-of-range indices cannot happen: `pages` below is built from totalPages, and a
+  // server caller derives `hrefs` from the same number.
+  const href = (page: number): string =>
+    hrefForPage ? hrefForPage(page) : (hrefs as string[])[page - 1];
 
   const pages: (number | "...")[] = [];
   for (let i = 1; i <= totalPages; i++) {
@@ -55,6 +81,8 @@ export function Pagination({
   }
 
   const go = (page: number) => (e: React.MouseEvent) => {
+    // No handler means no client-side shortcut to take: let the browser follow the href.
+    if (!onPage) return;
     if (isModifiedClick(e)) return;
     e.preventDefault();
     onPage(page);
@@ -103,7 +131,7 @@ export function Pagination({
         </button>
       ) : (
         <Link
-          href={hrefForPage(currentPage - 1)}
+          href={href(currentPage - 1)}
           onClick={go(currentPage - 1)}
           className={armedClass}
           aria-label="Previous page"
@@ -137,7 +165,7 @@ export function Pagination({
           ) : (
             <Link
               key={p}
-              href={hrefForPage(p as number)}
+              href={href(p as number)}
               onClick={go(p as number)}
               className={`w-9 h-9 rounded-full text-xs font-bold transition-colors flex items-center justify-center ${p === currentPage ? "" : "filter-pill"}`}
               style={p === currentPage ? {
@@ -162,7 +190,7 @@ export function Pagination({
         </button>
       ) : (
         <Link
-          href={hrefForPage(currentPage + 1)}
+          href={href(currentPage + 1)}
           onClick={go(currentPage + 1)}
           className={armedClass}
           aria-label="Next page"

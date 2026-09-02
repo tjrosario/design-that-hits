@@ -22,7 +22,7 @@ export function Footer() {
               Navigate
             </p>
             <ul className="space-y-2">
-              {[{ href: '/', l: 'Shop' }, { href: '/about', l: 'About us' }, { href: '/contact', l: 'Contact' }].map(({ href, l }) => (
+              {[{ href: '/', l: 'Shop' }, { href: '/collections', l: 'Collections' }, { href: '/about', l: 'About us' }, { href: '/contact', l: 'Contact' }].map(({ href, l }) => (
                 <li key={href}>
                   <Link href={href} className="text-sm font-medium transition-colors hover:underline" style={{ color: 'var(--text-soft)' }}>
                     {l}
