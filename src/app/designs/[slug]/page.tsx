@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAllListings, getListingById, getRelatedListings, hasRealEtsyId } from "@/lib/shop";
-import { idFromSlug, listingName, listingPath, listingSlug } from "@/lib/slug";
+import { idFromSlug, listingAltText, listingName, listingPath, listingSlug } from "@/lib/slug";
 import { productTypeLabel, themeLabel } from "@/lib/facets";
 import { collectionPath } from "@/lib/collections";
 import { parseDescription } from "@/lib/description";
@@ -81,9 +81,20 @@ function metaDescription(listing: Listing): string {
     return `${listingName(listing)} — print-on-demand design from Design That Hits.`;
   }
   if (text.length <= 155) return text;
+
+  /*
+    Trim back to a boundary rather than chopping at character 155. Preference order is a
+    sentence end, then any word break, then the hard cut — which is only reachable for
+    text with no space at all in its first 155 characters. The old version fell straight
+    from "no sentence end past character 80" to the hard cut, so a description whose first
+    break landed early ended mid-word.
+  */
   const cut = text.slice(0, 155);
-  const lastStop = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf(" "));
-  return `${cut.slice(0, lastStop > 80 ? lastStop : 155).trim()}…`;
+  const sentenceEnd = cut.lastIndexOf(". ");
+  if (sentenceEnd > 80) return `${cut.slice(0, sentenceEnd).trim()}…`;
+
+  const wordEnd = cut.lastIndexOf(" ");
+  return `${(wordEnd > 0 ? cut.slice(0, wordEnd) : cut).trim()}…`;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -261,7 +272,7 @@ export default async function DesignPage({ params }: PageProps) {
           {listing.image ? (
             <Image
               src={listing.image.url}
-              alt={listing.image.altText || name}
+              alt={listingAltText(listing)}
               fill
               sizes="(max-width: 768px) 100vw, 50vw"
               className="object-cover"
@@ -365,9 +376,12 @@ export default async function DesignPage({ params }: PageProps) {
               <ul className="flex flex-wrap gap-2">
                 {listing.themes.map((theme) => (
                   <li key={theme}>
-                    {/* Links back into the filtered grid, which gives crawlers a real
-                        path between products and their category views. */}
-                    <Link href={`/?themes=${theme}`} className="filter-pill inline-flex">
+                    {/* Straight to the theme's collection page, not the equivalent
+                        `/?themes=…` filter URL. That URL canonicalises to this one, so
+                        pointing at it would spend every product page's internal links on
+                        a URL that defers to somewhere else. Every theme a listing carries
+                        has at least that listing in it, so it always has a collection. */}
+                    <Link href={collectionPath(theme)} className="filter-pill inline-flex">
                       {themeLabel(theme)}
                     </Link>
                   </li>
