@@ -2,15 +2,32 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAllListings, getListingById, getRelatedListings } from "@/lib/shop";
+import { getAllListings, getListingById, getRelatedListings, hasRealEtsyId } from "@/lib/shop";
 import { idFromSlug, listingName, listingPath, listingSlug } from "@/lib/slug";
 import { productTypeLabel, themeLabel } from "@/lib/facets";
+import { collectionPath } from "@/lib/collections";
 import { parseDescription } from "@/lib/description";
 import { JsonLd } from "@/components/JsonLd";
 import { ProductCard } from "@/components/products/ProductCard";
 import type { Listing } from "@/types/etsy";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
+
+/**
+ * `priceValidUntil` for every offer: a year out from when this module was loaded.
+ *
+ * Google drops the price from a merchant listing result when the offer has no
+ * priceValidUntil, and treats a past date as a stale price. There is no real expiry here
+ * — these prices stand until the shop changes them — so a rolling year is the honest
+ * answer, and a year of head room means it cannot go stale between deploys.
+ *
+ * Computed at module scope rather than in the component because react-hooks/purity
+ * rejects `Date.now()` during render, and rightly so: a value that changes on every
+ * re-render has no business in the output.
+ */
+const PRICE_VALID_UNTIL = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+  .toISOString()
+  .slice(0, 10);
 
 /*
   WHY THESE PAGES EXIST
@@ -82,7 +99,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description,
     alternates: { canonical: url },
     openGraph: {
-      type: "website",
+      /*
+        No `type` here on purpose. This is a product page, so og:type should be "product",
+        but Next's OpenGraphType union has no such member (see
+        node_modules/next/dist/lib/metadata/types/opengraph-types.d.ts) and "website" is
+        simply wrong — it is what stops Pinterest treating these as product Rich Pins.
+        Omitting the field makes Next emit no og:type at all, leaving the page free to
+        render the correct one itself. See ProductOpenGraph below.
+      */
       locale: "en_US",
       siteName: "Design That Hits",
       title: name,
@@ -98,6 +122,27 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       ...(listing.image ? { images: [listing.image.url] } : {}),
     },
   };
+}
+
+/**
+ * The OpenGraph tags Next's Metadata API cannot express.
+ *
+ * og:type and the product:* namespace are what turn a share into a Pinterest product
+ * Rich Pin — price and availability shown on the pin itself — which matters here because
+ * Pinterest is a primary discovery surface for print-on-demand gifts.
+ *
+ * These are plain <meta> elements rendered in the page body; React hoists them into
+ * <head>, and Next emits no competing og:type because generateMetadata omits it.
+ */
+function ProductOpenGraph({ listing }: { listing: Listing }) {
+  return (
+    <>
+      <meta property="og:type" content="product" />
+      <meta property="product:price:amount" content={listing.price.toFixed(2)} />
+      <meta property="product:price:currency" content={listing.currency} />
+      <meta property="product:availability" content="in stock" />
+    </>
+  );
 }
 
 export default async function DesignPage({ params }: PageProps) {
@@ -119,13 +164,14 @@ export default async function DesignPage({ params }: PageProps) {
   const typeLabel = listing.productType ? productTypeLabel(listing.productType) : null;
 
   /*
-    The middle breadcrumb is the product-type filter view rather than a separate index
-    page. That view is a real, indexable URL listing exactly this category, so the trail
-    matches where a visitor would actually go "up" to.
+    The middle breadcrumb is the product type's collection page. It used to be the
+    equivalent filtered home URL, `/?types=sticker`; the collection is the same set of
+    products at a real path, so the trail now points at the page that is meant to rank
+    for the category rather than at a parameterised view of the home page.
   */
   const categoryCrumb =
     listing.productType && typeLabel
-      ? { label: typeLabel, href: `/?types=${listing.productType}` }
+      ? { label: typeLabel, href: collectionPath(listing.productType) }
       : null;
 
   const productJsonLd = {
@@ -144,11 +190,23 @@ export default async function DesignPage({ params }: PageProps) {
         ...(typeLabel ? { category: typeLabel } : {}),
         ...(listing.tags.length ? { keywords: listing.tags.join(", ") } : {}),
         brand: { "@type": "Brand", name: "Design That Hits" },
+        /*
+          The Etsy listing ID doubles as the SKU. It is the only stable, externally
+          meaningful identifier this catalogue has — the CSV export's own `sku` column
+          holds a comma-separated list of per-variant IDs, which is not a product-level
+          SKU and is dropped during normalisation. Listings whose ID was synthesised from
+          the title (see hasRealEtsyId) publish no identifier rather than a made-up one.
+        */
+        ...(hasRealEtsyId(listing) ? { sku: String(listing.id), productID: String(listing.id) } : {}),
+        // Print-on-demand: every item is manufactured on order, so never anything but new.
+        itemCondition: "https://schema.org/NewCondition",
         offers: {
           "@type": "Offer",
           price: listing.price.toFixed(2),
           priceCurrency: listing.currency,
           availability: "https://schema.org/InStock",
+          itemCondition: "https://schema.org/NewCondition",
+          priceValidUntil: PRICE_VALID_UNTIL,
           // The offer points at Etsy because that is where the transaction happens.
           url: listing.url,
           seller: { "@id": `${SITE_URL}/#organization` },
@@ -170,6 +228,7 @@ export default async function DesignPage({ params }: PageProps) {
 
   return (
     <div className="mx-auto max-w-screen-xl px-4 sm:px-5 py-6 sm:py-10">
+      <ProductOpenGraph listing={listing} />
       <JsonLd data={productJsonLd} />
 
       {/* Visible breadcrumb, mirroring the structured data. */}

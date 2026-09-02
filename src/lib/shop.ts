@@ -35,6 +35,9 @@ import { fetchRssListings } from "./rss";
 
 export type { ShopErrorCode, ShopError, ShopResult, ListingsQueryOptions, FetchListingsResult } from "@/types/shop";
 
+/** Re-exported so pages import listing helpers from one module rather than two. */
+export { hasRealEtsyId } from "./catalog";
+
 export type ShopDataSource = "catalog" | "etsy";
 
 export function resolveDataSource(): ShopDataSource {
