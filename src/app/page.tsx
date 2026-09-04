@@ -151,10 +151,20 @@ export default async function HomePage({ searchParams }: HomeProps) {
   const params = await searchParams;
   const parsed = parseQuery(params);
 
-  const [sections, facets, collections, listingsResult] = await Promise.all([
+  /*
+    Every query the page needs, in one round. The hero used to be awaited on its own after
+    this block resolved, which made it a second serial hop for no reason — nothing in it
+    depends on the grid. It matters more now that this route is CDN-cached: the render only
+    runs on a cache miss, so the miss should be as cheap as possible.
+  */
+  const [sections, facets, collections, heroResult, listingsResult] = await Promise.all([
     getShopSections(),
     getFacetGroups(),
     getCollections(),
+    // Fetched independently of the grid. Sourcing the hero from initialData meant it went
+    // blank on the Best Sellers / Trending routes, where initialData is deliberately null
+    // so the grid can rank on the client.
+    getListings({ limit: 12, sortOn: "created", sortOrder: "desc" }),
     parsed.pill === "best" || parsed.pill === "trending"
       ? Promise.resolve(null)
       : getListings({
@@ -184,10 +194,6 @@ export default async function HomePage({ searchParams }: HomeProps) {
       ? { listings: listingsResult.data.listings, total: listingsResult.data.total, page: parsed.page, pageSize: 24 }
       : null;
 
-  // Hero products are fetched independently of the grid. Sourcing them from initialData
-  // meant the hero went blank on the Best Sellers / Trending routes, where initialData is
-  // deliberately null so the grid can rank on the client.
-  const heroResult = await getListings({ limit: 12, sortOn: "created", sortOrder: "desc" });
   const heroListings = (heroResult.ok ? heroResult.data.listings : [])
     .filter((l) => l.image)
     .slice(0, 8);
