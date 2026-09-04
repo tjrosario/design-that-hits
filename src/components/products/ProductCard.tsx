@@ -8,6 +8,14 @@ import type { Listing } from "@/types/etsy";
 
 interface ProductCardProps {
   listing: Listing;
+  /**
+   * Load this card's photo eagerly, at high priority, with a preload hint.
+   *
+   * Set it on the handful of cards that are above the fold. Everything below stays lazy:
+   * `priority` preloads, and preloading a whole grid competes with itself and makes the
+   * LCP worse rather than better.
+   */
+  priority?: boolean;
 }
 
 function formatPrice(price: number, currency: string): string {
@@ -29,7 +37,7 @@ function badgeTitle(title: string): string {
   return out || title.slice(0, 16);
 }
 
-export function ProductCard({ listing }: ProductCardProps) {
+export function ProductCard({ listing, priority = false }: ProductCardProps) {
   // Etsy titles are pipe-separated keyword blocks. Screen readers would otherwise read
   // the whole 150-character blob as the link name for every card in the grid.
   const name = listingName(listing);
@@ -59,9 +67,24 @@ export function ProductCard({ listing }: ProductCardProps) {
             src={listing.image.url}
             alt={listing.image.altText || listing.title}
             fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1280px) 33vw, 25vw"
+            /*
+              These have to match the grid this card sits in:
+              `grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4` inside a
+              max-w-screen-xl (1280px) container.
+
+              The old value claimed 50vw below 640px, where the grid is a single column
+              and the card is the full width of the viewport, and 33vw between 640 and
+              768, where it is two columns. Both under-declared the space, so the browser
+              picked a source roughly half the width it needed and every phone rendered
+              the catalogue soft. Phones are the majority of this traffic and Google
+              indexes the mobile page, so it was the worst place to get it wrong.
+
+              The top stop is a fixed 320px rather than 25vw: past 1280px the container
+              stops growing, so a quarter of it is 320px no matter how wide the window is.
+            */
+            sizes="(max-width: 639px) 100vw, (max-width: 767px) 50vw, (max-width: 1279px) 33vw, 320px"
             className="object-cover product-image"
-            priority={false}
+            priority={priority}
           />
         ) : (
           <div className="flex h-full items-center justify-center" style={{ color: 'var(--border)' }}>

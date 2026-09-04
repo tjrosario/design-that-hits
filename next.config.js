@@ -11,6 +11,14 @@ const nextConfig = {
   },
 
   images: {
+    /*
+      AVIF first, WebP second. Next's default is WebP alone, and it serves the first
+      format the browser accepts, so this costs nothing for browsers without AVIF. On a
+      catalogue of 366 product photos where the image is the product, the 20-30% AVIF
+      saves over WebP is the single biggest lever on page weight. Encoding is slower on
+      the first request for a given size, then cached.
+    */
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       {
         protocol: "https",
