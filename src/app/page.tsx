@@ -4,6 +4,7 @@ import { getShopSections, getListings, getFacetGroups } from "@/lib/shop";
 import { parseQuery } from "@/lib/query";
 import { productTypeLabel, themeLabel } from "@/lib/facets";
 import { collectionPagePath, getCollections, resolveCollection } from "@/lib/collections";
+import { SOCIAL_URLS } from "@/lib/social";
 import { CollectionTiles } from "@/components/collections/CollectionTiles";
 import Link from "next/link";
 import { ShopFront } from "@/components/ShopFront";
@@ -225,10 +226,7 @@ export default async function HomePage({ searchParams }: HomeProps) {
       width:      192,
       height:     192,
     },
-    sameAs: [
-      "https://designthathits.etsy.com",
-      // Add your Instagram / Pinterest URLs here when available
-    ],
+    sameAs: SOCIAL_URLS,
     contactPoint: {
       "@type":            "ContactPoint",
       contactType:        "customer service",
