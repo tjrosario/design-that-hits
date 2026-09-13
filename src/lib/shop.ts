@@ -335,6 +335,18 @@ export async function getRandomListings(count: number): Promise<Listing[]> {
   return shuffled.slice(0, count);
 }
 
+/**
+ * Facet groups computed from the catalog, whatever is currently serving the grid.
+ *
+ * Collections are catalog-derived pages that exist either way, so they must not blink out
+ * when the Etsy gate below happens to be open. Use this for anything structural — the
+ * sitemap, generateStaticParams, resolving a collection slug — and getFacetGroups for the
+ * filter UI.
+ */
+export async function getCatalogFacetGroups(): Promise<FacetGroups> {
+  return catalogSource.getFacetGroups(await getMergedListings());
+}
+
 /** Secondary filter groups with counts, for the filter UI. */
 export async function getFacetGroups(): Promise<FacetGroups> {
   // Gated on etsyUsable rather than resolveDataSource so it stays consistent with
