@@ -61,6 +61,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified:    new Date(listing.updatedAt * 1000),
     changeFrequency: "weekly",
     priority:        0.8,
+    /*
+      The product photo, declared as an image sitemap entry.
+
+      On a storefront the image is the product, and Google Images is a real entry point
+      for gift and print-on-demand searches. The photos are hosted on Etsy's CDN rather
+      than this domain, which is exactly the case image sitemaps exist for: without this
+      Google has to infer them from the page markup, and off-domain images are the ones it
+      is least willing to index on inference alone.
+    */
+    ...(listing.image ? { images: [listing.image.url] } : {}),
   }));
 
   return [...staticPages, ...categoryPages, ...productPages];

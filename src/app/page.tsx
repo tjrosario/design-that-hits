@@ -3,7 +3,9 @@ import { Suspense } from "react";
 import { getShopSections, getListings, getFacetGroups } from "@/lib/shop";
 import { parseQuery } from "@/lib/query";
 import { productTypeLabel, themeLabel } from "@/lib/facets";
-import { collectionPagePath, resolveCollection } from "@/lib/collections";
+import { collectionPagePath, getCollections, resolveCollection } from "@/lib/collections";
+import { CollectionTiles } from "@/components/collections/CollectionTiles";
+import Link from "next/link";
 import { ShopFront } from "@/components/ShopFront";
 import { JsonLd } from "@/components/JsonLd";
 import { HeroCarousel } from "@/components/HeroCarousel";
@@ -155,9 +157,10 @@ export default async function HomePage({ searchParams }: HomeProps) {
     depends on the grid. It matters more now that this route is CDN-cached: the render only
     runs on a cache miss, so the miss should be as cheap as possible.
   */
-  const [sections, facets, heroResult, listingsResult] = await Promise.all([
+  const [sections, facets, collections, heroResult, listingsResult] = await Promise.all([
     getShopSections(),
     getFacetGroups(),
+    getCollections(),
     // Fetched independently of the grid. Sourcing the hero from initialData meant it went
     // blank on the Best Sellers / Trending routes, where initialData is deliberately null
     // so the grid can rank on the client.
@@ -176,6 +179,15 @@ export default async function HomePage({ searchParams }: HomeProps) {
           limit:      24,
         }),
   ]);
+
+  /*
+    Product types first, then the biggest themes, capped at eight so the block stays two
+    rows on a desktop. The full set is one click further on, at /collections.
+  */
+  const homeCollections = [
+    ...collections.filter((c) => c.kind === "type"),
+    ...collections.filter((c) => c.kind === "theme").sort((a, b) => b.count - a.count),
+  ].slice(0, 8);
 
   const initialData =
     listingsResult && listingsResult.ok
@@ -373,48 +385,31 @@ export default async function HomePage({ searchParams }: HomeProps) {
       </section>
 
       {/* Category explore */}
-      {sections.length > 0 && (
+      {/*
+        Shop by collection.
+
+        This block used to render Etsy shop sections linking to `/?sections=<id>`, and it
+        never appeared: the catalogue carries no sections at all (`sections: []`, and not
+        one of the 366 listings has a sectionId), so the guard was always false and the
+        home page shipped no category links whatsoever. The collections are the real
+        category axis, and putting them here is what takes them from two clicks away
+        (footer, then hub) to one.
+      */}
+      {collections.length > 0 && (
         <section className="mx-auto max-w-screen-xl px-4 sm:px-5 py-12 sm:py-16">
           <div className="text-center mb-8 sm:mb-10">
             <p className="eyebrow mb-3">Browse the shop</p>
             <h2 className="display-title" style={{ fontSize: "clamp(1.9rem, 4.5vw, 3rem)" }}>
-              Shop by <span className="display-accent">Category</span>
+              Shop by <span className="display-accent">Collection</span>
             </h2>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-            {sections.slice(0, 8).map((s) => (
-              <a
-                key={s.id}
-                href={`/?sections=${s.id}`}
-                className="panel group relative p-4 sm:p-5 flex flex-col justify-between min-h-[120px] transition-transform hover:-translate-y-1"
-                aria-label={`Browse ${s.title} designs`}
-              >
-                <span
-                  className="text-[11px] font-semibold tracking-wide px-2.5 py-1 rounded-full self-start"
-                  style={{ background: "var(--brand-wash)", color: "var(--brand)" }}
-                >
-                  {s.count > 0 ? `${s.count} designs` : "Browse"}
-                </span>
-                <div className="flex items-end justify-between gap-2 mt-4">
-                  <p
-                    className="text-base sm:text-lg leading-tight"
-                    style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "var(--text)" }}
-                  >
-                    {s.title}
-                  </p>
-                  <span
-                    className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-transform group-hover:rotate-45"
-                    style={{ background: "var(--gradient-brand)", color: "var(--brand-ink)" }}
-                    aria-hidden="true"
-                  >
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H7M17 7v10" />
-                    </svg>
-                  </span>
-                </div>
-              </a>
-            ))}
+          <CollectionTiles collections={homeCollections} />
+
+          <div className="text-center mt-8">
+            <Link href="/collections" className="btn-outline">
+              See all {collections.length} collections
+            </Link>
           </div>
         </section>
       )}

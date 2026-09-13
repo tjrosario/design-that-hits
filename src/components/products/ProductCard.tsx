@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 // import { useState } from "react"; // re-enable with the favourite button below
-import { listingName, listingPath } from "@/lib/slug";
+import { listingAltText, listingName, listingPath } from "@/lib/slug";
 import type { Listing } from "@/types/etsy";
 
 interface ProductCardProps {
@@ -57,7 +57,7 @@ export function ProductCard({ listing }: ProductCardProps) {
         {listing.image ? (
           <Image
             src={listing.image.url}
-            alt={listing.image.altText || listing.title}
+            alt={listingAltText(listing)}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1280px) 33vw, 25vw"
             className="object-cover product-image"
