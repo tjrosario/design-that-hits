@@ -129,9 +129,16 @@ export async function CollectionView({ collection, page }: { collection: Collect
         </p>
       </header>
 
+      {/*
+        The first row loads eagerly. On a collection page the grid starts near the top of
+        the viewport, so one of these photos is the LCP element — and every one of them
+        was `loading="lazy"` with no preload, which is the classic way to lose LCP: the
+        browser cannot even discover the image until layout runs, then fetches it at low
+        priority. Four covers the widest row the grid ever renders.
+      */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-        {listings.map((listing) => (
-          <ProductCard key={listing.id} listing={listing} />
+        {listings.map((listing, i) => (
+          <ProductCard key={listing.id} listing={listing} priority={i < 4} />
         ))}
       </div>
 
