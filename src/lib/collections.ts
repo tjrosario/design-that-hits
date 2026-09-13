@@ -16,7 +16,7 @@
  * those URLs simply defer to the collection page as the canonical home of that content.
  */
 
-import { getFacetGroups } from "@/lib/shop";
+import { getCatalogFacetGroups } from "@/lib/shop";
 import type { FacetOption } from "@/types/etsy";
 
 export type CollectionKind = "type" | "theme";
@@ -114,7 +114,7 @@ function toCollection(kind: CollectionKind, option: FacetOption): Collection {
  * win here and the theme would be unreachable, so the ids are worth keeping distinct.
  */
 export async function getCollections(): Promise<Collection[]> {
-  const facets = await getFacetGroups();
+  const facets = await getCatalogFacetGroups();
   const types = facets.productTypes.map((o) => toCollection("type", o));
   const themes = facets.themes.map((o) => toCollection("theme", o));
 
