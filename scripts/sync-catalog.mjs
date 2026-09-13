@@ -42,6 +42,8 @@ const CATALOG_PATH = path.join(REPO_ROOT, "src", "data", "catalog.json");
 
 const SHOP_NAME = "designthathits";
 const RSS_URL = `https://www.etsy.com/shop/${SHOP_NAME}/rss`;
+/** Etsy's shop feed is hard-capped at this many items, with no pagination. */
+const RSS_FEED_CAP = 10;
 const USER_AGENT =
   "Mozilla/5.0 (compatible; DesignThatHitsStorefront/1.0; +https://designthathits.com)";
 
@@ -51,7 +53,7 @@ const CURATED_FIELDS = ["sectionId", "tags", "favorites", "views", "featured"];
 // ─── CLI ──────────────────────────────────────────────────────────────────────
 
 function parseArgs(argv) {
-  const args = { csv: null, json: null, dryRun: false, help: false };
+  const args = { csv: null, json: null, summary: null, dryRun: false, help: false };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--dry-run") args.dryRun = true;
@@ -61,6 +63,11 @@ function parseArgs(argv) {
       if (!args.csv) fail("--csv requires a path to the Etsy CSV export");
     } else if (arg.startsWith("--csv=")) {
       args.csv = arg.slice("--csv=".length);
+    } else if (arg === "--summary") {
+      args.summary = argv[++i];
+      if (!args.summary) fail("--summary requires a path to write the JSON report to");
+    } else if (arg.startsWith("--summary=")) {
+      args.summary = arg.slice("--summary=".length);
     } else if (arg === "--json") {
       args.json = argv[++i];
       if (!args.json) fail("--json requires a path to an etsy-listings.json file");
@@ -87,6 +94,7 @@ const HELP = `
   npm run sync:catalog                   Pull the 10 newest listings from the public RSS feed
   npm run sync:catalog -- --csv <path>   Import an Etsy CSV export (all products, no links)
   npm run sync:catalog -- --json <path>  Import collected listing IDs + URLs (real links)
+  npm run sync:catalog -- --summary <path>  Write a machine-readable JSON report
   npm run sync:catalog -- --dry-run      Show what would change without writing
 
   For a complete, properly linked catalog, run both imports:
@@ -605,7 +613,9 @@ async function main() {
     console.log(`  Fetching ${RSS_URL} …`);
     incoming = await fetchRss();
     source = "rss";
-    console.log(`  Feed returned ${incoming.length} listing(s) (the feed caps at 10).`);
+    console.log(
+      `  Feed returned ${incoming.length} listing(s) (the feed caps at ${RSS_FEED_CAP}).`
+    );
   }
 
   const summary = mergeListings(catalog, incoming, { source });
@@ -662,13 +672,42 @@ async function main() {
     );
   }
 
+  // Report of what this run did. Built before the write so --dry-run can produce one too,
+  // but never written before the catalog: a bad --summary path must not cost us the sync.
+  const report = {
+    source,
+    feedCount: incoming.length,
+    feedCap: RSS_FEED_CAP,
+    // Every feed item being new means whatever preceded them has already scrolled out of
+    // the window, so listings published since the last run may have been missed.
+    possibleOverflow:
+      source === "rss" && incoming.length >= RSS_FEED_CAP && summary.added >= incoming.length,
+    added: summary.added,
+    updated: summary.updated,
+    unchanged: summary.unchanged,
+    upgraded: summary.upgraded,
+    before,
+    after: catalog.listings.length,
+    syncedAt: catalog.syncedAt,
+    dryRun: args.dryRun,
+  };
+
+  async function writeReport() {
+    if (!args.summary) return;
+    await writeFile(args.summary, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+    console.log(`  Wrote sync report to ${args.summary}`);
+  }
+
   if (args.dryRun) {
     console.log(`\n  --dry-run: ${rel(CATALOG_PATH)} was not written.\n`);
+    await writeReport();
     return;
   }
 
   await saveCatalog(catalog);
   console.log(`\n  ✔ Wrote ${rel(CATALOG_PATH)}\n`);
+
+  await writeReport();
 }
 
 main().catch((err) => {
