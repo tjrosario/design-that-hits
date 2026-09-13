@@ -156,6 +156,26 @@ Run the plain command regularly and the catalog accumulates every new listing as
 publish it. Fields you curate by hand (`sectionId`, `tags`, `favorites`, `views`) are never
 overwritten by a sync; only the volatile ones are refreshed.
 
+### This runs itself now
+
+`.github/workflows/sync-catalog.yml` runs the plain RSS sync every 6 hours, and on demand
+from the Actions tab. When the feed brings back something new it verifies the site still
+builds, then commits `src/data/catalog.json` to `main`, which Vercel deploys. Runs that
+find nothing new leave no commit behind.
+
+Two things worth knowing about it:
+
+- **It fails on purpose when every item in the feed is new.** That is the signature of more
+  than 10 listings going up between runs, which means older ones have already scrolled out
+  of the 10-item window. Recover them with the CSV backfill below.
+- **RSS carries no tags**, so auto-added listings land in the right product type every time
+  (the title names it) but reach a theme about 82% of the time instead of 90%. A CSV
+  backfill restores full tags.
+
+`npm run sync:catalog -- --summary <path>` writes a JSON report of what a run did. That is
+how the workflow decides whether anything is worth committing, since `syncedAt` changes on
+every run regardless.
+
 ### Backfilling everything you listed before adopting this
 
 The RSS feed only reaches back 10 listings, so use Etsy's own export to get everything else:
@@ -485,7 +505,7 @@ In Vercel Project Settings → Domains, add your custom domain. Update `NEXT_PUB
 
 These all stem from having no Etsy API access. See [Product Data Sources](#product-data-sources).
 
-1. **The catalog is synced, not fetched live.** Only the 10 newest listings arrive automatically via RSS. Everything else gets into `catalog.json` by re-running `npm run sync:catalog -- --csv <export>` after downloading a fresh export. There is no way around that download: the API is denied, the RSS feed is hard-capped at 10 with no pagination, and Etsy serves a CAPTCHA to any automated browser hitting the shop page.
+1. **The catalog is synced, not fetched live.** Only the 10 newest listings arrive automatically via RSS, on the 6-hourly schedule in `.github/workflows/sync-catalog.yml`. Everything else gets into `catalog.json` by re-running `npm run sync:catalog -- --csv <export>` after downloading a fresh export. There is no way around that download: the API is denied, the RSS feed is hard-capped at 10 with no pagination, and Etsy serves a CAPTCHA to any automated browser hitting the shop page.
 2. **CSV-imported products link via shop search** until you also run the browser collector (`--json`). Etsy's export has no listing URLs. They are fully visible and searchable either way.
 3. **Categories are hand-defined.** Neither the RSS feed nor the CSV export includes shop sections, so `sections` in `catalog.json` is yours to maintain. Until you add one, the category UI is hidden.
 4. **No favorites or view counts.** Both default to 0, so "Best Sellers" and "Trending" fall back to newest-first until you fill in `favorites` by hand.

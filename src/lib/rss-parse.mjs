@@ -209,7 +209,9 @@ export function parseRssFeed(xml) {
       ? Math.floor(publishedMs / 1000)
       : Math.floor(Date.now() / 1000);
 
-    const title = cleanTitle(decodeEntities(rawTitle), shopName);
+    // Decoded twice, like the description path: the feed escapes already-encoded HTML, so
+    // <title> arrives as "&amp;#39;" and one pass only gets it back to "&#39;".
+    const title = cleanTitle(decodeEntities(decodeEntities(rawTitle)), shopName);
 
     listings.push({
       id,

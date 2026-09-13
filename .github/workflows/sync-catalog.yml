@@ -1,0 +1,74 @@
+# Pulls new Etsy listings into src/data/catalog.json on a schedule.
+#
+# The shop feed is hard-capped at 10 items with no pagination, so this has to run often
+# enough that more than 10 listings never go up between runs. Anything it misses falls out
+# of the feed permanently and needs a CSV backfill to recover.
+name: Sync catalog
+
+on:
+  schedule:
+    # Every 6 hours. See the cap note above before slowing this down.
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Never let two syncs race for the same commit.
+concurrency:
+  group: sync-catalog
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Pull new listings from the shop feed
+        run: npm run sync:catalog -- --summary "$RUNNER_TEMP/sync.json"
+
+      - name: Read the sync report
+        id: report
+        run: node .github/scripts/read-sync-report.mjs "$RUNNER_TEMP/sync.json" >> "$GITHUB_OUTPUT"
+
+      # syncedAt is rewritten every run, so the file is always dirty. The report counts are
+      # the only honest signal of whether anything actually arrived.
+      - name: Discard a timestamp-only change
+        if: steps.report.outputs.changed != 'true'
+        run: git checkout -- src/data/catalog.json
+
+      - name: Verify the site still builds
+        if: steps.report.outputs.changed == 'true'
+        # RSS is disabled here so the guard tests the committed catalog, not the live feed.
+        env:
+          SHOP_DISABLE_RSS: "1"
+        run: npm run build
+
+      - name: Commit the catalog
+        if: steps.report.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/catalog.json
+          git commit -m "sync catalog from the etsy feed (${{ steps.report.outputs.summary }})"
+          git push
+
+      - name: Report what happened
+        run: echo "${{ steps.report.outputs.summary }}" >> "$GITHUB_STEP_SUMMARY"
+
+      # Last, so the listings are already committed before the run goes red.
+      - name: Fail if the feed may have overflowed
+        if: steps.report.outputs.overflow == 'true'
+        run: |
+          echo "::error::Every item in the feed was new, so listings published before them" \
+               "have likely scrolled out of the 10-item window and were missed." \
+               "Recover them with: npm run sync:catalog -- --csv <Etsy CSV export>"
+          exit 1
