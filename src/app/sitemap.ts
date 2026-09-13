@@ -43,6 +43,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     crawler reaches the deeper products of a large category from the sitemap as well as
     by following the pagination links. Search URLs still stay out: they remain noindex.
   */
+  // Listings but no collections means the facet source came back empty, which is how this
+  // file silently lost all 50 category URLs once before.
+  if (listings.length > 0 && collections.length === 0) {
+    console.warn("[sitemap] Catalog has listings but no collections; category URLs omitted.");
+  }
+
   const categoryPages: MetadataRoute.Sitemap = collections.flatMap((collection) => {
     const totalPages = Math.max(1, Math.ceil(collection.count / COLLECTION_PAGE_SIZE));
 
