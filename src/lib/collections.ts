@@ -16,8 +16,8 @@
  * those URLs simply defer to the collection page as the canonical home of that content.
  */
 
-import { getCatalogFacetGroups } from "@/lib/shop";
-import type { FacetOption } from "@/types/etsy";
+import { getAllListings, getCatalogFacetGroups } from "@/lib/shop";
+import type { FacetOption, Listing } from "@/types/etsy";
 
 export type CollectionKind = "type" | "theme";
 
@@ -28,6 +28,11 @@ export interface Collection {
   label: string;
   /** How many listings the facet holds, for the page copy and the ItemList. */
   count: number;
+  /**
+   * A product photo to represent the collection. Absent only if nothing in it has one.
+   * Decorative on the tiles, since the visible label already names the link.
+   */
+  imageUrl?: string;
 }
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
@@ -113,13 +118,33 @@ function toCollection(kind: CollectionKind, option: FacetOption): Collection {
  * disjoint today; if a future rule introduced the same id in both, the product type would
  * win here and the theme would be unreachable, so the ids are worth keeping distinct.
  */
+/** True when this listing belongs in that collection. */
+function belongsTo(listing: Listing, collection: Collection): boolean {
+  return collection.kind === "type"
+    ? listing.productType === collection.slug
+    : Boolean(listing.themes?.includes(collection.slug));
+}
+
 export async function getCollections(): Promise<Collection[]> {
-  const facets = await getCatalogFacetGroups();
+  const [facets, listings] = await Promise.all([getCatalogFacetGroups(), getAllListings()]);
+
   const types = facets.productTypes.map((o) => toCollection("type", o));
   const themes = facets.themes.map((o) => toCollection("theme", o));
-
   const seen = new Set(types.map((c) => c.slug));
-  return [...types, ...themes.filter((c) => !seen.has(c.slug))];
+  const collections = [...types, ...themes.filter((c) => !seen.has(c.slug))];
+
+  // Newest first, so a tile shows the same product the collection page leads with rather
+  // than an arbitrary one. Sorted once here instead of per collection.
+  const newestFirst = [...listings]
+    .filter((l) => l.image)
+    .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+
+  for (const collection of collections) {
+    const hero = newestFirst.find((l) => belongsTo(l, collection));
+    if (hero?.image) collection.imageUrl = hero.image.url;
+  }
+
+  return collections;
 }
 
 export async function resolveCollection(slug: string): Promise<Collection | null> {
