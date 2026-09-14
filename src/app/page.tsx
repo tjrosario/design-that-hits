@@ -115,6 +115,18 @@ export async function generateMetadata({ searchParams }: HomeProps): Promise<Met
     !facetCollection &&
     parsed.types.length + parsed.themes.length + parsed.priceBands.length + parsed.sectionIds.length > 1;
 
+  /*
+    Page 2 and deeper of a view with no page of its own. These are thin slices of the same
+    catalogue, they compete for crawl budget with the collection pages that are meant to
+    rank, and nothing is lost by dropping them: every product is in the sitemap and linked
+    from a collection whose own pagination is static and crawlable.
+
+    Deliberately excludes facetCollection views. Those already canonicalise to a real
+    collection page, and pairing noindex with a canonical pointing somewhere else is a
+    contradiction Google may resolve by dropping the canonical target instead.
+  */
+  const isDeepPage = !facetCollection && page > 1;
+
   return {
     title,
     description,
@@ -125,13 +137,14 @@ export async function generateMetadata({ searchParams }: HomeProps): Promise<Met
         - Search. `q` is visitor-supplied, so it can generate unbounded near-duplicate
           URLs.
         - Facet combinations. See isFacetCombination above.
+        - Page 2 and deeper, unless the view canonicalises to a collection. See isDeepPage.
 
       Single-facet views are not excluded — they canonicalise to their collection page
       instead, which consolidates rather than discards them. Everything else, the plain
       home grid and its pagination, stays indexable and self-canonical. `follow` is set
       throughout so product links stay crawlable either way.
     */
-    robots: isSearch || isFacetCombination
+    robots: isSearch || isFacetCombination || isDeepPage
       ? { index: false, follow: true }
       : { index: true,  follow: true },
     // A page-level `openGraph` REPLACES the one in the root layout rather than merging
