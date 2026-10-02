@@ -3,19 +3,13 @@ import { notFound } from "next/navigation";
 import {
   COLLECTION_PAGE_SIZE,
   collectionQuery,
+  collectionSpec,
   getCollections,
   resolveCollection,
 } from "@/lib/collections";
 import { getListings } from "@/lib/shop";
-import { CollectionView, collectionMetadata } from "@/components/collections/CollectionView";
+import { CatalogPage, catalogMetadata } from "@/components/collections/CatalogPage";
 
-/*
-  Pages two and up of a collection.
-
-  A path segment rather than `?page=2` so these prerender like every other page. It also
-  keeps the pagination crawlable by plain link-following, which is how the deeper products
-  in each category get discovered without leaning on the sitemap.
-*/
 export const revalidate = 86400;
 
 interface PageProps {
@@ -48,10 +42,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const page = parsePageNumber(n);
   const collection = page ? await resolveCollection(slug) : null;
   if (!collection || !page) return { title: "Collection not found" };
-  return collectionMetadata(collection, page);
+  return catalogMetadata(await collectionSpec(collection), page);
 }
 
-export default async function CollectionPageN({ params }: PageProps) {
+export default async function CollectionPageRoute({ params }: PageProps) {
   const { slug, n } = await params;
   const page = parsePageNumber(n);
   if (!page) notFound();
@@ -59,5 +53,5 @@ export default async function CollectionPageN({ params }: PageProps) {
   const collection = await resolveCollection(slug);
   if (!collection) notFound();
 
-  return <CollectionView collection={collection} page={page} />;
+  return <CatalogPage spec={await collectionSpec(collection)} page={page} />;
 }

@@ -336,26 +336,18 @@ export async function getRandomListings(count: number): Promise<Listing[]> {
 }
 
 /**
- * Facet groups computed from the catalog, whatever is currently serving the grid.
+ * Secondary filter groups with counts, for the filter UI and the collection pages.
  *
- * Collections are catalog-derived pages that exist either way, so they must not blink out
- * when the Etsy gate below happens to be open. Use this for anything structural — the
- * sitemap, generateStaticParams, resolving a collection slug — and getFacetGroups for the
- * filter UI.
+ * Always computed from the catalog. This used to return empty arrays whenever
+ * `etsyUsable()` was true, on the reasoning that the Etsy API cannot narrow by these
+ * facets so offering the controls alongside Etsy results would render filters that do
+ * nothing. The gate guarded a state that cannot last: `etsyUsable()` is optimistic until
+ * something actually calls Etsy and fails, and since the API application was denied, every
+ * call fails. What it produced instead was a visibly broken sidebar on the first render of
+ * every fresh server instance, cached and served to everyone for the next five minutes.
+ *
+ * If Etsy ever grants API access, this is the decision to revisit.
  */
-export async function getCatalogFacetGroups(): Promise<FacetGroups> {
-  return catalogSource.getFacetGroups(await getMergedListings());
-}
-
-/** Secondary filter groups with counts, for the filter UI. */
 export async function getFacetGroups(): Promise<FacetGroups> {
-  // Gated on etsyUsable rather than resolveDataSource so it stays consistent with
-  // getListings: the moment Etsy is marked down and catalog listings are being served,
-  // the facets that filter them appear too. Facets are a catalog capability — the Etsy
-  // API cannot narrow by them — so offering them alongside Etsy results would render
-  // controls that silently do nothing.
-  if (etsyUsable()) {
-    return { productTypes: [], themes: [], priceBands: [] };
-  }
   return catalogSource.getFacetGroups(await getMergedListings());
 }

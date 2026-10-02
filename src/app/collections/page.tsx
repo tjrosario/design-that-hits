@@ -67,6 +67,7 @@ export default async function CollectionsPage() {
             position: i + 1,
             name: c.label,
             url: `${SITE_URL}${collectionPath(c.slug)}`,
+            ...(c.imageUrl ? { image: c.imageUrl } : {}),
           })),
         },
       },
@@ -108,7 +109,7 @@ export default async function CollectionsPage() {
           <h2 className="display-title mb-5" style={{ fontSize: "clamp(1.4rem, 3vw, 2rem)" }}>
             By product
           </h2>
-          <CollectionTiles collections={types} />
+          <CollectionTiles collections={types} priorityCount={4} />
         </section>
       )}
 
