@@ -16,7 +16,7 @@
  * those URLs simply defer to the collection page as the canonical home of that content.
  */
 
-import { getAllListings, getCatalogFacetGroups } from "@/lib/shop";
+import { getAllListings, getFacetGroups } from "@/lib/shop";
 import type { FacetOption, Listing } from "@/types/etsy";
 
 export type CollectionKind = "type" | "theme";
@@ -126,7 +126,7 @@ function belongsTo(listing: Listing, collection: Collection): boolean {
 }
 
 export async function getCollections(): Promise<Collection[]> {
-  const [facets, listings] = await Promise.all([getCatalogFacetGroups(), getAllListings()]);
+  const [facets, listings] = await Promise.all([getFacetGroups(), getAllListings()]);
 
   const types = facets.productTypes.map((o) => toCollection("type", o));
   const themes = facets.themes.map((o) => toCollection("theme", o));
