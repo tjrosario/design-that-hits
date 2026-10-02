@@ -1,7 +1,13 @@
 import type { MetadataRoute } from "next";
 import { getAllListings } from "@/lib/shop";
 import { listingPath } from "@/lib/slug";
-import { COLLECTION_PAGE_SIZE, collectionPagePath, getCollections } from "@/lib/collections";
+import {
+  COLLECTION_PAGE_SIZE,
+  collectionPagePath,
+  getCollections,
+  getIntersections,
+  intersectionPath,
+} from "@/lib/collections";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
 
@@ -29,8 +35,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   */
   let listings = [] as Awaited<ReturnType<typeof getAllListings>>;
   let collections: Awaited<ReturnType<typeof getCollections>> = [];
+  let intersections: Awaited<ReturnType<typeof getIntersections>> = [];
   try {
-    [listings, collections] = await Promise.all([getAllListings(), getCollections()]);
+    [listings, collections, intersections] = await Promise.all([
+      getAllListings(),
+      getCollections(),
+      getIntersections(),
+    ]);
   } catch {
     return staticPages;
   }
@@ -61,6 +72,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
   });
 
+  /*
+    Product type crossed with theme. These are the strongest commercial targets on the
+    site: "cat wrapping paper" is a query a small shop can rank for, where "wrapping
+    paper" is not.
+  */
+  const intersectionPages: MetadataRoute.Sitemap = intersections.flatMap((i) => {
+    const totalPages = Math.max(1, Math.ceil(i.count / COLLECTION_PAGE_SIZE));
+
+    return Array.from({ length: totalPages }, (_, n) => ({
+      url:             `${SITE_URL}${intersectionPath(i.type.slug, i.theme.slug, n + 1)}`,
+      lastModified:    now,
+      changeFrequency: "weekly" as const,
+      priority:        n === 0 ? 0.7 : 0.4,
+    }));
+  });
+
   const productPages: MetadataRoute.Sitemap = listings.map((listing) => ({
     url: `${SITE_URL}${listingPath(listing)}`,
     // Etsy's own updated timestamp, so re-crawls track real edits rather than build time.
@@ -79,5 +106,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...(listing.image ? { images: [listing.image.url] } : {}),
   }));
 
-  return [...staticPages, ...categoryPages, ...productPages];
+  return [...staticPages, ...categoryPages, ...intersectionPages, ...productPages];
 }
