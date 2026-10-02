@@ -3,7 +3,14 @@ import { Suspense } from "react";
 import { getShopSections, getListings, getFacetGroups } from "@/lib/shop";
 import { parseQuery } from "@/lib/query";
 import { productTypeLabel, themeLabel } from "@/lib/facets";
-import { collectionPagePath, getCollections, resolveCollection } from "@/lib/collections";
+import {
+  COLLECTION_PAGE_SIZE,
+  collectionPagePath,
+  getCollections,
+  intersectionPath,
+  resolveCollection,
+  resolveIntersection,
+} from "@/lib/collections";
 import { SOCIAL_URLS } from "@/lib/social";
 import { CollectionTiles } from "@/components/collections/CollectionTiles";
 import Link from "next/link";
@@ -78,26 +85,50 @@ export async function generateMetadata({ searchParams }: HomeProps): Promise<Met
   if (page > 1)                   qs.set("page",     String(page));
 
   /*
-    A single-facet filter view has a real page of its own now — `/collections/stickers`
-    rather than `/?types=sticker` — showing exactly the same products with better copy.
-    Canonicalising to it consolidates every link and every share of the filtered URL onto
-    the one URL meant to rank, instead of splitting them across two.
+    A filter view with a real page of its own canonicalises to it, which consolidates every
+    link and share of the filtered URL onto the URL meant to rank instead of splitting them.
 
-    Only a lone facet qualifies. `?types=sticker&themes=cats` is a genuine intersection
-    with no page of its own, so it keeps its own canonical and is handled by `robots`.
+    Two shapes qualify. One facet maps to its collection (`?types=sticker` to
+    `/collections/sticker`). One product type plus one theme maps to the intersection page
+    (`?types=wrapping-paper&themes=cats` to `/collections/wrapping-paper/cats`), which only
+    exists for pairs with enough products to carry one. Anything else keeps its own
+    canonical and is handled by `robots`.
   */
-  const soleFacet =
-    !q && !parsed.sectionIds.length && !parsed.priceBands.length
-      ? parsed.types.length === 1 && !parsed.themes.length
-        ? parsed.types[0]
-        : parsed.themes.length === 1 && !parsed.types.length
-        ? parsed.themes[0]
-        : null
-      : null;
+  const onlyFacets = !q && !parsed.sectionIds.length && !parsed.priceBands.length;
+
+  const soleFacet = onlyFacets
+    ? parsed.types.length === 1 && !parsed.themes.length
+      ? parsed.types[0]
+      : parsed.themes.length === 1 && !parsed.types.length
+      ? parsed.themes[0]
+      : null
+    : null;
   const facetCollection = soleFacet ? await resolveCollection(soleFacet) : null;
 
-  const canonicalUrl = facetCollection
-    ? `${SITE_URL}${collectionPagePath(facetCollection.slug, page)}`
+  const facetIntersection =
+    onlyFacets && parsed.types.length === 1 && parsed.themes.length === 1
+      ? await resolveIntersection(parsed.types[0], parsed.themes[0])
+      : null;
+
+  /*
+    Only canonicalise to a page that exists. `?themes=cats&page=40` would otherwise point
+    its canonical at `/collections/cats/pages/40`, which 404s, and a canonical aimed at a
+    missing page is worse than one aimed at itself.
+  */
+  const targetCount = facetCollection?.count ?? facetIntersection?.count;
+  const targetHasPage =
+    targetCount === undefined || page <= Math.max(1, Math.ceil(targetCount / COLLECTION_PAGE_SIZE));
+
+  const canonicalTarget = !targetHasPage
+    ? null
+    : facetCollection
+    ? collectionPagePath(facetCollection.slug, page)
+    : facetIntersection
+    ? intersectionPath(facetIntersection.type.slug, facetIntersection.theme.slug, page)
+    : null;
+
+  const canonicalUrl = canonicalTarget
+    ? `${SITE_URL}${canonicalTarget}`
     : qs.toString()
     ? `${SITE_URL}/?${qs}`
     : SITE_URL;
@@ -112,7 +143,7 @@ export async function generateMetadata({ searchParams }: HomeProps): Promise<Met
   */
   const isFacetCombination =
     !isSearch &&
-    !facetCollection &&
+    !canonicalTarget &&
     parsed.types.length + parsed.themes.length + parsed.priceBands.length + parsed.sectionIds.length > 1;
 
   /*
@@ -121,11 +152,11 @@ export async function generateMetadata({ searchParams }: HomeProps): Promise<Met
     rank, and nothing is lost by dropping them: every product is in the sitemap and linked
     from a collection whose own pagination is static and crawlable.
 
-    Deliberately excludes facetCollection views. Those already canonicalise to a real
-    collection page, and pairing noindex with a canonical pointing somewhere else is a
-    contradiction Google may resolve by dropping the canonical target instead.
+    Deliberately excludes anything that canonicalises elsewhere. Those already point at a
+    real page, and pairing noindex with a canonical aimed somewhere else is a contradiction
+    Google may resolve by dropping the canonical target instead.
   */
-  const isDeepPage = !facetCollection && page > 1;
+  const isDeepPage = !canonicalTarget && page > 1;
 
   return {
     title,
