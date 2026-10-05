@@ -16,6 +16,7 @@ interface FiltersDrawerProps {
   facets: FacetGroups;
   selectedTypes: string[];
   selectedThemes: string[];
+  selectedOccasions: string[];
   selectedPriceBands: string[];
   onFacetToggle: (key: FacetKey, optionId: string) => void;
 }
@@ -31,6 +32,7 @@ export function FiltersDrawer({
   facets,
   selectedTypes,
   selectedThemes,
+  selectedOccasions,
   selectedPriceBands,
   onFacetToggle,
 }: FiltersDrawerProps) {
@@ -91,6 +93,7 @@ export function FiltersDrawer({
             facets={facets}
             selectedTypes={selectedTypes}
             selectedThemes={selectedThemes}
+            selectedOccasions={selectedOccasions}
             selectedPriceBands={selectedPriceBands}
             onFacetToggle={onFacetToggle}
           />

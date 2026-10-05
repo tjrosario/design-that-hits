@@ -30,9 +30,11 @@ import {
   computePriceBands,
   deriveProductType,
   deriveThemes,
+  deriveOccasions,
   matchesPriceBand,
   productTypeLabel,
   themeLabel,
+  occasionLabel,
 } from "./facets";
 import type { FacetGroups } from "@/types/etsy";
 
@@ -114,6 +116,7 @@ function normaliseListing(entry: CatalogListing): Listing | null {
   // tags the shopper searches against.
   listing.productType = deriveProductType(listing);
   listing.themes = deriveThemes(listing);
+  listing.occasions = deriveOccasions(listing);
 
   return listing;
 }
@@ -223,7 +226,7 @@ export function filterListings(
   listings: Listing[],
   opts: Pick<
     ListingsQueryOptions,
-    "q" | "sectionIds" | "types" | "themes" | "priceBands"
+    "q" | "sectionIds" | "types" | "themes" | "occasions" | "priceBands"
   >,
   bands = computePriceBands(listings)
 ): Listing[] {
@@ -231,6 +234,7 @@ export function filterListings(
   const sections = opts.sectionIds?.length ? new Set(opts.sectionIds) : null;
   const types = opts.types?.length ? new Set(opts.types) : null;
   const themes = opts.themes?.length ? new Set(opts.themes) : null;
+  const occasions = opts.occasions?.length ? new Set(opts.occasions) : null;
 
   // Resolve band ids once rather than per listing.
   const selectedBands = opts.priceBands?.length
@@ -242,6 +246,9 @@ export function filterListings(
       return false;
     }
     if (types && !(listing.productType && types.has(listing.productType))) {
+      return false;
+    }
+    if (occasions && !(listing.occasions ?? []).some((o) => occasions.has(o))) {
       return false;
     }
     if (themes && !(listing.themes ?? []).some((theme) => themes.has(theme))) {
@@ -264,6 +271,7 @@ export function filterListings(
 export function getFacetGroups(listings: Listing[] = allListings()): FacetGroups {
   const typeCounts = new Map<string, number>();
   const themeCounts = new Map<string, number>();
+  const occasionCounts = new Map<string, number>();
 
   for (const listing of listings) {
     if (listing.productType) {
@@ -271,6 +279,9 @@ export function getFacetGroups(listings: Listing[] = allListings()): FacetGroups
     }
     for (const theme of listing.themes ?? []) {
       themeCounts.set(theme, (themeCounts.get(theme) ?? 0) + 1);
+    }
+    for (const occasion of listing.occasions ?? []) {
+      occasionCounts.set(occasion, (occasionCounts.get(occasion) ?? 0) + 1);
     }
   }
 
@@ -286,6 +297,10 @@ export function getFacetGroups(listings: Listing[] = allListings()): FacetGroups
   return {
     productTypes: [...typeCounts.entries()]
       .map(([id, count]) => ({ id, label: productTypeLabel(id), count }))
+      .filter((o) => o.count > 0)
+      .sort(byCountDesc),
+    occasions: [...occasionCounts.entries()]
+      .map(([id, count]) => ({ id, label: occasionLabel(id), count }))
       .filter((o) => o.count > 0)
       .sort(byCountDesc),
     themes: [...themeCounts.entries()]
@@ -356,7 +371,7 @@ export async function getListings(
  * Degrades to an empty array so the UI shows an empty state rather than crashing.
  */
 export async function getListingsForRanking(
-  opts: Pick<ListingsQueryOptions, "q" | "sectionIds" | "types" | "themes" | "priceBands"> = {},
+  opts: Pick<ListingsQueryOptions, "q" | "sectionIds" | "types" | "themes" | "occasions" | "priceBands"> = {},
   source?: Listing[]
 ): Promise<Listing[]> {
   const listings = source ?? allListings();

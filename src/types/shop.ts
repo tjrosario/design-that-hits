@@ -53,6 +53,7 @@ export interface ListingsQueryOptions {
   /** Secondary facet ids from lib/facets.ts. Empty or absent means no constraint. */
   types?: string[];
   themes?: string[];
+  occasions?: string[];
   priceBands?: string[];
   sortOn?: "created" | "price" | "score";
   sortOrder?: "asc" | "desc";

@@ -81,7 +81,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const totalPages = Math.max(1, Math.ceil(i.count / COLLECTION_PAGE_SIZE));
 
     return Array.from({ length: totalPages }, (_, n) => ({
-      url:             `${SITE_URL}${intersectionPath(i.type.slug, i.theme.slug, n + 1)}`,
+      url:             `${SITE_URL}${intersectionPath(i.primary.slug, i.secondary.slug, n + 1)}`,
       lastModified:    now,
       changeFrequency: "weekly" as const,
       priority:        n === 0 ? 0.7 : 0.4,

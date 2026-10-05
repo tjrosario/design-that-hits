@@ -78,6 +78,25 @@ const THEME_RULES: { id: string; label: string; pattern: RegExp }[] = [
   { id: "family", label: "Family & Matching", pattern: /matching|family_|couples|his and hers/i },
 ];
 
+// ─── Occasion ─────────────────────────────────────────────────────────────────
+
+/**
+ * What the design is *for*. A third axis alongside product type and theme, and the one
+ * that matches how gift wrap is actually searched: people look for christmas wrapping
+ * paper far more than they look for gothic wrapping paper.
+ *
+ * Multi-valued, because "Halloween Birthday Wrapping Paper" is genuinely both. Patterns
+ * are deliberately narrow: `ghost` and `pumpkin` are motifs that appear year-round in this
+ * catalog, so matching them would file kawaii ghosts as Halloween in April.
+ */
+const OCCASION_RULES: { id: string; label: string; pattern: RegExp }[] = [
+  { id: "christmas", label: "Christmas", pattern: /\b(christmas|xmas|santa|reindeer)\b/i },
+  { id: "halloween", label: "Halloween", pattern: /\b(halloween|spooky|witchy)\b/i },
+  { id: "birthday", label: "Birthday", pattern: /\bbirthday\b/i },
+  { id: "valentines", label: "Valentine's Day", pattern: /\bvalentine/i },
+  { id: "graduation", label: "Graduation", pattern: /\bgraduation\b/i },
+];
+
 /** Title plus tags is the whole signal. Tags are Etsy's own, so they carry real intent. */
 function haystack(listing: Listing): string {
   return `${listing.title} ${(listing.tags ?? []).join(" ")}`.toLowerCase();
@@ -115,6 +134,15 @@ export function deriveThemes(listing: Listing): string[] {
 
 export function productTypeLabel(id: string): string {
   return PRODUCT_TYPE_RULES.find((r) => r.id === id)?.label ?? id;
+}
+
+export function deriveOccasions(listing: Listing): string[] {
+  const hay = haystack(listing);
+  return OCCASION_RULES.filter((rule) => rule.pattern.test(hay)).map((rule) => rule.id);
+}
+
+export function occasionLabel(id: string): string {
+  return OCCASION_RULES.find((r) => r.id === id)?.label ?? id;
 }
 
 export function themeLabel(id: string): string {

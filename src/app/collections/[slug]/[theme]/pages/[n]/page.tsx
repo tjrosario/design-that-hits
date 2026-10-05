@@ -25,7 +25,7 @@ export async function generateStaticParams() {
   for (const i of await getIntersections()) {
     const totalPages = Math.ceil(i.count / COLLECTION_PAGE_SIZE);
     for (let n = 2; n <= totalPages; n++) {
-      params.push({ slug: i.type.slug, theme: i.theme.slug, n: String(n) });
+      params.push({ slug: i.primary.slug, theme: i.secondary.slug, n: String(n) });
     }
   }
   return params;

@@ -14,6 +14,7 @@ interface FiltersSidebarProps {
   facets: FacetGroups;
   selectedTypes: string[];
   selectedThemes: string[];
+  selectedOccasions: string[];
   selectedPriceBands: string[];
   onFacetToggle: (key: FacetKey, optionId: string) => void;
 }
@@ -27,6 +28,7 @@ export function FiltersSidebar({
   facets,
   selectedTypes,
   selectedThemes,
+  selectedOccasions,
   selectedPriceBands,
   onFacetToggle,
 }: FiltersSidebarProps) {
@@ -104,6 +106,15 @@ export function FiltersSidebar({
           })}
         </div>
       </fieldset>
+
+      {/* Occasion leads: people shop gift wrap by what it is for long before they think
+          about product type or motif. */}
+      <FacetGroup
+        legend="Occasion"
+        options={facets.occasions}
+        selected={selectedOccasions}
+        onToggle={(id) => onFacetToggle("occasions", id)}
+      />
 
       <FacetGroup
         legend="Product Type"
