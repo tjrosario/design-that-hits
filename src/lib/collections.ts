@@ -19,7 +19,7 @@
 import { getAllListings, getFacetGroups } from "@/lib/shop";
 import type { FacetOption, Listing } from "@/types/etsy";
 
-export type CollectionKind = "type" | "theme";
+export type CollectionKind = "type" | "theme" | "occasion";
 
 export interface Collection {
   /** URL segment. Identical to the facet id it came from. */
@@ -82,6 +82,18 @@ const INTROS: Record<string, string> = {
   apparel: "T-shirts, hoodies, sweatshirts and loungewear. Comfortable enough to live in, printed with something you actually want to wear.",
   "wrapping-paper": "Wrapping paper that makes the gift look considered before it is even opened. Seamless patterns, heavyweight paper, several sizes.",
 
+  // ── Occasions ───────────────────────────────────────────────────────────────
+  christmas:
+    "More than two hundred Christmas designs, which is the bulk of what we make. Mostly wrapping paper, running from traditional red and green through gothic, retro and cottagecore, so the gift does not have to look like everyone else's.",
+  halloween:
+    "Halloween designs that lean cute rather than gruesome. Kawaii ghosts, witchy pastels and a lot of black, across wrapping paper and shirts. Several of these double as October birthday gifts.",
+  birthday:
+    "Birthday designs for people tired of balloons and the word CELEBRATE set in a serif font. Gothic, glam and retro, plus a run of Halloween birthday wraps for the October crowd.",
+  valentines:
+    "Valentine's designs without the drugstore pink. Gothic roses, minimalist line hearts and celestial motifs, for when you want it romantic but not saccharine.",
+  graduation:
+    "Graduation designs for a gift that is usually cash in an envelope. Caps, confetti and academic motifs, so at least the envelope looks like someone tried.",
+
   // ── Themes ──────────────────────────────────────────────────────────────────
   cats: "For cat people, by people who understand. Kittens, cranky tabbies and cats behaving exactly as cats do, across gifts, wrapping paper and wearables.",
   dogs: "Dog designs for every kind of dog person. Good boys, bad boys, and the ones who have never once come when called.",
@@ -120,18 +132,25 @@ function toCollection(kind: CollectionKind, option: FacetOption): Collection {
  */
 /** True when this listing belongs in that collection. */
 function belongsTo(listing: Listing, collection: Collection): boolean {
-  return collection.kind === "type"
-    ? listing.productType === collection.slug
-    : Boolean(listing.themes?.includes(collection.slug));
+  if (collection.kind === "type") return listing.productType === collection.slug;
+  if (collection.kind === "occasion") return Boolean(listing.occasions?.includes(collection.slug));
+  return Boolean(listing.themes?.includes(collection.slug));
 }
 
 export async function getCollections(): Promise<Collection[]> {
   const [facets, listings] = await Promise.all([getFacetGroups(), getAllListings()]);
 
   const types = facets.productTypes.map((o) => toCollection("type", o));
+  const occasions = facets.occasions.map((o) => toCollection("occasion", o));
   const themes = facets.themes.map((o) => toCollection("theme", o));
-  const seen = new Set(types.map((c) => c.slug));
-  const collections = [...types, ...themes.filter((c) => !seen.has(c.slug))];
+
+  const seen = new Set<string>();
+  const collections: Collection[] = [];
+  for (const c of [...types, ...occasions, ...themes]) {
+    if (seen.has(c.slug)) continue;
+    seen.add(c.slug);
+    collections.push(c);
+  }
 
   // Newest first, so a tile shows the same product the collection page leads with rather
   // than an arbitrary one. Sorted once here instead of per collection.
@@ -153,13 +172,21 @@ export async function resolveCollection(slug: string): Promise<Collection | null
 }
 
 /** The listing query one collection stands for. */
-export function collectionQuery(collection: Collection): { types?: string[]; themes?: string[] } {
-  return collection.kind === "type" ? { types: [collection.slug] } : { themes: [collection.slug] };
+export function collectionQuery(collection: Collection): {
+  types?: string[];
+  themes?: string[];
+  occasions?: string[];
+} {
+  if (collection.kind === "type") return { types: [collection.slug] };
+  if (collection.kind === "occasion") return { occasions: [collection.slug] };
+  return { themes: [collection.slug] };
 }
 
 /** The equivalent filtered home-page URL, which canonicalises back to the collection. */
 export function collectionFilterParam(collection: Collection): string {
-  return collection.kind === "type" ? `types=${collection.slug}` : `themes=${collection.slug}`;
+  if (collection.kind === "type") return `types=${collection.slug}`;
+  if (collection.kind === "occasion") return `occasions=${collection.slug}`;
+  return `themes=${collection.slug}`;
 }
 
 export { introFor as collectionIntro };
@@ -173,8 +200,10 @@ export { introFor as collectionIntro };
 export const MIN_INTERSECTION_PRODUCTS = 10;
 
 export interface Intersection {
-  type: Collection;
-  theme: Collection;
+  /** The first URL segment: a product type or an occasion. */
+  primary: Collection;
+  /** The second segment. Always a theme today. */
+  secondary: Collection;
   /** What the page is about, written out rather than composed from the two labels. */
   label: string;
   count: number;
@@ -261,23 +290,117 @@ const INTERSECTIONS: Record<string, { label: string; intro: string }> = {
     intro:
       "Shirts for people with a specialist subject. Coffee, tacos, pan dulce, and a few things that should not be sandwiches but are anyway.",
   },
+
+  // ── Occasion crossed with theme ─────────────────────────────────────────────
+  // Where the search volume actually is. People look for christmas wrapping paper far
+  // more than for gothic wrapping paper, and the pairs are specific enough to win.
+  "christmas|glam": {
+    label: "Glam Christmas Wrapping Paper",
+    intro:
+      "Gold tones, shine and a bit of excess, for the gift under the tree that wants to be noticed first. The metallic look is printed flat, so it photographs well without costing foil money.",
+  },
+  "christmas|cats": {
+    label: "Cat Christmas Wrapping Paper",
+    intro:
+      "Christmas cats: in hats, in lights, in boxes they should not be in. Enough designs to find the one for the person whose cat already has a stocking.",
+  },
+  "halloween|gothic": {
+    label: "Gothic Halloween Designs",
+    intro:
+      "Skulls, bats, Victorian gloom and a lot of black, across wrapping paper and shirts. Halloween for the people who find orange and purple a bit childish.",
+  },
+  "christmas|food": {
+    label: "Food Christmas Wrapping Paper",
+    intro:
+      "Cocoa, cookies, candy canes and the whole Christmas dinner, repeated across a sheet. Wrapping for the person whose December is mostly about eating.",
+  },
+  "christmas|gothic": {
+    label: "Gothic Christmas Wrapping Paper",
+    intro:
+      "Black ground Christmas wrap with skulls, ravens and dark botanicals. For the house where the tree is also black, and for anyone done with red and green.",
+  },
+  "christmas|retro": {
+    label: "Retro Christmas Wrapping Paper",
+    intro:
+      "Seventies palettes, vintage baubles and mid century type. Christmas wrap that looks like it was found in a loft rather than bought this year.",
+  },
+  "christmas|dogs": {
+    label: "Dog Christmas Wrapping Paper",
+    intro:
+      "Dogs in Santa hats, dogs in jumpers, dogs who have clearly eaten something they should not have. Christmas wrap for the dog person, or for the dog, who will tear it off anyway.",
+  },
+  "christmas|minimalist": {
+    label: "Minimalist Christmas Wrapping Paper",
+    intro:
+      "Single color repeats, fine line trees and plenty of space. Christmas wrap for people who would rather their presents did not shout from under the tree.",
+  },
+  "christmas|music": {
+    label: "Music Christmas Wrapping Paper",
+    intro:
+      "Guitars, vinyl and carols turned into pattern. Christmas wrap for a gift that is almost certainly music, or for whoever makes the December playlist.",
+  },
+  "birthday|glam": {
+    label: "Glam Birthday Wrapping Paper",
+    intro:
+      "Gold, confetti and shine for a birthday that counts as a milestone. Works for the thirtieth, the fiftieth, and the one nobody is saying out loud.",
+  },
+  "birthday|gothic": {
+    label: "Gothic Birthday Wrapping Paper",
+    intro:
+      "Birthday wrap in black, with skulls and dark florals where the balloons usually go. For the person who has asked, more than once, for no balloons.",
+  },
+  "christmas|cottagecore": {
+    label: "Cottagecore Christmas Wrapping Paper",
+    intro:
+      "Mushrooms, hand drawn greenery, gingham and muted winter color. Christmas wrap that looks hand blocked and homemade without being either.",
+  },
+  "valentines|minimalist": {
+    label: "Minimalist Valentine's Wrapping Paper",
+    intro:
+      "Line hearts, single color repeats and some restraint. Valentine's wrap for people who mean it but would rather not announce it in glitter.",
+  },
+  "christmas|wildlife": {
+    label: "Woodland Christmas Wrapping Paper",
+    intro:
+      "Deer, foxes, owls and winter hares in woodland repeats. The Christmas wrap that works for a grandparent and a toddler without changing design.",
+  },
+  "valentines|gothic": {
+    label: "Gothic Valentine's Wrapping Paper",
+    intro:
+      "Black ground Valentine's wrap with skulls, thorns and dark roses. Romantic in a way that suits some couples considerably better than pink does.",
+  },
+  "valentines|floral": {
+    label: "Floral Valentine's Wrapping Paper",
+    intro:
+      "Roses, peonies and pressed botanicals for Valentine's, in palettes that are not drugstore pink. They carry an anniversary just as well.",
+  },
+  "halloween|retro": {
+    label: "Retro Halloween Designs",
+    intro:
+      "Nineties and Y2K Halloween: neon ghosts, pixel bats and colors that belong on a VHS sleeve. Wrapping paper and shirts both.",
+  },
+  "christmas|pride": {
+    label: "Pride Christmas Wrapping Paper",
+    intro:
+      "Progress stripes, trans and bi palettes, and queer coded motifs worked into Christmas designs. For chosen family, and for anyone whose December is complicated.",
+  },
 };
 
-export function intersectionKey(typeSlug: string, themeSlug: string): string {
-  return `${typeSlug}|${themeSlug}`;
+export function intersectionKey(primarySlug: string, secondarySlug: string): string {
+  return `${primarySlug}|${secondarySlug}`;
 }
 
-export function intersectionPath(typeSlug: string, themeSlug: string, page = 1): string {
-  const base = `${collectionPath(typeSlug)}/${themeSlug}`;
+export function intersectionPath(primarySlug: string, secondarySlug: string, page = 1): string {
+  const base = `${collectionPath(primarySlug)}/${secondarySlug}`;
   return page <= 1 ? base : `${base}/pages/${page}`;
 }
 
-export function intersectionUrl(typeSlug: string, themeSlug: string, page = 1): string {
-  return `${SITE_URL}${intersectionPath(typeSlug, themeSlug, page)}`;
+export function intersectionUrl(primarySlug: string, secondarySlug: string, page = 1): string {
+  return `${SITE_URL}${intersectionPath(primarySlug, secondarySlug, page)}`;
 }
 
 export function intersectionIntro(i: Intersection): string {
-  return INTERSECTIONS[intersectionKey(i.type.slug, i.theme.slug)].intro;
+  return INTERSECTIONS[intersectionKey(i.primary.slug, i.secondary.slug)].intro;
 }
 
 /**
@@ -289,7 +412,9 @@ export function intersectionIntro(i: Intersection): string {
  */
 export async function getIntersections(): Promise<Intersection[]> {
   const [collections, listings] = await Promise.all([getCollections(), getAllListings()]);
-  const bySlug = new Map(collections.map((c) => [`${c.kind}:${c.slug}`, c]));
+  // The collection namespace is flat and deduplicated, so a slug identifies one collection
+  // whatever axis it came from.
+  const bySlug = new Map(collections.map((c) => [c.slug, c]));
 
   const newestFirst = [...listings]
     .filter((l) => l.image)
@@ -297,20 +422,20 @@ export async function getIntersections(): Promise<Intersection[]> {
 
   const out: Intersection[] = [];
   for (const [key, copy] of Object.entries(INTERSECTIONS)) {
-    const [typeSlug, themeSlug] = key.split("|");
-    if (themeSlug === "pages") continue;
+    const [primarySlug, secondarySlug] = key.split("|");
+    if (secondarySlug === "pages") continue;
 
-    const type = bySlug.get(`type:${typeSlug}`);
-    const theme = bySlug.get(`theme:${themeSlug}`);
-    if (!type || !theme) continue;
+    const primary = bySlug.get(primarySlug);
+    const secondary = bySlug.get(secondarySlug);
+    if (!primary || !secondary) continue;
 
-    const matching = listings.filter((l) => belongsTo(l, type) && belongsTo(l, theme));
+    const matching = listings.filter((l) => belongsTo(l, primary) && belongsTo(l, secondary));
     if (matching.length < MIN_INTERSECTION_PRODUCTS) continue;
 
-    const hero = newestFirst.find((l) => belongsTo(l, type) && belongsTo(l, theme));
+    const hero = newestFirst.find((l) => belongsTo(l, primary) && belongsTo(l, secondary));
     out.push({
-      type,
-      theme,
+      primary,
+      secondary,
       label: copy.label,
       count: matching.length,
       ...(hero?.image ? { imageUrl: hero.image.url } : {}),
@@ -321,18 +446,20 @@ export async function getIntersections(): Promise<Intersection[]> {
 }
 
 export async function resolveIntersection(
-  typeSlug: string,
-  themeSlug: string
+  primarySlug: string,
+  secondarySlug: string
 ): Promise<Intersection | null> {
   const all = await getIntersections();
-  return all.find((i) => i.type.slug === typeSlug && i.theme.slug === themeSlug) ?? null;
+  return (
+    all.find((i) => i.primary.slug === primarySlug && i.secondary.slug === secondarySlug) ?? null
+  );
 }
 
 /** The intersections hanging off one collection, for the cross-links on its page. */
 export async function intersectionsFor(collection: Collection): Promise<Intersection[]> {
   const all = await getIntersections();
-  return all.filter((i) =>
-    collection.kind === "type" ? i.type.slug === collection.slug : i.theme.slug === collection.slug
+  return all.filter(
+    (i) => i.primary.slug === collection.slug || i.secondary.slug === collection.slug
   );
 }
 
@@ -416,7 +543,12 @@ export async function collectionSpec(collection: Collection): Promise<CatalogSpe
 
   return {
     label: collection.label,
-    eyebrow: collection.kind === "type" ? "Product type" : "Theme",
+    eyebrow:
+      collection.kind === "type"
+        ? "Product type"
+        : collection.kind === "occasion"
+        ? "Occasion"
+        : "Theme",
     intro: introFor(collection),
     query: collectionQuery(collection),
     pagePath: (page) => collectionPagePath(collection.slug, page),
@@ -424,13 +556,10 @@ export async function collectionSpec(collection: Collection): Promise<CatalogSpe
     detail: collectionDetail(collection.slug),
     related: related.length
       ? {
-          heading:
-            collection.kind === "type"
-              ? `${collection.label} by theme`
-              : `${collection.label} by product`,
+          heading: `More in ${collection.label}`,
           items: related.map((i) => ({
             label: i.label,
-            href: intersectionPath(i.type.slug, i.theme.slug),
+            href: intersectionPath(i.primary.slug, i.secondary.slug),
             count: i.count,
           })),
         }
@@ -441,12 +570,12 @@ export async function collectionSpec(collection: Collection): Promise<CatalogSpe
 export function intersectionSpec(i: Intersection): CatalogSpec {
   return {
     label: i.label,
-    eyebrow: i.type.label,
+    eyebrow: i.primary.label,
     intro: intersectionIntro(i),
-    query: { types: [i.type.slug], themes: [i.theme.slug] },
-    pagePath: (page) => intersectionPath(i.type.slug, i.theme.slug, page),
-    // Up is the product type, which is the broader page a visitor would widen to.
-    trail: [{ name: i.type.label, href: collectionPath(i.type.slug) }],
+    query: { ...collectionQuery(i.primary), ...collectionQuery(i.secondary) },
+    pagePath: (page) => intersectionPath(i.primary.slug, i.secondary.slug, page),
+    // Up is the primary axis, which is the broader page a visitor would widen to.
+    trail: [{ name: i.primary.label, href: collectionPath(i.primary.slug) }],
     detail: null,
   };
 }

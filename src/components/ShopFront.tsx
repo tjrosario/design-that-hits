@@ -70,6 +70,7 @@ export function ShopFront({ sections, facets, initialParams, initialData }: Shop
     parsed.sectionIds.length +
     parsed.types.length +
     parsed.themes.length +
+    parsed.occasions.length +
     parsed.priceBands.length;
 
   // Heading splits into a plain lead and an accented word, matching the display style
@@ -112,6 +113,7 @@ export function ShopFront({ sections, facets, initialParams, initialData }: Shop
               facets={facets}
               selectedTypes={parsed.types}
               selectedThemes={parsed.themes}
+              selectedOccasions={parsed.occasions}
               selectedPriceBands={parsed.priceBands}
               onFacetToggle={handleFacet}
             />
@@ -176,6 +178,7 @@ export function ShopFront({ sections, facets, initialParams, initialData }: Shop
         facets={facets}
         selectedTypes={parsed.types}
         selectedThemes={parsed.themes}
+        selectedOccasions={parsed.occasions}
         selectedPriceBands={parsed.priceBands}
         onFacetToggle={handleFacet}
       />

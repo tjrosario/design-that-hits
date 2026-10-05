@@ -89,6 +89,8 @@ export interface Listing {
   productType?: string | null;
   /** Derived, multi-valued. A listing can be both "Cats" and "Gothic & Dark". */
   themes?: string[];
+  /** Derived, multi-valued. "Halloween Birthday" is genuinely both. */
+  occasions?: string[];
 }
 
 /** A selectable option in one of the secondary filter groups. */
@@ -102,6 +104,7 @@ export interface FacetOption {
 export interface FacetGroups {
   productTypes: FacetOption[];
   themes: FacetOption[];
+  occasions: FacetOption[];
   priceBands: FacetOption[];
 }
 
@@ -113,6 +116,7 @@ export interface SearchParams {
   sections?: string; // comma-separated section IDs
   types?: string;    // comma-separated product-type ids
   themes?: string;   // comma-separated theme ids
+  occasions?: string; // comma-separated occasion ids
   price?: string;    // comma-separated price-band ids
   sort?: SortOption;
   pill?: PillOption;
@@ -125,6 +129,7 @@ export interface ParsedQuery {
   /** Secondary facets. Empty array means "no constraint", never "match nothing". */
   types: string[];
   themes: string[];
+  occasions: string[];
   priceBands: string[];
   sort: SortOption;
   pill: PillOption;

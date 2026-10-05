@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getShopSections, getListings, getFacetGroups } from "@/lib/shop";
 import { parseQuery } from "@/lib/query";
-import { productTypeLabel, themeLabel } from "@/lib/facets";
+import { occasionLabel, productTypeLabel, themeLabel } from "@/lib/facets";
 import {
   COLLECTION_PAGE_SIZE,
   collectionPagePath,
@@ -33,6 +33,7 @@ interface HomeProps {
  */
 function describeFilters(parsed: ReturnType<typeof parseQuery>): string | null {
   const parts = [
+    ...parsed.occasions.map(occasionLabel),
     ...parsed.types.map(productTypeLabel),
     ...parsed.themes.map(themeLabel),
   ];
@@ -81,6 +82,7 @@ export async function generateMetadata({ searchParams }: HomeProps): Promise<Met
   if (parsed.sectionIds.length)   qs.set("sections", parsed.sectionIds.join(","));
   if (parsed.types.length)        qs.set("types",    parsed.types.join(","));
   if (parsed.themes.length)       qs.set("themes",   parsed.themes.join(","));
+  if (parsed.occasions.length)    qs.set("occasions", parsed.occasions.join(","));
   if (parsed.priceBands.length)   qs.set("price",    parsed.priceBands.join(","));
   if (page > 1)                   qs.set("page",     String(page));
 
@@ -94,21 +96,33 @@ export async function generateMetadata({ searchParams }: HomeProps): Promise<Met
     exists for pairs with enough products to carry one. Anything else keeps its own
     canonical and is handled by `robots`.
   */
+  /*
+    Nothing outside the three category axes. A price band or a section filter has no page
+    of its own, so a view carrying one keeps its own canonical.
+  */
   const onlyFacets = !q && !parsed.sectionIds.length && !parsed.priceBands.length;
+  const axisTotal = parsed.types.length + parsed.themes.length + parsed.occasions.length;
 
-  const soleFacet = onlyFacets
-    ? parsed.types.length === 1 && !parsed.themes.length
-      ? parsed.types[0]
-      : parsed.themes.length === 1 && !parsed.types.length
-      ? parsed.themes[0]
-      : null
-    : null;
+  /* Exactly one facet maps to its collection: `?occasions=christmas` to
+     `/collections/christmas`. */
+  const soleFacet =
+    onlyFacets && axisTotal === 1
+      ? parsed.types[0] ?? parsed.themes[0] ?? parsed.occasions[0]
+      : null;
   const facetCollection = soleFacet ? await resolveCollection(soleFacet) : null;
 
-  const facetIntersection =
-    onlyFacets && parsed.types.length === 1 && parsed.themes.length === 1
-      ? await resolveIntersection(parsed.types[0], parsed.themes[0])
+  /*
+    One theme plus one product type or occasion maps to the intersection page, when the
+    pair has enough products to have earned one. `?occasions=christmas&themes=cats` is
+    `/collections/christmas/cats`.
+  */
+  const pairPrimary =
+    onlyFacets && axisTotal === 2 && parsed.themes.length === 1
+      ? parsed.types[0] ?? parsed.occasions[0] ?? null
       : null;
+  const facetIntersection = pairPrimary
+    ? await resolveIntersection(pairPrimary, parsed.themes[0])
+    : null;
 
   /*
     Only canonicalise to a page that exists. `?themes=cats&page=40` would otherwise point
@@ -124,7 +138,7 @@ export async function generateMetadata({ searchParams }: HomeProps): Promise<Met
     : facetCollection
     ? collectionPagePath(facetCollection.slug, page)
     : facetIntersection
-    ? intersectionPath(facetIntersection.type.slug, facetIntersection.theme.slug, page)
+    ? intersectionPath(facetIntersection.primary.slug, facetIntersection.secondary.slug, page)
     : null;
 
   const canonicalUrl = canonicalTarget
@@ -144,7 +158,7 @@ export async function generateMetadata({ searchParams }: HomeProps): Promise<Met
   const isFacetCombination =
     !isSearch &&
     !canonicalTarget &&
-    parsed.types.length + parsed.themes.length + parsed.priceBands.length + parsed.sectionIds.length > 1;
+    axisTotal + parsed.priceBands.length + parsed.sectionIds.length > 1;
 
   /*
     Page 2 and deeper of a view with no page of its own. These are thin slices of the same

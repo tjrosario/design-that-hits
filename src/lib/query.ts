@@ -4,7 +4,7 @@
  * Utilities for parsing and serializing URL search params.
  * All params are stored in a canonical, stable order to ensure consistent cache keys.
  *
- * Canonical param order: q, sections, types, themes, price, sort, pill, page
+ * Canonical param order: q, sections, types, themes, occasions, price, sort, pill, page
  */
 
 import type { ParsedQuery, SortOption, PillOption, SearchParams } from "@/types/etsy";
@@ -39,6 +39,7 @@ export function parseQuery(params: Record<string, string | string[] | undefined>
 
   const types = idList(params.types);
   const themes = idList(params.themes);
+  const occasions = idList(params.occasions);
   const priceBands = idList(params.price);
 
   const sortRaw = typeof params.sort === "string" ? params.sort : "";
@@ -54,7 +55,7 @@ export function parseQuery(params: Record<string, string | string[] | undefined>
   const pageRaw = typeof params.page === "string" ? parseInt(params.page, 10) : 1;
   const page = isNaN(pageRaw) || pageRaw < 1 ? 1 : pageRaw;
 
-  return { q, sectionIds, types, themes, priceBands, sort, pill, page };
+  return { q, sectionIds, types, themes, occasions, priceBands, sort, pill, page };
 }
 
 export function serializeQuery(parsed: Partial<ParsedQuery>): URLSearchParams {
@@ -73,6 +74,7 @@ export function serializeQuery(parsed: Partial<ParsedQuery>): URLSearchParams {
   };
   setList("types", parsed.types);
   setList("themes", parsed.themes);
+  setList("occasions", parsed.occasions);
   setList("price", parsed.priceBands);
 
   if (parsed.sort && parsed.sort !== "newest") params.set("sort", parsed.sort);
@@ -141,7 +143,7 @@ export function applySectionToggle(
 }
 
 /** Which ParsedQuery key each secondary facet group writes to. */
-export type FacetKey = "types" | "themes" | "priceBands";
+export type FacetKey = "types" | "themes" | "occasions" | "priceBands";
 
 /** Toggles one option in a secondary facet group. */
 export function applyFacetToggle(
@@ -161,6 +163,7 @@ export function clearFilters(current: ParsedQuery): Partial<ParsedQuery> {
     sectionIds: [],
     types: [],
     themes: [],
+    occasions: [],
     priceBands: [],
     sort: "newest",
     pill: null,
@@ -175,6 +178,7 @@ export function hasActiveFilters(query: ParsedQuery): boolean {
     query.sectionIds.length > 0 ||
     query.types.length > 0 ||
     query.themes.length > 0 ||
+    query.occasions.length > 0 ||
     query.priceBands.length > 0
   );
 }

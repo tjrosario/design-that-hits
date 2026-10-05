@@ -21,7 +21,7 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-  return (await getIntersections()).map((i) => ({ slug: i.type.slug, theme: i.theme.slug }));
+  return (await getIntersections()).map((i) => ({ slug: i.primary.slug, theme: i.secondary.slug }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
