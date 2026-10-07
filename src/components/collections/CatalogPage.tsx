@@ -179,7 +179,7 @@ export async function CatalogPage({ spec, page }: { spec: CatalogSpec; page: num
               <li key={item.href}>
                 <Link href={item.href} className="filter-pill inline-flex">
                   {item.label}
-                  <span className="ml-1.5 opacity-60">{item.count}</span>
+                  <span className="ml-1.5 opacity-75">{item.count}</span>
                 </Link>
               </li>
             ))}

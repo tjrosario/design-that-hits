@@ -175,7 +175,8 @@
     /* Entrance animations resolve straight to their final state. */
     .fade-up,
     .fade-up-2,
-    .fade-up-3 {
+    .fade-up-3,
+    .rise-up {
       animation: none !important;
       opacity: 1 !important;
       transform: none !important;
@@ -640,6 +641,18 @@
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+/*
+  Rise without a fade, for an element that is the LCP candidate. An animation that starts
+  at opacity 0 cannot be painted, so the browser defers LCP until it becomes visible: the
+  hero h1 measured 2.69s of element render delay purely from this. Moving without fading
+  paints on the first frame and keeps the motion.
+*/
+@keyframes riseUp {
+  from { transform: translateY(16px); }
+  to   { transform: translateY(0); }
+}
+.rise-up { animation: riseUp 0.55s cubic-bezier(0.22,1,0.36,1) both; }
+
 .fade-up   { animation: fadeUp 0.55s cubic-bezier(0.22,1,0.36,1) forwards; }
 .fade-up-2 { animation: fadeUp 0.55s cubic-bezier(0.22,1,0.36,1) 0.1s both; }
 .fade-up-3 { animation: fadeUp 0.55s cubic-bezier(0.22,1,0.36,1) 0.2s both; }
