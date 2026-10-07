@@ -60,26 +60,21 @@ export async function CatalogPage({ spec, page }: { spec: CatalogSpec; page: num
       inLanguage: "en-US",
       isPartOf: { "@id": `${SITE_URL}/#website` },
       publisher: { "@id": `${SITE_URL}/#organization` },
+      /*
+        Summary format: position and url only, per Google's ItemList spec for a category
+        page that links out to detail pages. We used to embed a trimmed Product node per
+        item, which Search Console then evaluated as a merchant listing and reported as
+        missing description, identifier, return policy and shipping. The detail page is
+        where the full Product markup lives, so pointing at it is both correct and quieter.
+      */
       mainEntity: {
         "@type": "ItemList",
         numberOfItems: total,
-        itemListElement: listings.slice(0, 10).map((l: Listing, i: number) => ({
+        itemListElement: listings.map((l: Listing, i: number) => ({
           "@type": "ListItem",
           // Continues across pages, so page 2 starts at 25 rather than restarting at 1.
           position: (page - 1) * COLLECTION_PAGE_SIZE + i + 1,
-          item: {
-            "@type": "Product",
-            name: listingName(l),
-            url: absolute(listingPath(l)),
-            ...(l.image ? { image: l.image.url } : {}),
-            offers: {
-              "@type": "Offer",
-              price: l.price.toFixed(2),
-              priceCurrency: l.currency,
-              availability: "https://schema.org/InStock",
-              seller: { "@id": `${SITE_URL}/#organization` },
-            },
-          },
+          url: absolute(listingPath(l)),
         })),
       },
     },
