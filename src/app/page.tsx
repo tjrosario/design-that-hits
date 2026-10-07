@@ -14,6 +14,7 @@ import {
 import { SOCIAL_URLS } from "@/lib/social";
 import { CollectionTiles } from "@/components/collections/CollectionTiles";
 import Link from "next/link";
+import { listingPath } from "@/lib/slug";
 import { ShopFront } from "@/components/ShopFront";
 import { JsonLd } from "@/components/JsonLd";
 import { HeroCarousel } from "@/components/HeroCarousel";
@@ -306,25 +307,20 @@ export default async function HomePage({ searchParams }: HomeProps) {
   };
 
   if (initialData && initialData.listings.length > 0) {
+    /*
+      Summary format: position and url only, per Google's ItemList spec for a page that
+      links out to detail pages. Two fixes in one here. The embedded Product nodes were
+      trimmed copies that Search Console evaluated as merchant listings and reported as
+      missing description, identifier, return policy and shipping. And the url pointed at
+      the Etsy listing, off-domain, where the spec requires the summary page's own domain.
+    */
     collectionJsonLd.mainEntity = {
       "@type":         "ItemList",
       numberOfItems:   initialData.total,
-      itemListElement: initialData.listings.slice(0, 10).map((l: Listing, i: number) => ({
-        "@type":    "ListItem",
-        position:    i + 1,
-        item: {
-          "@type":  "Product",
-          name:      l.title,
-          url:       l.url,
-          offers: {
-            "@type":            "Offer",
-            price:               l.price.toFixed(2),
-            priceCurrency:       l.currency,
-            availability:        "https://schema.org/InStock",
-            seller: { "@id":    `${SITE_URL}/#organization` },
-          },
-          ...(l.image ? { image: l.image.url } : {}),
-        },
+      itemListElement: initialData.listings.map((l: Listing, i: number) => ({
+        "@type":  "ListItem",
+        position: i + 1,
+        url:      `${SITE_URL}${listingPath(l)}`,
       })),
     };
   }
