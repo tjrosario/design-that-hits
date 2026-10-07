@@ -370,7 +370,7 @@ export default async function HomePage({ searchParams }: HomeProps) {
             <p className="eyebrow mb-4 sm:mb-5 fade-up">The Special Taste</p>
 
             <h1
-              className="display-title mb-5 fade-up-2"
+              className="display-title mb-5 rise-up"
               style={{ fontSize: "clamp(2.5rem, 7.5vw, 4.5rem)" }}
             >
               Get Your Own

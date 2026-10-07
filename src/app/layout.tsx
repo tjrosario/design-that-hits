@@ -190,6 +190,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       {/* In <head> deliberately: the theme attribute has to be set during HTML parsing,
           before the first paint, or light-theme visitors see a dark flash. */}
       <head>
+        {/* Every product image is served from Etsy's CDN, so the first one pays DNS, TCP
+            and TLS before a byte arrives. Warming the origin removes that from the path. */}
+        <link rel="preconnect" href="https://i.etsystatic.com" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://i.etsystatic.com" />
         <ThemeScript />
       </head>
       <body className="min-h-screen antialiased">
