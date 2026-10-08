@@ -50,6 +50,7 @@ export function ProductGridContainer({
   const sectionKey = query.sectionIds.join(",");
   const typeKey = query.types.join(",");
   const themeKey = query.themes.join(",");
+  const occasionKey = query.occasions.join(",");
   const priceKey = query.priceBands.join(",");
 
   useEffect(() => {
@@ -98,7 +99,7 @@ export function ProductGridContainer({
   // were added: the URL updated and the sidebar checkbox ticked, but the products never
   // refetched, so the filters looked broken.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query.q, sectionKey, typeKey, themeKey, priceKey, query.sort, query.pill, query.page]);
+  }, [query.q, sectionKey, typeKey, themeKey, occasionKey, priceKey, query.sort, query.pill, query.page]);
 
   const isLoading = loading || isPending;
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;

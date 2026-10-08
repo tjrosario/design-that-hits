@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
     const rawParams: Record<string, string> = {};
     req.nextUrl.searchParams.forEach((v, k) => { rawParams[k] = v; });
 
-    const { q, sectionIds, types, themes, priceBands, sort, pill, page } =
+    const { q, sectionIds, types, themes, occasions, priceBands, sort, pill, page } =
       parseQuery(rawParams);
     const needsRanking = pill === "best" || pill === "trending";
 
@@ -66,6 +66,7 @@ export async function GET(req: NextRequest) {
       sectionIds: sectionIds.length > 0 ? sectionIds : undefined,
       types: types.length > 0 ? types : undefined,
       themes: themes.length > 0 ? themes : undefined,
+      occasions: occasions.length > 0 ? occasions : undefined,
       priceBands: priceBands.length > 0 ? priceBands : undefined,
     };
 
