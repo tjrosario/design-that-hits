@@ -529,7 +529,7 @@ export interface CatalogSpec {
   label: string;
   eyebrow: string;
   intro: string;
-  query: { types?: string[]; themes?: string[] };
+  query: { types?: string[]; themes?: string[]; occasions?: string[] };
   pagePath: (page: number) => string;
   /** Breadcrumb between Collections and this page's own leaf. */
   trail: { name: string; href: string }[];

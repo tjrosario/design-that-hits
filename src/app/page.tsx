@@ -232,6 +232,7 @@ export default async function HomePage({ searchParams }: HomeProps) {
           sectionIds: parsed.sectionIds.length > 0 ? parsed.sectionIds : undefined,
           types:      parsed.types.length > 0 ? parsed.types : undefined,
           themes:     parsed.themes.length > 0 ? parsed.themes : undefined,
+          occasions:  parsed.occasions.length > 0 ? parsed.occasions : undefined,
           priceBands: parsed.priceBands.length > 0 ? parsed.priceBands : undefined,
           sortOn:     parsed.sort === "price_asc" || parsed.sort === "price_desc" ? "price" : "created",
           sortOrder:  parsed.sort === "price_asc" ? "asc" : "desc",

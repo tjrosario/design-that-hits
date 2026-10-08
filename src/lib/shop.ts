@@ -217,7 +217,10 @@ export async function getListings(
 }
 
 export async function getListingsForRanking(
-  opts: Pick<ListingsQueryOptions, "q" | "sectionIds" | "types" | "themes" | "priceBands"> = {}
+  opts: Pick<
+    ListingsQueryOptions,
+    "q" | "sectionIds" | "types" | "themes" | "occasions" | "priceBands"
+  > = {}
 ): Promise<Listing[]> {
   // The Etsy API can only narrow by section; the richer facets are a local-catalog
   // capability, so that path just ignores them.
