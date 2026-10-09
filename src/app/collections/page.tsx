@@ -22,7 +22,7 @@ const SOCIAL_TITLE = "Shop by Collection – Design That Hits";
 const DESCRIPTION =
   "Shop print-on-demand designs by occasion, by product or by theme. Christmas, Halloween and birthday gift wrap, plus apparel, ornaments and wall art.";
 
-export const metadata: Metadata = {
+const baseMetadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: `${SITE_URL}/collections` },
@@ -41,6 +41,25 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  const collections = await getCollections();
+  // The first tile on the page, so the share card matches what a visitor lands on.
+  const hero = collections.find((c) => c.kind === "occasion" && c.imageUrl)?.imageUrl
+    ?? collections.find((c) => c.imageUrl)?.imageUrl;
+
+  return {
+    ...baseMetadata,
+    openGraph: {
+      ...baseMetadata.openGraph,
+      ...(hero ? { images: [{ url: hero, alt: SOCIAL_TITLE }] } : {}),
+    },
+    twitter: {
+      ...baseMetadata.twitter,
+      ...(hero ? { images: [hero] } : {}),
+    },
+  };
+}
 
 export default async function CollectionsPage() {
   const collections = await getCollections();

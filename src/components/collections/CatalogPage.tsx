@@ -252,7 +252,15 @@ export function catalogMetadata(spec: CatalogSpec, page: number): Metadata {
       title: socialTitle,
       description: spec.intro,
       url,
+      // A product from the collection, rather than the generic site card every page
+      // would otherwise share. These get shared to Pinterest, where the image is the ad.
+      ...(spec.imageUrl ? { images: [{ url: spec.imageUrl, alt: socialTitle }] } : {}),
     },
-    twitter: { card: "summary_large_image", title: socialTitle, description: spec.intro },
+    twitter: {
+      card: "summary_large_image",
+      title: socialTitle,
+      description: spec.intro,
+      ...(spec.imageUrl ? { images: [spec.imageUrl] } : {}),
+    },
   };
 }

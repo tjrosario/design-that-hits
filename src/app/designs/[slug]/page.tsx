@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAllListings, getListingById, getRelatedListings, hasRealEtsyId } from "@/lib/shop";
 import { idFromSlug, listingAltText, listingName, listingPath, listingSlug } from "@/lib/slug";
-import { occasionLabel, productTypeLabel, themeLabel } from "@/lib/facets";
+import { occasionLabel, primaryOccasion, productTypeLabel, themeLabel } from "@/lib/facets";
 import { collectionPath } from "@/lib/collections";
 import { parseDescription } from "@/lib/description";
 import { PRICE_UNAVAILABLE, formatPrice, hasPrice } from "@/lib/price";
@@ -182,6 +182,15 @@ export default async function DesignPage({ params }: PageProps) {
       ? { label: typeLabel, href: collectionPath(listing.productType) }
       : null;
 
+  // The second button's target: the listing's own occasion first, then its product type.
+  // Somebody on a gothic Christmas wrap wants more Christmas, not all 398 designs.
+  const browseOccasion = primaryOccasion(listing);
+  const browseMore = browseOccasion
+    ? { href: collectionPath(browseOccasion), label: `More ${occasionLabel(browseOccasion)} designs` }
+    : listing.productType && typeLabel
+    ? { href: collectionPath(listing.productType), label: `More ${typeLabel}` }
+    : { href: "/collections", label: "Browse collections" };
+
   const productJsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -321,8 +330,8 @@ export default async function DesignPage({ params }: PageProps) {
                 </svg>
               </span>
             </a>
-            <Link href="/" className="btn-outline flex-1">
-              Browse all designs
+            <Link href={browseMore.href} className="btn-outline flex-1">
+              {browseMore.label}
             </Link>
           </div>
 

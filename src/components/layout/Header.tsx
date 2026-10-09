@@ -7,6 +7,9 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 
 const navLinks = [
   { href: "/", label: "Home" },
+  // The entry point to every collection and intersection page. Previously those were
+  // reachable only from the footer and a link below the home grid.
+  { href: "/collections", label: "Shop" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ];
