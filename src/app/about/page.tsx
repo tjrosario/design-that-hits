@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { JsonLd } from "@/components/JsonLd";
 import { getRandomListingsMatching } from "@/lib/shop";
+import { SITE_SHARE_IMAGE } from "@/lib/share-image";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
 
@@ -16,11 +17,13 @@ export const metadata: Metadata = {
     title:       "About Design That Hits",
     description: "Learn about Design That Hits — a print-on-demand Etsy shop specialising in unique gifts, wrapping paper, and party designs crafted to make every occasion memorable.",
     url:         `${SITE_URL}/about`,
+    images:      [SITE_SHARE_IMAGE],
   },
   twitter: {
     card:        "summary_large_image",
     title:       "About Design That Hits",
     description: "Learn about Design That Hits — print-on-demand gifts, wrapping paper, and party designs.",
+    images:      [SITE_SHARE_IMAGE],
   },
 };
 

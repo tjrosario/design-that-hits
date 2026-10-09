@@ -19,6 +19,7 @@ import { ProductCard } from "@/components/products/ProductCard";
 import { Pagination } from "@/components/products/Pagination";
 import { listingPath, listingName } from "@/lib/slug";
 import { COLLECTION_PAGE_SIZE, type CatalogSpec } from "@/lib/collections";
+import { shareImageUrl } from "@/lib/share-image";
 import type { Listing } from "@/types/etsy";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
@@ -239,6 +240,9 @@ export function catalogMetadata(spec: CatalogSpec, page: number): Metadata {
   const title = `${spec.label}${suffix}`;
   const socialTitle = `${spec.label}${suffix} – Design That Hits`;
   const url = absolute(spec.pagePath(page));
+  const share = spec.imageUrl
+    ? { url: shareImageUrl(spec.imageUrl), alt: socialTitle }
+    : null;
 
   return {
     title,
@@ -252,15 +256,17 @@ export function catalogMetadata(spec: CatalogSpec, page: number): Metadata {
       title: socialTitle,
       description: spec.intro,
       url,
-      // A product from the collection, rather than the generic site card every page
-      // would otherwise share. These get shared to Pinterest, where the image is the ad.
-      ...(spec.imageUrl ? { images: [{ url: spec.imageUrl, alt: socialTitle }] } : {}),
+      // A product from the collection. Without this the page emits no og:image at all:
+      // the root opengraph-image does not apply once a segment declares its own openGraph.
+      ...(share ? { images: [share] } : {}),
     },
     twitter: {
       card: "summary_large_image",
       title: socialTitle,
       description: spec.intro,
-      ...(spec.imageUrl ? { images: [spec.imageUrl] } : {}),
+      // Object form, not a bare string: X reads twitter:image:alt and does not fall
+      // back to og:image:alt.
+      ...(share ? { images: [share] } : {}),
     },
   };
 }

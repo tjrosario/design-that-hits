@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { getAllListings, getListingById, getRelatedListings, hasRealEtsyId } from "@/lib/shop";
 import { idFromSlug, listingAltText, listingName, listingPath, listingSlug } from "@/lib/slug";
 import { occasionLabel, primaryOccasion, productTypeLabel, themeLabel } from "@/lib/facets";
+import { shareImageUrl } from "@/lib/share-image";
 import { collectionPath } from "@/lib/collections";
 import { parseDescription } from "@/lib/description";
 import { PRICE_UNAVAILABLE, formatPrice, hasPrice } from "@/lib/price";
@@ -98,6 +99,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const name = listingName(listing);
   const description = metaDescription(listing);
 
+  const share = listing.image
+    ? { url: shareImageUrl(listing.image.url), alt: listing.image.altText || name }
+    : null;
+
   return {
     title: name,
     description,
@@ -117,13 +122,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description,
       url,
       // The product photo makes a far better share card than the generic site image.
-      ...(listing.image ? { images: [{ url: listing.image.url, alt: listing.image.altText || name }] } : {}),
+      ...(share ? { images: [share] } : {}),
     },
     twitter: {
       card: "summary_large_image",
       title: name,
       description,
-      ...(listing.image ? { images: [listing.image.url] } : {}),
+      ...(share ? { images: [share] } : {}),
     },
   };
 }

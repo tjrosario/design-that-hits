@@ -22,6 +22,7 @@ import { ShopFront } from "@/components/ShopFront";
 import { JsonLd } from "@/components/JsonLd";
 import { HeroCarousel } from "@/components/HeroCarousel";
 import type { Listing } from "@/types/etsy";
+import { SITE_SHARE_IMAGE } from "@/lib/share-image";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
 
@@ -206,6 +207,7 @@ export async function generateMetadata({ searchParams }: HomeProps): Promise<Met
       title,
       description,
       url: canonicalUrl,
+      images: [SITE_SHARE_IMAGE],
     },
   };
 }

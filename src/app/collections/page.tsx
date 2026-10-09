@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getCollections, collectionPath } from "@/lib/collections";
+import { shareImageUrl } from "@/lib/share-image";
 import { CollectionTiles } from "@/components/collections/CollectionTiles";
 import { JsonLd } from "@/components/JsonLd";
 
@@ -47,16 +48,17 @@ export async function generateMetadata(): Promise<Metadata> {
   // The first tile on the page, so the share card matches what a visitor lands on.
   const hero = collections.find((c) => c.kind === "occasion" && c.imageUrl)?.imageUrl
     ?? collections.find((c) => c.imageUrl)?.imageUrl;
+  const share = hero ? { url: shareImageUrl(hero), alt: SOCIAL_TITLE } : null;
 
   return {
     ...baseMetadata,
     openGraph: {
       ...baseMetadata.openGraph,
-      ...(hero ? { images: [{ url: hero, alt: SOCIAL_TITLE }] } : {}),
+      ...(share ? { images: [share] } : {}),
     },
     twitter: {
       ...baseMetadata.twitter,
-      ...(hero ? { images: [hero] } : {}),
+      ...(share ? { images: [share] } : {}),
     },
   };
 }

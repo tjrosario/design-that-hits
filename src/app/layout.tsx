@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ThemeScript } from "@/components/ThemeScript";
 import { Playfair_Display, Poppins } from "next/font/google";
+import { SITE_SHARE_IMAGE } from "@/lib/share-image";
 
 /*
   SELF-HOSTED WEBFONTS
@@ -110,6 +111,7 @@ export const metadata: Metadata = {
     siteName:    SITE_NAME,
     title:       `${SITE_NAME} – Unique Print-on-Demand Designs`,
     description: SITE_DESCRIPTION,
+    images:      [SITE_SHARE_IMAGE],
   },
 
   // ── Twitter / X ──────────────────────────────────────────────────────────
@@ -119,6 +121,7 @@ export const metadata: Metadata = {
     creator:     "@designthathits",
     title:       `${SITE_NAME} – Unique Print-on-Demand Designs`,
     description: SITE_DESCRIPTION,
+    images:      [SITE_SHARE_IMAGE],
   },
 
   // ── App / PWA ────────────────────────────────────────────────────────────
