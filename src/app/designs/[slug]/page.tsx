@@ -4,9 +4,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAllListings, getListingById, getRelatedListings, hasRealEtsyId } from "@/lib/shop";
 import { idFromSlug, listingAltText, listingName, listingPath, listingSlug } from "@/lib/slug";
-import { productTypeLabel, themeLabel } from "@/lib/facets";
+import { occasionLabel, productTypeLabel, themeLabel } from "@/lib/facets";
 import { collectionPath } from "@/lib/collections";
 import { parseDescription } from "@/lib/description";
+import { PRICE_UNAVAILABLE, formatPrice, hasPrice } from "@/lib/price";
 import { JsonLd } from "@/components/JsonLd";
 import { ProductCard } from "@/components/products/ProductCard";
 import type { Listing } from "@/types/etsy";
@@ -64,14 +65,6 @@ async function resolveListing(slugPromise: PageProps["params"]): Promise<Listing
   const id = idFromSlug(slug);
   if (id === null) return null;
   return getListingById(id);
-}
-
-function formatPrice(price: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(price);
-  } catch {
-    return `${price.toFixed(2)} ${currency}`;
-  }
 }
 
 /** First sentence or two of the description, trimmed to a sensible meta length. */
@@ -149,8 +142,12 @@ function ProductOpenGraph({ listing }: { listing: Listing }) {
   return (
     <>
       <meta property="og:type" content="product" />
-      <meta property="product:price:amount" content={listing.price.toFixed(2)} />
-      <meta property="product:price:currency" content={listing.currency} />
+      {hasPrice(listing) && (
+        <>
+          <meta property="product:price:amount" content={listing.price.toFixed(2)} />
+          <meta property="product:price:currency" content={listing.currency} />
+        </>
+      )}
       <meta property="product:availability" content="in stock" />
     </>
   );
@@ -211,17 +208,23 @@ export default async function DesignPage({ params }: PageProps) {
         ...(hasRealEtsyId(listing) ? { sku: String(listing.id), productID: String(listing.id) } : {}),
         // Print-on-demand: every item is manufactured on order, so never anything but new.
         itemCondition: "https://schema.org/NewCondition",
-        offers: {
-          "@type": "Offer",
-          price: listing.price.toFixed(2),
-          priceCurrency: listing.currency,
-          availability: "https://schema.org/InStock",
-          itemCondition: "https://schema.org/NewCondition",
-          priceValidUntil: PRICE_VALID_UNTIL,
-          // The offer points at Etsy because that is where the transaction happens.
-          url: listing.url,
-          seller: { "@id": `${SITE_URL}/#organization` },
-        },
+        // No price, no offer. An Offer without a price is invalid, and "0.00" would
+        // publish a free product.
+        ...(hasPrice(listing)
+          ? {
+              offers: {
+                "@type": "Offer",
+                price: listing.price.toFixed(2),
+                priceCurrency: listing.currency,
+                availability: "https://schema.org/InStock",
+                itemCondition: "https://schema.org/NewCondition",
+                priceValidUntil: PRICE_VALID_UNTIL,
+                // The offer points at Etsy because that is where the transaction happens.
+                url: listing.url,
+                seller: { "@id": `${SITE_URL}/#organization` },
+              },
+            }
+          : {}),
       },
       {
         "@type": "BreadcrumbList",
@@ -301,7 +304,7 @@ export default async function DesignPage({ params }: PageProps) {
             className="text-2xl mb-6"
             style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "var(--text)" }}
           >
-            {formatPrice(listing.price, listing.currency)}
+            {hasPrice(listing) ? formatPrice(listing.price, listing.currency) : PRICE_UNAVAILABLE}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 mb-8">
@@ -367,6 +370,24 @@ export default async function DesignPage({ params }: PageProps) {
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {listing.occasions && listing.occasions.length > 0 && (
+            <div className="mb-8">
+              <h2 className="eyebrow mb-3">Occasion</h2>
+              <ul className="flex flex-wrap gap-2">
+                {listing.occasions.map((occasion) => (
+                  <li key={occasion}>
+                    {/* The occasion's collection page, for the same reason the themes
+                        below point at theirs rather than at a `/?occasions=…` filter URL
+                        that canonicalises here anyway. */}
+                    <Link href={collectionPath(occasion)} className="filter-pill inline-flex">
+                      {occasionLabel(occasion)}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 

@@ -6,11 +6,14 @@ import { occasionLabel, productTypeLabel, themeLabel } from "@/lib/facets";
 import {
   COLLECTION_PAGE_SIZE,
   collectionPagePath,
+  collectionPath,
   getCollections,
   intersectionPath,
   resolveCollection,
   resolveIntersection,
+  type Collection,
 } from "@/lib/collections";
+import { currentOccasions } from "@/lib/seasonal";
 import { SOCIAL_URLS } from "@/lib/social";
 import { CollectionTiles } from "@/components/collections/CollectionTiles";
 import Link from "next/link";
@@ -242,10 +245,26 @@ export default async function HomePage({ searchParams }: HomeProps) {
   ]);
 
   /*
-    Product types first, then the biggest themes, capped at eight so the block stays two
-    rows on a desktop. The full set is one click further on, at /collections.
+    The occasions in season today, most urgent first. An empty list is a real outcome, and
+    the band below renders nothing when it happens.
+  */
+  const seasonalCollections = currentOccasions()
+    .map((slug) => {
+      const match = collections.find((c) => c.slug === slug);
+      // A window slug that no longer matches an occasion id in lib/facets.ts would
+      // otherwise drop the chip for that whole season with nothing to show for it.
+      if (!match) console.warn(`[seasonal] no collection for slug "${slug}"`);
+      return match;
+    })
+    .filter((c): c is Collection => c !== undefined);
+
+  /*
+    Seasonal occasions first, then product types, then the biggest themes, capped at eight
+    so the block stays two rows on a desktop. The full set is one click further on, at
+    /collections.
   */
   const homeCollections = [
+    ...seasonalCollections,
     ...collections.filter((c) => c.kind === "type"),
     ...collections.filter((c) => c.kind === "theme").sort((a, b) => b.count - a.count),
   ].slice(0, 8);
@@ -424,6 +443,41 @@ export default async function HomePage({ searchParams }: HomeProps) {
 
         </div>
       </section>
+
+      {/*
+        Seasonal band, above the grid. Occasion collections had no link from the home page
+        before this, including Christmas, which is over half the catalog.
+      */}
+      {seasonalCollections.length > 0 && (
+        <section className="mx-auto max-w-screen-xl px-4 sm:px-5 pb-8 sm:pb-10">
+          <div className="panel px-6 py-8 sm:px-10 sm:py-10">
+            <p className="eyebrow mb-3">Shop the season</p>
+            <h2 className="display-title mb-4" style={{ fontSize: "clamp(1.6rem, 3.6vw, 2.4rem)" }}>
+              In season <span className="display-accent">right now</span>
+            </h2>
+            <p
+              className="text-sm sm:text-base leading-relaxed mb-7"
+              style={{ color: "var(--text-soft)", maxWidth: "32rem" }}
+            >
+              The occasions people are shopping for today. Everything else is in the grid below.
+            </p>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {seasonalCollections.map((c, i) => (
+                <Link
+                  key={c.slug}
+                  href={collectionPath(c.slug)}
+                  // Ordered by which occasion closes first, so the primary button is the
+                  // one with the least time left to shop rather than the biggest range.
+                  className={i === 0 ? "btn-cta" : "btn-outline"}
+                >
+                  {c.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Shop section — scroll-margin-top offsets the sticky header height (~65px) */}
       <section id="listings" style={{ scrollMarginTop: '72px' }}>

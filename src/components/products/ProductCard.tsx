@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 // import { useState } from "react"; // re-enable with the favourite button below
 import { listingAltText, listingName, listingPath } from "@/lib/slug";
+import { PRICE_UNAVAILABLE, formatPrice, hasPrice } from "@/lib/price";
 import type { Listing } from "@/types/etsy";
 
 interface ProductCardProps {
@@ -16,14 +17,6 @@ interface ProductCardProps {
    * LCP worse rather than better.
    */
   priority?: boolean;
-}
-
-function formatPrice(price: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 2 }).format(price);
-  } catch {
-    return `${price.toFixed(2)} ${currency}`;
-  }
 }
 
 // Truncate title to ~20 chars for the badge
@@ -171,7 +164,7 @@ export function ProductCard({ listing, priority = false }: ProductCardProps) {
               color: "var(--text)",
             }}
           >
-            {formatPrice(listing.price, listing.currency)}
+            {hasPrice(listing) ? formatPrice(listing.price, listing.currency) : PRICE_UNAVAILABLE}
           </p>
 
           <a

@@ -158,9 +158,16 @@ export async function getCollections(): Promise<Collection[]> {
     .filter((l) => l.image)
     .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
 
+  // Occasions are multi-valued, so the newest listing can be the newest in two of them
+  // and two adjacent tiles would show the same photo. Prefer one not already taken.
+  const usedImages = new Set<string>();
   for (const collection of collections) {
-    const hero = newestFirst.find((l) => belongsTo(l, collection));
-    if (hero?.image) collection.imageUrl = hero.image.url;
+    const members = newestFirst.filter((l) => belongsTo(l, collection));
+    const hero = members.find((l) => l.image && !usedImages.has(l.image.url)) ?? members[0];
+    if (hero?.image) {
+      collection.imageUrl = hero.image.url;
+      usedImages.add(hero.image.url);
+    }
   }
 
   return collections;
