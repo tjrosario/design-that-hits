@@ -5,8 +5,17 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
+// A nav item is current across its own subtree, so Shop stays highlighted on
+// /collections/cats. Exact match for "/", which would otherwise match everything.
+function isCurrent(pathname: string, href: string): boolean {
+  return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+}
+
 const navLinks = [
   { href: "/", label: "Home" },
+  // The entry point to every collection and intersection page. Previously those were
+  // reachable only from the footer and a link below the home grid.
+  { href: "/collections", label: "Shop" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ];
@@ -42,7 +51,7 @@ export function Header() {
                 key={link.href}
                 href={link.href}
                 className="nav-pill-link"
-                aria-current={pathname === link.href ? "page" : undefined}
+                aria-current={isCurrent(pathname, link.href) ? "page" : undefined}
               >
                 {link.label}
               </Link>
@@ -99,10 +108,10 @@ export function Header() {
                   onClick={() => setMobileOpen(false)}
                   className="block rounded-xl px-4 py-2.5 text-sm font-medium transition-colors"
                   style={{
-                    color: pathname === link.href ? "var(--brand-ink)" : "var(--text-soft)",
-                    background: pathname === link.href ? "var(--gradient-brand)" : "transparent",
+                    color: isCurrent(pathname, link.href) ? "var(--brand-ink)" : "var(--text-soft)",
+                    background: isCurrent(pathname, link.href) ? "var(--gradient-brand)" : "transparent",
                   }}
-                  aria-current={pathname === link.href ? "page" : undefined}
+                  aria-current={isCurrent(pathname, link.href) ? "page" : undefined}
                 >
                   {link.label}
                 </Link>

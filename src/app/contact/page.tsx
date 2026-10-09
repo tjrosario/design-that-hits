@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
+import { SITE_SHARE_IMAGE } from "@/lib/share-image";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
 
@@ -51,11 +52,13 @@ export const metadata: Metadata = {
     title:       "Contact Design That Hits",
     description: "Get in touch with Design That Hits. Ask about custom orders, wholesale enquiries, or just say hello.",
     url:         `${SITE_URL}/contact`,
+    images:      [SITE_SHARE_IMAGE],
   },
   twitter: {
     card:        "summary_large_image",
     title:       "Contact Design That Hits",
     description: "Get in touch — custom orders, questions, or just say hello.",
+    images:      [SITE_SHARE_IMAGE],
   },
   robots: { index: true, follow: true },
 };

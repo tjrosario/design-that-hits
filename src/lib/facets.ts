@@ -141,6 +141,29 @@ export function deriveOccasions(listing: Listing): string[] {
   return OCCASION_RULES.filter((rule) => rule.pattern.test(hay)).map((rule) => rule.id);
 }
 
+/**
+ * The one occasion to send a visitor to, for a listing that matches several.
+ *
+ * `deriveOccasions` reads title and tags together, so "Gothic Skull Birthday Wrapping
+ * Paper" comes back as both halloween and birthday: the title says birthday, the Etsy
+ * tags say spooky. A title match is what the shopper is actually looking at, so it wins.
+ */
+export function primaryOccasion(listing: Listing): string | null {
+  const title = listing.title.toLowerCase();
+
+  // Several occasions can match one title, so take the earliest: "Disco Halloween
+  // Birthday Wrapping Paper" is a Halloween product, "Gothic Skull Birthday ... Spooky
+  // Birthday Paper" is a birthday one, and array order alone calls both Halloween.
+  let best: { id: string; at: number } | null = null;
+  for (const rule of OCCASION_RULES) {
+    const at = title.search(rule.pattern);
+    if (at >= 0 && (!best || at < best.at)) best = { id: rule.id, at };
+  }
+  if (best) return best.id;
+
+  return deriveOccasions(listing)[0] ?? null;
+}
+
 export function occasionLabel(id: string): string {
   return OCCASION_RULES.find((r) => r.id === id)?.label ?? id;
 }

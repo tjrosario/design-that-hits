@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getCollections, collectionPath } from "@/lib/collections";
+import { shareImageUrl } from "@/lib/share-image";
 import { CollectionTiles } from "@/components/collections/CollectionTiles";
 import { JsonLd } from "@/components/JsonLd";
 
@@ -22,7 +23,7 @@ const SOCIAL_TITLE = "Shop by Collection – Design That Hits";
 const DESCRIPTION =
   "Shop print-on-demand designs by occasion, by product or by theme. Christmas, Halloween and birthday gift wrap, plus apparel, ornaments and wall art.";
 
-export const metadata: Metadata = {
+const baseMetadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: `${SITE_URL}/collections` },
@@ -41,6 +42,26 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  const collections = await getCollections();
+  // The first tile on the page, so the share card matches what a visitor lands on.
+  const hero = collections.find((c) => c.kind === "occasion" && c.imageUrl)?.imageUrl
+    ?? collections.find((c) => c.imageUrl)?.imageUrl;
+  const share = hero ? { url: shareImageUrl(hero), alt: SOCIAL_TITLE } : null;
+
+  return {
+    ...baseMetadata,
+    openGraph: {
+      ...baseMetadata.openGraph,
+      ...(share ? { images: [share] } : {}),
+    },
+    twitter: {
+      ...baseMetadata.twitter,
+      ...(share ? { images: [share] } : {}),
+    },
+  };
+}
 
 export default async function CollectionsPage() {
   const collections = await getCollections();

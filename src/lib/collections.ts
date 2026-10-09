@@ -541,6 +541,8 @@ export interface CatalogSpec {
   /** Breadcrumb between Collections and this page's own leaf. */
   trail: { name: string; href: string }[];
   detail?: CollectionDetail | null;
+  /** Product photo for the share card, so these do not all share the generic site image. */
+  imageUrl?: string;
   /** Cross-links rendered under the grid. */
   related?: { heading: string; items: { label: string; href: string; count: number }[] };
 }
@@ -560,6 +562,7 @@ export async function collectionSpec(collection: Collection): Promise<CatalogSpe
     query: collectionQuery(collection),
     pagePath: (page) => collectionPagePath(collection.slug, page),
     trail: [],
+    imageUrl: collection.imageUrl,
     detail: collectionDetail(collection.slug),
     related: related.length
       ? {
@@ -581,6 +584,7 @@ export function intersectionSpec(i: Intersection): CatalogSpec {
     intro: intersectionIntro(i),
     query: { ...collectionQuery(i.primary), ...collectionQuery(i.secondary) },
     pagePath: (page) => intersectionPath(i.primary.slug, i.secondary.slug, page),
+    imageUrl: i.imageUrl,
     // Up is the primary axis, which is the broader page a visitor would widen to.
     trail: [{ name: i.primary.label, href: collectionPath(i.primary.slug) }],
     detail: null,
