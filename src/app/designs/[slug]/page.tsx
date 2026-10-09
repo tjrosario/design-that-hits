@@ -7,6 +7,7 @@ import { idFromSlug, listingAltText, listingName, listingPath, listingSlug } fro
 import { occasionLabel, productTypeLabel, themeLabel } from "@/lib/facets";
 import { collectionPath } from "@/lib/collections";
 import { parseDescription } from "@/lib/description";
+import { PRICE_UNAVAILABLE, formatPrice, hasPrice } from "@/lib/price";
 import { JsonLd } from "@/components/JsonLd";
 import { ProductCard } from "@/components/products/ProductCard";
 import type { Listing } from "@/types/etsy";
@@ -66,21 +67,6 @@ async function resolveListing(slugPromise: PageProps["params"]): Promise<Listing
   return getListingById(id);
 }
 
-/**
- * Zero means the feed carried no price (`lib/rss-parse.mjs` defaults it), not a free
- * product, so a zero publishes no price in the copy, the offer or the meta tags.
- */
-function hasPrice(listing: Listing): boolean {
-  return listing.price > 0;
-}
-
-function formatPrice(price: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(price);
-  } catch {
-    return `${price.toFixed(2)} ${currency}`;
-  }
-}
 
 /** First sentence or two of the description, trimmed to a sensible meta length. */
 function metaDescription(listing: Listing): string {
@@ -319,7 +305,7 @@ export default async function DesignPage({ params }: PageProps) {
             className="text-2xl mb-6"
             style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "var(--text)" }}
           >
-            {hasPrice(listing) ? formatPrice(listing.price, listing.currency) : "See price on Etsy"}
+            {hasPrice(listing) ? formatPrice(listing.price, listing.currency) : PRICE_UNAVAILABLE}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 mb-8">
