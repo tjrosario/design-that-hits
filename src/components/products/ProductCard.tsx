@@ -19,7 +19,6 @@ interface ProductCardProps {
   priority?: boolean;
 }
 
-
 // Truncate title to ~20 chars for the badge
 function badgeTitle(title: string): string {
   const words = title.split(" ");

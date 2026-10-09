@@ -249,7 +249,13 @@ export default async function HomePage({ searchParams }: HomeProps) {
     the band below renders nothing when it happens.
   */
   const seasonalCollections = currentOccasions()
-    .map((slug) => collections.find((c) => c.slug === slug))
+    .map((slug) => {
+      const match = collections.find((c) => c.slug === slug);
+      // A window slug that no longer matches an occasion id in lib/facets.ts would
+      // otherwise drop the chip for that whole season with nothing to show for it.
+      if (!match) console.warn(`[seasonal] no collection for slug "${slug}"`);
+      return match;
+    })
     .filter((c): c is Collection => c !== undefined);
 
   /*
@@ -439,8 +445,8 @@ export default async function HomePage({ searchParams }: HomeProps) {
       </section>
 
       {/*
-        Seasonal band, above the grid. Christmas is over half the catalog and nothing on
-        the home page linked its collection before this.
+        Seasonal band, above the grid. Occasion collections had no link from the home page
+        before this, including Christmas, which is over half the catalog.
       */}
       {seasonalCollections.length > 0 && (
         <section className="mx-auto max-w-screen-xl px-4 sm:px-5 pb-8 sm:pb-10">
@@ -461,13 +467,11 @@ export default async function HomePage({ searchParams }: HomeProps) {
                 <Link
                   key={c.slug}
                   href={collectionPath(c.slug)}
-                  // The most urgent occasion takes the primary button, the rest trail it.
+                  // Ordered by which occasion closes first, so the primary button is the
+                  // one with the least time left to shop rather than the biggest range.
                   className={i === 0 ? "btn-cta" : "btn-outline"}
                 >
                   {c.label}
-                  <span className="opacity-70">
-                    {c.count} {c.count === 1 ? "design" : "designs"}
-                  </span>
                 </Link>
               ))}
             </div>

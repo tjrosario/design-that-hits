@@ -20,7 +20,7 @@ export const revalidate = 86400;
 const TITLE = "Shop by Collection";
 const SOCIAL_TITLE = "Shop by Collection – Design That Hits";
 const DESCRIPTION =
-  "Browse every category of print-on-demand design: occasions like Christmas, Halloween and birthdays, products from wrapping paper and stickers to apparel, ornaments and wall art, plus themes like cats, gothic, retro and floral.";
+  "Shop print-on-demand designs by occasion, by product or by theme. Christmas, Halloween and birthday gift wrap, plus apparel, ornaments and wall art.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -63,7 +63,9 @@ export default async function CollectionsPage() {
         mainEntity: {
           "@type": "ItemList",
           numberOfItems: collections.length,
-          itemListElement: collections.map((c, i) => ({
+          // Ordered to match the sections below, because ItemList position is meant to
+          // describe where an item appears on the page.
+          itemListElement: [...occasions, ...types, ...themes].map((c, i) => ({
             "@type": "ListItem",
             position: i + 1,
             name: c.label,
@@ -120,7 +122,9 @@ export default async function CollectionsPage() {
           <h2 className="display-title mb-5" style={{ fontSize: "clamp(1.4rem, 3vw, 2rem)" }}>
             By product
           </h2>
-          <CollectionTiles collections={types} />
+          {/* Two eager tiles: the occasions grid above is five tiles, so the top of this
+              one can still sit inside the fold on a desktop viewport. */}
+          <CollectionTiles collections={types} priorityCount={2} />
         </section>
       )}
 

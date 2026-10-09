@@ -31,12 +31,27 @@ function ordinal([month, day]: MonthDay): number {
   return month * 100 + day;
 }
 
+/** The shop sells in USD to US buyers, so its calendar day is the one that matters. */
+const SHOP_TIME_ZONE = "America/New_York";
+
+/** Month and day in the shop's timezone, so a window never turns over mid-evening. */
+function shopMonthDay(now: Date): MonthDay {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: SHOP_TIME_ZONE,
+    month: "numeric",
+    day: "numeric",
+  }).formatToParts(now);
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  return [get("month"), get("day")];
+}
+
 /**
  * The occasions in season on `now`, soonest deadline first, falling back to birthday.
- * Reads the date in UTC so the result depends on the argument and not the host timezone.
+ * Resolved in the shop's timezone rather than UTC: reading UTC dropped Halloween from
+ * the band at 5pm Pacific on Halloween itself.
  */
 export function relevantOccasions(now: Date): string[] {
-  const today = ordinal([now.getUTCMonth() + 1, now.getUTCDate()]);
+  const today = ordinal(shopMonthDay(now));
 
   const open = WINDOWS.filter((w) => today >= ordinal(w.start) && today <= ordinal(w.end));
   if (open.length === 0) return [FALLBACK_SLUG];

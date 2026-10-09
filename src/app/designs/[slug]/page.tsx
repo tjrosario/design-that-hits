@@ -67,7 +67,6 @@ async function resolveListing(slugPromise: PageProps["params"]): Promise<Listing
   return getListingById(id);
 }
 
-
 /** First sentence or two of the description, trimmed to a sensible meta length. */
 function metaDescription(listing: Listing): string {
   const text = listing.description.replace(/\s+/g, " ").trim();
