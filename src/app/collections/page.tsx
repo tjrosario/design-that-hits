@@ -20,7 +20,7 @@ export const revalidate = 86400;
 const TITLE = "Shop by Collection";
 const SOCIAL_TITLE = "Shop by Collection – Design That Hits";
 const DESCRIPTION =
-  "Browse every category of print-on-demand design, from wrapping paper and stickers to apparel, ornaments and wall art, plus themes like cats, gothic, retro and floral.";
+  "Browse every category of print-on-demand design: occasions like Christmas, Halloween and birthdays, products from wrapping paper and stickers to apparel, ornaments and wall art, plus themes like cats, gothic, retro and floral.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -44,6 +44,7 @@ export const metadata: Metadata = {
 
 export default async function CollectionsPage() {
   const collections = await getCollections();
+  const occasions = collections.filter((c) => c.kind === "occasion");
   const types = collections.filter((c) => c.kind === "type");
   const themes = collections.filter((c) => c.kind === "theme");
 
@@ -100,16 +101,26 @@ export default async function CollectionsPage() {
           Shop by <span className="display-accent">Collection</span>
         </h1>
         <p className="text-sm sm:text-base leading-relaxed" style={{ color: "var(--text-soft)" }}>
-          Every design in the shop, sorted two ways: by what it is printed on, and by what it is about.
+          Every design in the shop, sorted three ways: by the occasion you are buying for, by what it is
+          printed on, and by what it is about.
         </p>
       </header>
+
+      {occasions.length > 0 && (
+        <section className="mb-12">
+          <h2 className="display-title mb-5" style={{ fontSize: "clamp(1.4rem, 3vw, 2rem)" }}>
+            By occasion
+          </h2>
+          <CollectionTiles collections={occasions} priorityCount={4} />
+        </section>
+      )}
 
       {types.length > 0 && (
         <section className="mb-12">
           <h2 className="display-title mb-5" style={{ fontSize: "clamp(1.4rem, 3vw, 2rem)" }}>
             By product
           </h2>
-          <CollectionTiles collections={types} priorityCount={4} />
+          <CollectionTiles collections={types} />
         </section>
       )}
 
