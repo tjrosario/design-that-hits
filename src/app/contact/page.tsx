@@ -21,11 +21,11 @@ const ETSY_SHOP_URL = "https://designthathits.etsy.com";
 const FAQS: { q: string; a: string }[] = [
   {
     q: "How do I place an order?",
-    a: "Every design is sold through our Etsy shop, so checkout, payment and delivery are all handled by Etsy. Browse the full catalogue here on the site and follow any product through to its Etsy listing to order.",
+    a: "Every design is sold through our Etsy shop, so checkout, payment and delivery are all handled by Etsy. Browse the full catalog here on the site and follow any product through to its Etsy listing to order.",
   },
   {
     q: "Can you make a custom design?",
-    a: "Yes. Custom colours, names, dates and one-off designs are all possible. Message us on Etsy or send an email with what you have in mind and we will come back to you with options.",
+    a: "Yes. Custom colors, names, dates and one-off designs are all possible. Message us on Etsy or send an email with what you have in mind and we will come back to you with options.",
   },
   {
     q: "How long will my order take?",
@@ -43,14 +43,14 @@ const FAQS: { q: string; a: string }[] = [
 
 export const metadata: Metadata = {
   title:       "Contact Us",
-  description: "Get in touch with Design That Hits. Ask about custom orders, wholesale enquiries, or just say hello.",
+  description: "Get in touch with Design That Hits. Ask about custom orders, wholesale inquiries, or just say hello.",
   alternates:  { canonical: `${SITE_URL}/contact` },
   openGraph: {
     type:        "website",
     locale:      "en_US",
     siteName:    "Design That Hits",
     title:       "Contact Design That Hits",
-    description: "Get in touch with Design That Hits. Ask about custom orders, wholesale enquiries, or just say hello.",
+    description: "Get in touch with Design That Hits. Ask about custom orders, wholesale inquiries, or just say hello.",
     url:         `${SITE_URL}/contact`,
     images:      [SITE_SHARE_IMAGE],
   },
@@ -70,7 +70,7 @@ export default function ContactPage() {
     "@id":       `${SITE_URL}/contact#webpage`,
     url:          `${SITE_URL}/contact`,
     name:         "Contact Design That Hits",
-    description:  "Get in touch with Design That Hits for custom orders, questions, or general enquiries.",
+    description:  "Get in touch with Design That Hits for custom orders, questions, or general inquiries.",
     inLanguage:   "en-US",
     isPartOf:     { "@id": `${SITE_URL}/#website` },
     breadcrumb: {
