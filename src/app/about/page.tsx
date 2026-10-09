@@ -8,14 +8,14 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com
 
 export const metadata: Metadata = {
   title:       "About Us",
-  description: "Learn about Design That Hits — a print-on-demand Etsy shop specialising in unique gifts, wrapping paper, and party designs crafted to make every occasion memorable.",
+  description: "Learn about Design That Hits — a print-on-demand Etsy shop specializing in unique gifts, wrapping paper, and party designs crafted to make every occasion memorable.",
   alternates:  { canonical: `${SITE_URL}/about` },
   openGraph: {
     type:        "website",
     locale:      "en_US",
     siteName:    "Design That Hits",
     title:       "About Design That Hits",
-    description: "Learn about Design That Hits — a print-on-demand Etsy shop specialising in unique gifts, wrapping paper, and party designs crafted to make every occasion memorable.",
+    description: "Learn about Design That Hits — a print-on-demand Etsy shop specializing in unique gifts, wrapping paper, and party designs crafted to make every occasion memorable.",
     url:         `${SITE_URL}/about`,
     images:      [SITE_SHARE_IMAGE],
   },
@@ -56,7 +56,7 @@ export default async function AboutPage() {
     "@id":       `${SITE_URL}/about#webpage`,
     url:          `${SITE_URL}/about`,
     name:         "About Design That Hits",
-    description:  "Design That Hits is a print-on-demand Etsy shop specialising in unique gifts, wrapping paper, and party designs.",
+    description:  "Design That Hits is a print-on-demand Etsy shop specializing in unique gifts, wrapping paper, and party designs.",
     inLanguage:   "en-US",
     isPartOf:     { "@id": `${SITE_URL}/#website` },
     about:        { "@id": `${SITE_URL}/#organization` },
