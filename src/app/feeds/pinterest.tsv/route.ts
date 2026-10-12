@@ -112,33 +112,6 @@ function feedDescription(listing: Listing): string {
   return truncate((keep ? trimmed : full) || cell(listing.title), 2000);
 }
 
-/*
-  `listingName` is the first pipe-delimited block of the Etsy title, and dozens of
-  products share one. Identically titled pins read as spam, so a colliding name borrows
-  the next distinct phrase from its own title. Feed-local: the site's titles are unchanged.
-*/
-function feedTitles(listings: Listing[]): Map<number, string> {
-  const counts = new Map<string, number>();
-  for (const listing of listings) {
-    const name = cell(listingName(listing));
-    counts.set(name, (counts.get(name) ?? 0) + 1);
-  }
-
-  const titles = new Map<number, string>();
-  for (const listing of listings) {
-    const name = cell(listingName(listing));
-    const qualifier = listing.title
-      .split("|")
-      .slice(1)
-      .map((part) => cell(part))
-      .find((part) => part.length > 0 && part.toLowerCase() !== name.toLowerCase());
-
-    const unique = (counts.get(name) ?? 0) > 1 && qualifier ? `${name} - ${qualifier}` : name;
-    titles.set(listing.id, truncate(unique, 150));
-  }
-  return titles;
-}
-
 /* "Wrapping Paper > Christmas > Gothic & Dark", skipping whichever axis is unknown. */
 function productType(listing: Listing, occasion: string | null): string {
   const parts = [
@@ -149,7 +122,7 @@ function productType(listing: Listing, occasion: string | null): string {
   return parts.join(" > ");
 }
 
-function row(listing: Listing, title: string): string {
+function row(listing: Listing): string {
   const image = listing.image;
   if (!image) return "";
 
@@ -164,7 +137,8 @@ function row(listing: Listing, title: string): string {
     id: String(listing.id),
     // The display name, not the full Etsy title. The pipe-delimited original reads as
     // keyword stuffing, which Pinterest's feed policy treats as a quality problem.
-    title,
+    // `withDisplayNames` has already resolved names that collide across the catalog.
+    title: truncate(cell(listingName(listing)), 150),
     description: feedDescription(listing),
     // utm so Pinterest traffic is attributable. The product page canonicalises to the
     // clean URL, so the parameters cannot create a duplicate.
@@ -204,8 +178,7 @@ export async function GET() {
     left out than published wrong.
   */
   const sellable = listings.filter((listing) => hasPrice(listing) && listing.image);
-  const titles = feedTitles(sellable);
-  const rows = sellable.map((listing) => row(listing, titles.get(listing.id) ?? "")).filter(Boolean);
+  const rows = sellable.map(row).filter(Boolean);
 
   /*
     Thrown, not returned as a 503.

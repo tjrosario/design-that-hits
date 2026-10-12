@@ -91,6 +91,8 @@ export interface Listing {
   themes?: string[];
   /** Derived, multi-valued. "Halloween Birthday" is genuinely both. */
   occasions?: string[];
+  /** Set by `withDisplayNames` when the short name alone collides with another listing. */
+  displayName?: string;
 }
 
 /** A selectable option in one of the secondary filter groups. */

@@ -31,6 +31,7 @@ import type { FetchListingsResult, ListingsQueryOptions, ShopErrorCode, ShopResu
 import { isPermanentShopError } from "@/types/shop";
 import * as catalogSource from "./catalog";
 import * as etsySource from "./etsy";
+import { withDisplayNames } from "@/lib/slug";
 import { fetchRssListings } from "./rss";
 
 export type { ShopErrorCode, ShopError, ShopResult, ListingsQueryOptions, FetchListingsResult } from "@/types/shop";
@@ -181,15 +182,17 @@ function getMergedListings(): Promise<Listing[]> {
 async function buildMergedListings(): Promise<Listing[]> {
   const catalogListings = catalogSource.getCatalogListings();
 
-  if (!rssEnabled()) return catalogListings;
+  // Applied to the finished set, because resolving a colliding name needs to see every
+  // other listing, and the overlay can both rewrite a title and add a product.
+  if (!rssEnabled()) return withDisplayNames(catalogListings);
 
   const rss = await fetchRssListings();
   if (!rss.ok) {
     console.warn(`[shop] RSS overlay unavailable (${rss.error.code}); serving catalog only.`);
-    return catalogListings;
+    return withDisplayNames(catalogListings);
   }
 
-  return mergeRssOverCatalog(catalogListings, rss.data);
+  return withDisplayNames(mergeRssOverCatalog(catalogListings, rss.data));
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────

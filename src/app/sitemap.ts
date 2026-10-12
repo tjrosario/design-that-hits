@@ -1,9 +1,11 @@
 import type { MetadataRoute } from "next";
 import { getAllListings } from "@/lib/shop";
 import { listingPath } from "@/lib/slug";
+import type { Listing } from "@/types/etsy";
 import {
   COLLECTION_PAGE_SIZE,
   collectionPagePath,
+  belongsTo,
   getCollections,
   getIntersections,
   intersectionPath,
@@ -18,14 +20,34 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com
 */
 export const revalidate = 86400;
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const now = new Date();
+/*
+  `lastModified` is a claim, and a wrong one is worse than none.
 
+  Every non-product URL here used to carry the build time, so 124 of 523 entries claimed
+  to have changed on every deploy and every daily revalidation. That teaches Google to
+  discount the field across the whole sitemap. A catalog-driven page now carries the
+  newest `updatedAt` among the products it actually lists, and the two pages that change
+  only when the code does carry nothing at all, which Google reads as unknown rather than
+  as a daily edit.
+*/
+function newestUpdate(listings: Listing[]): Date | undefined {
+  let newest = 0;
+  for (const listing of listings) {
+    if (listing.updatedAt > newest) newest = listing.updatedAt;
+  }
+  return newest > 0 ? new Date(newest * 1000) : undefined;
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  /*
+    No dates here. The home page and the hub get one below, from the catalog they list;
+    About and Contact change only when the code does, so they carry none.
+  */
   const staticPages: MetadataRoute.Sitemap = [
-    { url: SITE_URL,                   lastModified: now, changeFrequency: "daily",   priority: 1.0 },
-    { url: `${SITE_URL}/collections`,  lastModified: now, changeFrequency: "weekly",  priority: 0.8 },
-    { url: `${SITE_URL}/about`,        lastModified: now, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${SITE_URL}/contact`,      lastModified: now, changeFrequency: "yearly",  priority: 0.5 },
+    { url: SITE_URL,                   changeFrequency: "daily",   priority: 1.0 },
+    { url: `${SITE_URL}/collections`,  changeFrequency: "weekly",  priority: 0.8 },
+    { url: `${SITE_URL}/about`,        changeFrequency: "monthly", priority: 0.7 },
+    { url: `${SITE_URL}/contact`,      changeFrequency: "yearly",  priority: 0.5 },
   ];
 
   /*
@@ -62,10 +84,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const categoryPages: MetadataRoute.Sitemap = collections.flatMap((collection) => {
     const totalPages = Math.max(1, Math.ceil(collection.count / COLLECTION_PAGE_SIZE));
+    const lastModified = newestUpdate(listings.filter((l) => belongsTo(l, collection)));
 
     return Array.from({ length: totalPages }, (_, i) => ({
       url:             `${SITE_URL}${collectionPagePath(collection.slug, i + 1)}`,
-      lastModified:    now,
+      ...(lastModified ? { lastModified } : {}),
       changeFrequency: "weekly" as const,
       // Page one is the ranking target; deeper pages exist mainly to be crawled through.
       priority:        i === 0 ? 0.7 : 0.4,
@@ -79,10 +102,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   */
   const intersectionPages: MetadataRoute.Sitemap = intersections.flatMap((i) => {
     const totalPages = Math.max(1, Math.ceil(i.count / COLLECTION_PAGE_SIZE));
+    const members = listings.filter((l) => belongsTo(l, i.primary) && belongsTo(l, i.secondary));
+    const lastModified = newestUpdate(members);
 
     return Array.from({ length: totalPages }, (_, n) => ({
       url:             `${SITE_URL}${intersectionPath(i.primary.slug, i.secondary.slug, n + 1)}`,
-      lastModified:    now,
+      ...(lastModified ? { lastModified } : {}),
       changeFrequency: "weekly" as const,
       priority:        n === 0 ? 0.7 : 0.4,
     }));
@@ -106,5 +131,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...(listing.image ? { images: [listing.image.url] } : {}),
   }));
 
-  return [...staticPages, ...categoryPages, ...intersectionPages, ...productPages];
+  // The home grid and the hub both list the catalog, so the newest product is when they
+  // last genuinely changed.
+  const catalogUpdated = newestUpdate(listings);
+  const catalogDriven = new Set([SITE_URL, `${SITE_URL}/collections`]);
+  const datedStatic: MetadataRoute.Sitemap = staticPages.map((entry) =>
+    catalogUpdated && catalogDriven.has(entry.url) ? { ...entry, lastModified: catalogUpdated } : entry,
+  );
+
+  return [...datedStatic, ...categoryPages, ...intersectionPages, ...productPages];
 }

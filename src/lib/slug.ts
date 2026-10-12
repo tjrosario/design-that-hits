@@ -29,6 +29,44 @@ const MAX_TITLE_CHARS = 70;
  * page copy, so nothing is lost for keyword coverage.
  */
 export function listingName(listing: Listing): string {
+  if (listing.displayName) return listing.displayName;
+  const first = listing.title.split("|")[0].trim();
+  return first || listing.title.trim();
+}
+
+/**
+ * Resolves short names that collide, across the whole catalog.
+ *
+ * The first title block is not unique: dozens of listings are called "Gothic Christmas
+ * Wrapping Paper", so that many product pages shared an `<h1>`, a `<title>` and their
+ * image alt text. A colliding name takes the next distinct phrase from its own title,
+ * which is where the design's actual subject lives.
+ *
+ * Slugs are untouched. `slugifyTitle` splits the raw title itself and `idFromSlug`
+ * resolves on the trailing id, so no URL moves.
+ */
+export function withDisplayNames(listings: Listing[]): Listing[] {
+  const counts = new Map<string, number>();
+  for (const listing of listings) {
+    const name = shortName(listing);
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+
+  return listings.map((listing) => {
+    const name = shortName(listing);
+    if ((counts.get(name) ?? 0) < 2) return listing;
+
+    const qualifier = listing.title
+      .split("|")
+      .slice(1)
+      .map((part) => part.trim())
+      .find((part) => part.length > 0 && part.toLowerCase() !== name.toLowerCase());
+
+    return qualifier ? { ...listing, displayName: `${name} - ${qualifier}` } : listing;
+  });
+}
+
+function shortName(listing: Listing): string {
   const first = listing.title.split("|")[0].trim();
   return first || listing.title.trim();
 }

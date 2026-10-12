@@ -131,7 +131,7 @@ function toCollection(kind: CollectionKind, option: FacetOption): Collection {
  * win here and the theme would be unreachable, so the ids are worth keeping distinct.
  */
 /** True when this listing belongs in that collection. */
-function belongsTo(listing: Listing, collection: Collection): boolean {
+export function belongsTo(listing: Listing, collection: Collection): boolean {
   if (collection.kind === "type") return listing.productType === collection.slug;
   if (collection.kind === "occasion") return Boolean(listing.occasions?.includes(collection.slug));
   return Boolean(listing.themes?.includes(collection.slug));
@@ -329,12 +329,12 @@ const INTERSECTIONS: Record<string, { label: string; intro: string }> = {
   "christmas|retro": {
     label: "Retro Christmas Wrapping Paper",
     intro:
-      "Seventies palettes, vintage baubles and mid century type. Christmas wrap that looks like it was found in a loft rather than bought this year.",
+      "Seventies palettes, vintage baubles and mid century type. Christmas wrap that looks like it was found in an attic rather than bought this year.",
   },
   "christmas|dogs": {
     label: "Dog Christmas Wrapping Paper",
     intro:
-      "Dogs in Santa hats, dogs in jumpers, dogs who have clearly eaten something they should not have. Christmas wrap for the dog person, or for the dog, who will tear it off anyway.",
+      "Dogs in Santa hats, dogs in sweaters, dogs who have clearly eaten something they should not have. Christmas wrap for the dog person, or for the dog, who will tear it off anyway.",
   },
   "christmas|minimalist": {
     label: "Minimalist Christmas Wrapping Paper",
@@ -524,6 +524,373 @@ const COLLECTION_DETAIL: Record<string, CollectionDetail> = {
   },
 };
 
+/**
+ * Long-form copy for the intersections that are a seasonal search target.
+ *
+ * Christmas only for now: it is over half the catalog and these are the pages that have
+ * to carry traffic between October and December. Each page gets its own body and its own
+ * questions rather than a shared block, because eleven pages repeating one FAQ is exactly
+ * the duplicate content these pages exist to avoid. Nothing here asserts a specification
+ * that is not already stated on the listings themselves.
+ */
+const INTERSECTION_DETAIL: Record<string, CollectionDetail> = {
+  "christmas|glam": {
+    body: [
+      {
+        heading: "Gold without the foil price",
+        paragraphs: [
+          "The metallic effect in these designs is printed, not foiled. That means the gold reads as gold in photographs and under a tree light, but the sheet still folds and creases like paper rather than cracking along a foil line.",
+          "It also means the price is the same as every other design in the shop. Real foil wrap costs several times this and tends to split at the corners of a box.",
+        ],
+      },
+      {
+        heading: "What it suits",
+        paragraphs: [
+          "Glam works hardest on a small gift. A jewelry box or a bottle in gold against a plain tree is the whole point, where a large flat parcel can tip into looking like a corporate hamper. If you are wrapping something big, a minimalist or retro design carries scale better.",
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: "Is the gold actual metallic foil?",
+        a: "No, it is printed. It photographs like metallic and catches light, but it behaves like paper when you fold it, which is the trade most people want at this price.",
+      },
+      {
+        q: "Will it look cheap next to real foil wrap?",
+        a: "Side by side in bright daylight you would see the difference. Under a tree, in a pile, and in photos, you would not.",
+      },
+      {
+        q: "Does glossy or matte suit these better?",
+        a: "Glossy pushes the shine further, which is usually the reason to pick a glam design in the first place. Matte reads more expensive and less festive.",
+      },
+    ],
+  },
+
+  "christmas|cats": {
+    body: [
+      {
+        heading: "Which cat person you are buying for",
+        paragraphs: [
+          "The designs split into two groups and it is worth knowing which you want before scrolling. One group is the cat as a character: in a Santa hat, tangled in lights, sitting in a box it was not given. The other is the cat as pattern, repeated small and flat, closer to a textile print than a joke.",
+          "The character designs are the ones that get a laugh when the paper comes off. The pattern designs are the ones you can wrap an entire family's gifts in without it getting old by the fourth parcel.",
+        ],
+      },
+      {
+        heading: "If the cat is the recipient",
+        paragraphs: [
+          "Worth saying plainly: cats shred wrapping paper and eat ribbon. If the parcel is going under a tree in a house with a cat, the pattern designs hide a repair better than a single large character does.",
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: "Can I get a specific breed?",
+        a: "Some designs are breed specific and some are generic cats. The product titles name the breed where there is one, so searching this page for the breed is the fastest way to tell.",
+      },
+      {
+        q: "Is this too childish for an adult?",
+        a: "The character designs are playful. The repeated pattern designs are not, and read as an ordinary textile print that happens to be cats, which is usually the safer pick for an adult.",
+      },
+      {
+        q: "Will it match a cat themed gift bag or card?",
+        a: "Nothing here is sold as a matching set, so treat the paper as the anchor and pick a plain card rather than trying to pair two patterns.",
+      },
+    ],
+  },
+
+  "christmas|food": {
+    body: [
+      {
+        heading: "Cocoa, cookies and the whole dinner",
+        paragraphs: [
+          "Food designs are the most reliable Christmas wrap for someone whose tastes you do not know well. Nobody dislikes gingerbread. It sidesteps the problem that a cat design or a gothic design has, which is that it says something about the recipient and can be wrong.",
+          "The range runs from single subject repeats, cocoa mugs or candy canes across the sheet, to busier spreads with a full table on them. The single subject designs are easier to wrap neatly because the pattern does not have an obvious right way up.",
+        ],
+      },
+      {
+        heading: "Wrapping food gifts",
+        paragraphs: [
+          "If the gift is itself edible, a food design doubles the joke rather than spoiling it, but keep the paper off anything unwrapped. This is printed art paper, not food safe packaging, so a tin or a box goes between the paper and the contents.",
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: "Is this paper safe to put against food?",
+        a: "No. It is printed fine art paper meant to wrap a box or a tin. Anything edible should be in its own sealed container first.",
+      },
+      {
+        q: "Which food designs wrap most neatly?",
+        a: "The single subject repeats, such as cocoa or candy canes, because they have no obvious orientation. A design with a laid table on it has a top and a bottom, which shows if a corner folds the wrong way.",
+      },
+      {
+        q: "Is there anything savory rather than sweet?",
+        a: "Most of this set is sweet, cocoa and baking, but the Christmas dinner designs cover the savory side. The titles say which is which.",
+      },
+    ],
+  },
+
+  "christmas|gothic": {
+    body: [
+      {
+        heading: "Black ground Christmas wrap",
+        paragraphs: [
+          "These are built on black rather than on red and green, with skulls, ravens, bats and dark botanicals worked into otherwise conventional Christmas motifs. Ornaments, holly and candles are all still there, they are just not the colors the aisle in a supermarket offers.",
+          "The practical effect of a black ground is contrast. A gift in black under a lit tree stands out from a pile in a way that red does not, because everything else in the pile is already red.",
+        ],
+      },
+      {
+        heading: "Will it read as Christmas",
+        paragraphs: [
+          "It depends which design. The ones with ornaments, holly or candles read as Christmas immediately even in black. The pure skull and rose designs read as gothic first and Christmas second, which is the point if the recipient would rather that, and a problem if the parcel has to sit under a tree at someone else's house.",
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: "Will a black design look out of place at a traditional family Christmas?",
+        a: "The designs that keep a recognizable Christmas motif, the ornaments and the holly, sit fine next to conventional wrap. The skull led designs will get a comment, which may be the reason to buy them.",
+      },
+      {
+        q: "Do the dark designs show fingerprints or scuffs?",
+        a: "A large flat black area shows handling more than a busy pattern does, in any paper. The designs with a dense repeat across the sheet hide it better than the sparse ones.",
+      },
+      {
+        q: "Should I pick matte or glossy for a black design?",
+        a: "Matte. Gloss on a large black area turns into a mirror and picks up every light in the room, and matte is what makes the black look deep rather than gray.",
+      },
+    ],
+  },
+
+  "christmas|retro": {
+    body: [
+      {
+        heading: "Which decade you are actually asking for",
+        paragraphs: [
+          "Retro here covers a span, and the palettes are the quickest way to tell them apart. Mid century designs lean on teal, cream and a muted red, with simple geometric baubles and hand lettered type. The seventies designs go hotter: orange, mustard, brown, with fatter shapes and more of them.",
+          "If you are wrapping a gift for someone who grew up with one of these, the palette matters more than the motif. The color is what triggers the recognition.",
+        ],
+      },
+      {
+        heading: "Why it scales well",
+        paragraphs: [
+          "Retro designs tend to use a large, evenly spaced repeat, which makes them the easiest set here to wrap something big in. A large parcel in a small busy pattern looks like it was covered in fabric, where a large parcel in a mid century repeat looks deliberate.",
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: "Is this vintage paper or a new print of a vintage style?",
+        a: "A new print. These are original designs drawn in a retro style, printed on current stock, so you get the look without the brittleness of actual old paper.",
+      },
+      {
+        q: "What is the difference between the mid century and seventies designs?",
+        a: "Mostly palette. Mid century is teal, cream and muted red with sparse geometric shapes. Seventies is orange, mustard and brown with denser, rounder motifs.",
+      },
+      {
+        q: "Which designs work for a large gift?",
+        a: "The ones with a wide, evenly spaced repeat. Those hold their proportion on a big box, where a tight pattern starts to read as texture rather than design.",
+      },
+    ],
+  },
+
+  "christmas|dogs": {
+    body: [
+      {
+        heading: "Breed specific or not",
+        paragraphs: [
+          "Roughly half of these name a breed in the title and half are generic dogs. The breed designs are the ones that land, because a dog person does not think of their dog as a dog, they think of it as a border collie. If the breed is in the catalog, that is the one to buy.",
+          "If it is not, the generic designs split between dogs as characters, in hats and sweaters, and dogs as a repeated silhouette. The silhouettes are the safer pick for an adult.",
+        ],
+      },
+      {
+        heading: "It is going to get torn",
+        paragraphs: [
+          "If the gift is for the dog, or is going under a tree a dog can reach, accept that the paper is temporary. That is an argument for a busy pattern over a single large illustration, because a tear across a repeat is much less obvious.",
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: "Is my breed in here?",
+        a: "Check the product titles on this page, which name the breed where a design is breed specific. The catalog does not cover every breed, and the generic silhouette designs are the fallback.",
+      },
+      {
+        q: "Are there designs with both a dog and a cat?",
+        a: "A few designs cover both, and they sit on the cat pages as well as this one. Search this page for cat to find them.",
+      },
+      {
+        q: "Is it suitable for wrapping a dog's own present?",
+        a: "The paper is fine to wrap a toy or a treat box, but it is printed art paper rather than anything a dog should chew, so unwrap it with them rather than leaving it.",
+      },
+    ],
+  },
+
+  "christmas|minimalist": {
+    body: [
+      {
+        heading: "Quiet under the tree",
+        paragraphs: [
+          "Single color repeats, fine line trees, and a lot of empty space. These are for the house where the tree is one color and the parcels are meant to look like part of the room rather than competing with it.",
+          "The practical advantage is that a minimalist design takes a ribbon better than anything else here. There is space for it to sit without covering the pattern, which is not true of a busy repeat.",
+        ],
+      },
+      {
+        heading: "The one thing to watch",
+        paragraphs: [
+          "Large areas of flat, pale color show every fold and every thumbprint. If the parcel is going to be handled, posted, or sat under a tree for three weeks, a design with a light line pattern across the whole sheet will look better on the day than a nearly blank one.",
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: "Does a plain design look like I made no effort?",
+        a: "It reads as deliberate if the wrapping is tidy, which is the catch: a minimalist design depends on sharp folds in a way a busy pattern does not.",
+      },
+      {
+        q: "Do these show creases and marks?",
+        a: "More than the busier designs, yes. Flat pale areas show handling. The line pattern designs are more forgiving than the sparse ones.",
+      },
+      {
+        q: "Matte or glossy for a minimalist design?",
+        a: "Matte, in almost every case. Gloss on a large flat area is what makes paper look cheap, and matte is what makes a single color look considered.",
+      },
+    ],
+  },
+
+  "christmas|music": {
+    body: [
+      {
+        heading: "For when the gift is obviously a record",
+        paragraphs: [
+          "Guitars, vinyl, turntables and carols turned into pattern. The honest use for these is a gift that is already music, where the wrap stops pretending otherwise, and the second use is for whoever in the family runs the December playlist.",
+          "There is a spread of genre in here rather than one look. The acoustic and carol designs are warm and traditional. The electric guitar, metal and DJ designs are not, and are closer to the gothic end of the catalog in palette.",
+        ],
+      },
+      {
+        heading: "Wrapping a record",
+        paragraphs: [
+          "A twelve inch sleeve is the one parcel shape where a large repeat genuinely helps, because the flat front face is big enough to show a whole motif. A small tight pattern on a record sleeve reads as texture and the design is wasted.",
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: "Is there anything for a specific instrument?",
+        a: "Guitars are the best covered, acoustic and electric both. Other instruments appear in the mixed designs rather than getting their own.",
+      },
+      {
+        q: "Are these only for music gifts?",
+        a: "No, but they are at their best when the gift is music. A vinyl pattern on a sweater sized box is just a pattern.",
+      },
+      {
+        q: "Is there anything heavier than carols?",
+        a: "Yes. The metal and electric guitar designs are dark and sit closer to the gothic Christmas set than to the traditional ones.",
+      },
+    ],
+  },
+
+  "christmas|cottagecore": {
+    body: [
+      {
+        heading: "Handmade without being handmade",
+        paragraphs: [
+          "Mushrooms, hand drawn greenery, gingham and muted winter color. These are printed designs that read as block printed or stamped, which is the whole appeal: the look of something made at a kitchen table, with none of the time it would take.",
+          "The palette is the common thread and it is deliberately low contrast. Sage, oatmeal, dusty red. That makes these the easiest designs here to use across a whole pile of gifts without the pile looking chaotic, because nothing in the set fights anything else in it.",
+        ],
+      },
+      {
+        heading: "Pairing it",
+        paragraphs: [
+          "Cottagecore is the one set that genuinely benefits from string and a sprig rather than ribbon. The muted palette leaves room for a brown paper tag in a way a saturated design does not.",
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: "Is this actually block printed?",
+        a: "No. It is a printed design drawn to look hand blocked, so the registration is perfect and the price is the same as everything else in the shop.",
+      },
+      {
+        q: "Will the different cottagecore designs work together?",
+        a: "Better than any other set here, because they share a muted palette. You can wrap a whole family's gifts in three different designs from this page and it still looks intentional.",
+      },
+      {
+        q: "Is it Christmas specific enough?",
+        a: "The greenery and gingham designs lean seasonal rather than explicitly Christmas, which some people want. If you need it to say Christmas outright, the ones naming a holiday motif in the title are the safer pick.",
+      },
+    ],
+  },
+
+  "christmas|wildlife": {
+    body: [
+      {
+        heading: "The design that works for everyone",
+        paragraphs: [
+          "Deer, foxes, owls and winter hares in woodland repeats. This is the set to reach for when one design has to cover a grandparent, a toddler and a teenager, because an illustrated fox in snow offends nobody and bores nobody.",
+          "It is also the most traditional looking set here without being red and green. If you want Christmas wrap that looks like Christmas but not like the supermarket, this is usually the answer.",
+        ],
+      },
+      {
+        heading: "Scale and audience",
+        paragraphs: [
+          "The designs with a large single animal read younger and suit a child's gift. The dense woodland repeats read older and suit an adult's. Same subject, quite different effect, and the product photos make the difference obvious at a glance.",
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: "Is this suitable for children's gifts?",
+        a: "The large single animal designs are, and they work well for a child. The dense woodland repeats are more adult, though nothing in this set is unsuitable either way.",
+      },
+      {
+        q: "Are the animals realistic or illustrated?",
+        a: "Illustrated. These are drawn designs rather than photographs, which is what lets them repeat across a sheet without looking odd.",
+      },
+      {
+        q: "Does it work outside Christmas?",
+        a: "Several of these are winter rather than Christmas, so they carry through January and work for a midwinter birthday. The titles say which mention a holiday motif.",
+      },
+    ],
+  },
+
+  "christmas|pride": {
+    body: [
+      {
+        heading: "Christmas designs that are not assuming",
+        paragraphs: [
+          "Progress stripes, trans and bi palettes, and queer coded motifs worked into ordinary Christmas designs: ornaments, trees, winter botanicals. The flag colors are part of the pattern rather than printed as a flag, so these read as a well chosen design first.",
+          "That matters practically. A gift wrapped in this can sit under a tree in a mixed room without putting the recipient in the position of explaining it, which is not true of wrap with a flag printed across it.",
+        ],
+      },
+      {
+        heading: "Chosen family",
+        paragraphs: [
+          "This is the smallest set on this page, so if you are wrapping several gifts you will likely use the same design more than once. Varying the ribbon rather than the paper is the easier fix.",
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: "Are the flags printed literally?",
+        a: "Mostly not. The palettes are worked into the pattern, as stripes in an ornament or in winter botanicals, rather than printed as a flag across the sheet.",
+      },
+      {
+        q: "Which palettes are covered?",
+        a: "Progress, trans and bi appear across this set. The product titles name the palette where a design is specific to one.",
+      },
+      {
+        q: "Is it obviously Christmas?",
+        a: "Yes. These keep conventional Christmas motifs, trees and ornaments, and change the color rather than the subject.",
+      },
+    ],
+  },
+};
+
+export function intersectionDetail(primary: string, secondary: string): CollectionDetail | null {
+  return INTERSECTION_DETAIL[`${primary}|${secondary}`] ?? null;
+}
+
 export function collectionDetail(slug: string): CollectionDetail | null {
   return COLLECTION_DETAIL[slug] ?? null;
 }
@@ -587,6 +954,6 @@ export function intersectionSpec(i: Intersection): CatalogSpec {
     imageUrl: i.imageUrl,
     // Up is the primary axis, which is the broader page a visitor would widen to.
     trail: [{ name: i.primary.label, href: collectionPath(i.primary.slug) }],
-    detail: null,
+    detail: intersectionDetail(i.primary.slug, i.secondary.slug),
   };
 }
