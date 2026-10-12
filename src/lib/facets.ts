@@ -59,8 +59,12 @@ const PRODUCT_TYPE_RULES: { id: string; label: string; pattern: RegExp }[] = [
 const THEME_RULES: { id: string; label: string; pattern: RegExp }[] = [
   { id: "cats", label: "Cats", pattern: /\bcats?\b|kitten|feline|meow/i },
   { id: "dogs", label: "Dogs", pattern: /\bdogs?\b|puppy|canine|\bpup\b/i },
-  { id: "gothic", label: "Gothic & Dark", pattern: /gothic|\bgoth\b|skull|victorian|macabre|spooky|dark_/i },
-  { id: "retro", label: "Retro & Y2K", pattern: /retro|\b90s\b|\by2k\b|vaporwave|pixel|vintage|nostalg/i },
+  // `victorian` is deliberately absent: it matched 20 listings, of which the 5 that had
+  // no other gothic token were Victorian carolers and vintage angels. They keep `retro`.
+  { id: "gothic", label: "Gothic & Dark", pattern: /gothic|\bgoth\b|skull|macabre|spooky|dark_/i },
+  // Labelled for what it holds: `vintage` matches 44 listings against `retro`'s 27, while
+  // `y2k` matches none at all, so "Y2K" promised a shelf this catalog does not stock.
+  { id: "retro", label: "Retro & Vintage", pattern: /retro|\b90s\b|\by2k\b|vaporwave|pixel|vintage|nostalg/i },
   { id: "floral", label: "Floral & Botanical", pattern: /floral|botanical|flower|peony|rose\b|garden/i },
   { id: "minimalist", label: "Minimalist", pattern: /minimal|modern|simple|clean_|geometric/i },
   // "cozy" deliberately excluded: it appears in 72 listings as a generic holiday tag
@@ -72,8 +76,28 @@ const THEME_RULES: { id: string; label: string; pattern: RegExp }[] = [
   // carried no theme at all and vanished from every themed view. They lift coverage to
   // ~90%. See `npm run facets:report`.
   { id: "music", label: "Music", pattern: /guitar|music|techno|\bdj\b|mariachi|\bband\b|concert|vinyl|headphone/i },
-  { id: "food", label: "Food & Drink", pattern: /\bfood\b|coffee|concha|pan dulce|candy|cookie|donut|pizza|taco|dessert|bakery|drink|cocktail/i },
-  { id: "wildlife", label: "Woodland & Wildlife", pattern: /woodland|\bdeer\b|\bfox\b|bunny|rabbit|\bowl\b|\bbird|forest|moose|\bbear\b|squirrel/i },
+  // The Christmas half of this vocabulary was missing, so the hot cocoa and gingerbread
+  // designs sat outside Food & Drink entirely. Bare `cocoa` is not used: it appears as a
+  // tag on dog and cat designs, which would file a Boston Terrier print under food.
+  {
+    id: "food",
+    label: "Food & Drink",
+    pattern:
+      /\bfood\b|coffee|concha|pan dulce|candy|cookie|donut|pizza|taco|dessert|bakery|drink|cocktail|hot cocoa|hot chocolate|eggnog|mulled wine|gingerbread|macaron|peppermint/i,
+  },
+  /*
+    Two fixes here. Bare `forest` matched the tags on Husky, Great Dane, Bernese Mountain
+    Dog and Norwegian Forest Cat designs, so a quarter of this theme was pets. And
+    `\bdeer\b` does not match "reindeer", which left the 11 reindeer designs, the most
+    Christmas of all woodland motifs, out of the woodland theme. `\bowl\b` is dropped: it
+    matched nothing, while the label and copy both promised owls.
+  */
+  {
+    id: "wildlife",
+    label: "Woodland & Wildlife",
+    pattern:
+      /woodland|\bdeer\b|reindeer|\bfox\b|bunny|rabbit|\bbird|penguin|hedgehog|forest animal|forest friend|moose|\bbear\b|squirrel/i,
+  },
   { id: "glam", label: "Glam & Elegant", pattern: /glam|glitter|sparkle|\bgold\b|elegant|luxe|shimmer/i },
   { id: "family", label: "Family & Matching", pattern: /matching|family_|couples|his and hers/i },
 ];
