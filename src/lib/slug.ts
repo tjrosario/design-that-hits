@@ -54,16 +54,50 @@ export function withDisplayNames(listings: Listing[]): Listing[] {
 
   return listings.map((listing) => {
     const name = shortName(listing);
-    if ((counts.get(name) ?? 0) < 2) return listing;
+    // Deliberately recomputed from the title every time, and the no-collision branch
+    // below must clear any name a previous pass left, or a listing whose title changed
+    // would keep a qualifier that no longer matches it.
+    if ((counts.get(name) ?? 0) < 2) {
+      return listing.displayName ? { ...listing, displayName: undefined } : listing;
+    }
 
-    const qualifier = listing.title
-      .split("|")
-      .slice(1)
-      .map((part) => part.trim())
-      .find((part) => part.length > 0 && part.toLowerCase() !== name.toLowerCase());
-
+    const qualifier = bestQualifier(listing.title, name);
     return qualifier ? { ...listing, displayName: `${name} - ${qualifier}` } : listing;
   });
+}
+
+/*
+  Etsy keyword blocks almost all end in the product noun, so appending one verbatim gives
+  "Gothic Christmas Wrapping Paper - Black Rose Gift Wrap": 50 characters to say one new
+  word. The noun is dropped, the phrase is cut to a few words, and the shortest surviving
+  candidate wins, which keeps the composed name inside the budget this file exists to
+  protect.
+*/
+const PRODUCT_NOUN_TAIL = /[\s,+&-]*(?:gift\s*)?(?:wrap(?:ping)?|wrapper)?(?:\s*paper)?\s*$/i;
+const KEYWORD_TAIL = /[\s,+&-]*(?:xmas|holiday|christmas)?\s*(?:decor|decoration|pattern|print|set)\s*$/i;
+const MAX_QUALIFIER_WORDS = 4;
+
+function bestQualifier(title: string, name: string): string | null {
+  const lowerName = name.toLowerCase();
+
+  const candidates = title
+    .split("|")
+    .slice(1)
+    .map((part) => trimQualifier(part))
+    .filter((part) => part.length > 0 && !lowerName.includes(part.toLowerCase()))
+    .sort((a, b) => a.length - b.length);
+
+  return candidates[0] ?? null;
+}
+
+/* Cutting to a word count can leave a dangling "for" or "&". */
+const DANGLING_TAIL = /[\s,+&-]*\b(?:for|with|and|the|in|on|to|of|a|an|your|my)?[\s,+&-]*$/i;
+
+function trimQualifier(part: string): string {
+  const withoutNoun = part.trim().replace(KEYWORD_TAIL, "").replace(PRODUCT_NOUN_TAIL, "");
+  const capped = withoutNoun.split(/\s+/).filter(Boolean).slice(0, MAX_QUALIFIER_WORDS).join(" ");
+  // Only the dangling tail is re-stripped: the cap is what exposes it.
+  return capped.replace(DANGLING_TAIL, "").trim();
 }
 
 function shortName(listing: Listing): string {
