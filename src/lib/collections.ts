@@ -131,7 +131,7 @@ function toCollection(kind: CollectionKind, option: FacetOption): Collection {
  * win here and the theme would be unreachable, so the ids are worth keeping distinct.
  */
 /** True when this listing belongs in that collection. */
-function belongsTo(listing: Listing, collection: Collection): boolean {
+export function belongsTo(listing: Listing, collection: Collection): boolean {
   if (collection.kind === "type") return listing.productType === collection.slug;
   if (collection.kind === "occasion") return Boolean(listing.occasions?.includes(collection.slug));
   return Boolean(listing.themes?.includes(collection.slug));
@@ -329,12 +329,12 @@ const INTERSECTIONS: Record<string, { label: string; intro: string }> = {
   "christmas|retro": {
     label: "Retro Christmas Wrapping Paper",
     intro:
-      "Seventies palettes, vintage baubles and mid century type. Christmas wrap that looks like it was found in a loft rather than bought this year.",
+      "Seventies palettes, vintage baubles and mid century type. Christmas wrap that looks like it was found in an attic rather than bought this year.",
   },
   "christmas|dogs": {
     label: "Dog Christmas Wrapping Paper",
     intro:
-      "Dogs in Santa hats, dogs in jumpers, dogs who have clearly eaten something they should not have. Christmas wrap for the dog person, or for the dog, who will tear it off anyway.",
+      "Dogs in Santa hats, dogs in sweaters, dogs who have clearly eaten something they should not have. Christmas wrap for the dog person, or for the dog, who will tear it off anyway.",
   },
   "christmas|minimalist": {
     label: "Minimalist Christmas Wrapping Paper",

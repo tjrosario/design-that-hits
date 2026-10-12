@@ -29,6 +29,78 @@ const MAX_TITLE_CHARS = 70;
  * page copy, so nothing is lost for keyword coverage.
  */
 export function listingName(listing: Listing): string {
+  if (listing.displayName) return listing.displayName;
+  const first = listing.title.split("|")[0].trim();
+  return first || listing.title.trim();
+}
+
+/**
+ * Resolves short names that collide, across the whole catalog.
+ *
+ * The first title block is not unique: dozens of listings are called "Gothic Christmas
+ * Wrapping Paper", so that many product pages shared an `<h1>`, a `<title>` and their
+ * image alt text. A colliding name takes the next distinct phrase from its own title,
+ * which is where the design's actual subject lives.
+ *
+ * Slugs are untouched. `slugifyTitle` splits the raw title itself and `idFromSlug`
+ * resolves on the trailing id, so no URL moves.
+ */
+export function withDisplayNames(listings: Listing[]): Listing[] {
+  const counts = new Map<string, number>();
+  for (const listing of listings) {
+    const name = shortName(listing);
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+
+  return listings.map((listing) => {
+    const name = shortName(listing);
+    // Deliberately recomputed from the title every time, and the no-collision branch
+    // below must clear any name a previous pass left, or a listing whose title changed
+    // would keep a qualifier that no longer matches it.
+    if ((counts.get(name) ?? 0) < 2) {
+      return listing.displayName ? { ...listing, displayName: undefined } : listing;
+    }
+
+    const qualifier = bestQualifier(listing.title, name);
+    return qualifier ? { ...listing, displayName: `${name} - ${qualifier}` } : listing;
+  });
+}
+
+/*
+  Etsy keyword blocks almost all end in the product noun, so appending one verbatim gives
+  "Gothic Christmas Wrapping Paper - Black Rose Gift Wrap": 50 characters to say one new
+  word. The noun is dropped, the phrase is cut to a few words, and the shortest surviving
+  candidate wins, which keeps the composed name inside the budget this file exists to
+  protect.
+*/
+const PRODUCT_NOUN_TAIL = /[\s,+&-]*(?:gift\s*)?(?:wrap(?:ping)?|wrapper)?(?:\s*paper)?\s*$/i;
+const KEYWORD_TAIL = /[\s,+&-]*(?:xmas|holiday|christmas)?\s*(?:decor|decoration|pattern|print|set)\s*$/i;
+const MAX_QUALIFIER_WORDS = 4;
+
+function bestQualifier(title: string, name: string): string | null {
+  const lowerName = name.toLowerCase();
+
+  const candidates = title
+    .split("|")
+    .slice(1)
+    .map((part) => trimQualifier(part))
+    .filter((part) => part.length > 0 && !lowerName.includes(part.toLowerCase()))
+    .sort((a, b) => a.length - b.length);
+
+  return candidates[0] ?? null;
+}
+
+/* Cutting to a word count can leave a dangling "for" or "&". */
+const DANGLING_TAIL = /[\s,+&-]*\b(?:for|with|and|the|in|on|to|of|a|an|your|my)?[\s,+&-]*$/i;
+
+function trimQualifier(part: string): string {
+  const withoutNoun = part.trim().replace(KEYWORD_TAIL, "").replace(PRODUCT_NOUN_TAIL, "");
+  const capped = withoutNoun.split(/\s+/).filter(Boolean).slice(0, MAX_QUALIFIER_WORDS).join(" ");
+  // Only the dangling tail is re-stripped: the cap is what exposes it.
+  return capped.replace(DANGLING_TAIL, "").trim();
+}
+
+function shortName(listing: Listing): string {
   const first = listing.title.split("|")[0].trim();
   return first || listing.title.trim();
 }
