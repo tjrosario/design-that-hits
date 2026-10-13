@@ -14,7 +14,6 @@ import {
   type Collection,
 } from "@/lib/collections";
 import { currentOccasions } from "@/lib/seasonal";
-import { SOCIAL_URLS } from "@/lib/social";
 import { CollectionTiles } from "@/components/collections/CollectionTiles";
 import Link from "next/link";
 import { listingPath } from "@/lib/slug";
@@ -280,42 +279,6 @@ export default async function HomePage({ searchParams }: HomeProps) {
     .filter((l) => l.image)
     .slice(0, 8);
 
-  // ── JSON-LD: WebSite with SearchAction ────────────────────────────────────
-  const websiteJsonLd = {
-    "@type":    "WebSite",
-    "@id":      `${SITE_URL}/#website`,
-    name:        "Design That Hits",
-    url:          SITE_URL,
-    description: "Print-on-demand gifts, wrapping paper, and party designs for every occasion.",
-    inLanguage:  "en-US",
-    potentialAction: {
-      "@type":        "SearchAction",
-      target:         { "@type": "EntryPoint", urlTemplate: `${SITE_URL}?q={search_term_string}` },
-      "query-input":  "required name=search_term_string",
-    },
-  };
-
-  // ── JSON-LD: Organization ─────────────────────────────────────────────────
-  const orgJsonLd = {
-    "@type":      "Organization",
-    "@id":        `${SITE_URL}/#organization`,
-    name:          "Design That Hits",
-    url:            SITE_URL,
-    logo: {
-      "@type":    "ImageObject",
-      url:        `${SITE_URL}/brand-logo.png`,
-      width:      192,
-      height:     192,
-    },
-    sameAs: SOCIAL_URLS,
-    contactPoint: {
-      "@type":            "ContactPoint",
-      contactType:        "customer service",
-      email:              "hello@designthathits.com",
-      availableLanguage:  "English",
-    },
-  };
-
   // ── JSON-LD: CollectionPage + ItemList of products ────────────────────────
   const collectionJsonLd: Record<string, unknown> = {
     "@type":      "CollectionPage",
@@ -366,7 +329,7 @@ export default async function HomePage({ searchParams }: HomeProps) {
       <JsonLd
         data={{
           "@context": "https://schema.org",
-          "@graph": [websiteJsonLd, orgJsonLd, collectionJsonLd, breadcrumbJsonLd],
+          "@graph": [collectionJsonLd, breadcrumbJsonLd],
         }}
       />
 

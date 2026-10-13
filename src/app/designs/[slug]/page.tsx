@@ -69,8 +69,15 @@ async function resolveListing(slugPromise: PageProps["params"]): Promise<Listing
 }
 
 /** First sentence or two of the description, trimmed to a sensible meta length. */
+/*
+  Etsy copy is written for Etsy, where emoji sell. In a search result they spend the most
+  valuable characters in the snippet on decoration, and Google frequently strips them
+  anyway, so the meta description drops them. The visible page copy keeps them.
+*/
+const EMOJI = /[\p{Extended_Pictographic}\p{Emoji_Presentation}\uFE0F\u200D]/gu;
+
 function metaDescription(listing: Listing): string {
-  const text = listing.description.replace(/\s+/g, " ").trim();
+  const text = listing.description.replace(EMOJI, " ").replace(/\s+/g, " ").trim();
   if (!text) {
     return `${listingName(listing)} — print-on-demand design from Design That Hits.`;
   }
@@ -104,7 +111,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     : null;
 
   return {
-    title: name,
+    /*
+      Absolute, so the root layout's " | Design That Hits" template does not apply. These
+      titles are long already and Google stops displaying around 60 characters; it shows
+      the site name beside the result regardless, so spending 19 of them restating it
+      pushed the part that distinguishes one wrapping paper from another out of view.
+    */
+    title: { absolute: name },
     description,
     alternates: { canonical: url },
     openGraph: {

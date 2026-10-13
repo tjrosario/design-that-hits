@@ -233,6 +233,26 @@ export async function CatalogPage({ spec, page }: { spec: CatalogSpec; page: num
  * page one tells Google the deeper pages are duplicates and discourages crawling past the
  * first two dozen products.
  */
+/*
+  The intro doubles as the page's visible lead paragraph, where length is fine, and as its
+  meta description, where Google stops displaying around 160 characters. Eleven of the 32
+  intros ran past that and were cut mid-sentence in the result. The visible copy is left
+  alone; only the meta tag is shortened, and at a sentence end so it reads as finished.
+*/
+const META_DESCRIPTION_LIMIT = 160;
+
+function snippet(intro: string): string {
+  const text = intro.replace(/\s+/g, " ").trim();
+  if (text.length <= META_DESCRIPTION_LIMIT) return text;
+
+  const cut = text.slice(0, META_DESCRIPTION_LIMIT);
+  const sentenceEnd = cut.lastIndexOf(". ");
+  if (sentenceEnd > 70) return cut.slice(0, sentenceEnd + 1).trim();
+
+  const wordEnd = cut.lastIndexOf(" ");
+  return `${(wordEnd > 0 ? cut.slice(0, wordEnd) : cut).trim()}…`;
+}
+
 export function catalogMetadata(spec: CatalogSpec, page: number): Metadata {
   const suffix = page > 1 ? ` – Page ${page}` : "";
   // Bare: the root layout's title template appends the brand to child segments, and
@@ -246,7 +266,7 @@ export function catalogMetadata(spec: CatalogSpec, page: number): Metadata {
 
   return {
     title,
-    description: spec.intro,
+    description: snippet(spec.intro),
     alternates: { canonical: url },
     robots: { index: true, follow: true },
     openGraph: {
@@ -254,7 +274,7 @@ export function catalogMetadata(spec: CatalogSpec, page: number): Metadata {
       locale: "en_US",
       siteName: "Design That Hits",
       title: socialTitle,
-      description: spec.intro,
+      description: snippet(spec.intro),
       url,
       // A product from the collection. Without this the page emits no og:image at all:
       // the root opengraph-image does not apply once a segment declares its own openGraph.
@@ -263,7 +283,7 @@ export function catalogMetadata(spec: CatalogSpec, page: number): Metadata {
     twitter: {
       card: "summary_large_image",
       title: socialTitle,
-      description: spec.intro,
+      description: snippet(spec.intro),
       // Object form, not a bare string: X reads twitter:image:alt and does not fall
       // back to og:image:alt.
       ...(share ? { images: [share] } : {}),
