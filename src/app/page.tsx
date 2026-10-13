@@ -22,6 +22,7 @@ import { JsonLd } from "@/components/JsonLd";
 import { HeroCarousel } from "@/components/HeroCarousel";
 import type { Listing } from "@/types/etsy";
 import { SITE_SHARE_IMAGE } from "@/lib/share-image";
+import { ORGANIZATION_ID, WEBSITE_ID } from "@/lib/site-graph";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
 
@@ -287,8 +288,8 @@ export default async function HomePage({ searchParams }: HomeProps) {
     url:            SITE_URL,
     description:   "Browse all print-on-demand designs, gifts, wrapping paper and party decorations.",
     inLanguage:    "en-US",
-    isPartOf:      { "@id": `${SITE_URL}/#website` },
-    publisher:     { "@id": `${SITE_URL}/#organization` },
+    isPartOf:      { "@id": WEBSITE_ID },
+    publisher:     { "@id": ORGANIZATION_ID },
   };
 
   if (initialData && initialData.listings.length > 0) {
@@ -321,10 +322,8 @@ export default async function HomePage({ searchParams }: HomeProps) {
   return (
     <>
       {/*
-        All structured data goes out as a single @graph rather than four separate
-        <script> tags. Same meaning to crawlers — the entities already cross-reference
-        each other by @id — but one inline script instead of four, which is both cleaner
-        HTML and less React dev-console noise about scripts inside components.
+        This page's own nodes, in one @graph. WebSite and Organization are not here: the
+        root layout emits them on every page, and these reference them by @id.
       */}
       <JsonLd
         data={{

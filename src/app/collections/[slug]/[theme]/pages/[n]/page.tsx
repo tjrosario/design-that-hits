@@ -14,10 +14,12 @@ interface PageProps {
   params: Promise<{ slug: string; theme: string; n: string }>;
 }
 
+// Numeric bound, not a leading-digit one: `/^[2-9]\d*$/` reads as "starts with 2 to 9"
+// and so rejected every page from 10 to 19. See the sibling collection route.
 function parsePageNumber(raw: string): number | null {
-  if (!/^[2-9]\d*$/.test(raw)) return null;
+  if (!/^[1-9]\d*$/.test(raw)) return null;
   const n = Number(raw);
-  return Number.isSafeInteger(n) ? n : null;
+  return Number.isSafeInteger(n) && n >= 2 ? n : null;
 }
 
 export async function generateStaticParams() {

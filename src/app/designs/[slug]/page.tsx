@@ -12,6 +12,7 @@ import { PRICE_UNAVAILABLE, formatPrice, hasPrice } from "@/lib/price";
 import { JsonLd } from "@/components/JsonLd";
 import { ProductCard } from "@/components/products/ProductCard";
 import type { Listing } from "@/types/etsy";
+import { ORGANIZATION_ID } from "@/lib/site-graph";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
 
@@ -74,7 +75,14 @@ async function resolveListing(slugPromise: PageProps["params"]): Promise<Listing
   valuable characters in the snippet on decoration, and Google frequently strips them
   anyway, so the meta description drops them. The visible page copy keeps them.
 */
-const EMOJI = /[\p{Extended_Pictographic}\p{Emoji_Presentation}\uFE0F\u200D]/gu;
+/*
+  The enclosing-keycap and enclosing-circle marks are neither Extended_Pictographic nor
+  Emoji_Presentation, and the tag characters behind subdivision flags are invisible, so
+  all three are listed separately. Without them, Etsy's numbered-step lists leave the
+  digit and an orphaned combining mark behind: "1️⃣ Choose a size" became "1 ⃣ Choose".
+*/
+const EMOJI =
+  /[\p{Extended_Pictographic}\p{Emoji_Presentation}\uFE0F\u200D\u20E0\u20E3\u{E0020}-\u{E007F}]/gu;
 
 function metaDescription(listing: Listing): string {
   const text = listing.description.replace(EMOJI, " ").replace(/\s+/g, " ").trim();
@@ -248,7 +256,7 @@ export default async function DesignPage({ params }: PageProps) {
                 priceValidUntil: PRICE_VALID_UNTIL,
                 // The offer points at Etsy because that is where the transaction happens.
                 url: listing.url,
-                seller: { "@id": `${SITE_URL}/#organization` },
+                seller: { "@id": ORGANIZATION_ID },
               },
             }
           : {}),

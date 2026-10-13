@@ -3,6 +3,7 @@ import Image from "next/image";
 import { JsonLd } from "@/components/JsonLd";
 import { getRandomListingsMatching } from "@/lib/shop";
 import { SITE_SHARE_IMAGE } from "@/lib/share-image";
+import { ORGANIZATION_ID, WEBSITE_ID } from "@/lib/site-graph";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
 
@@ -58,8 +59,8 @@ export default async function AboutPage() {
     name:         "About Design That Hits",
     description:  "Design That Hits is a print-on-demand Etsy shop specializing in unique gifts, wrapping paper, and party designs.",
     inLanguage:   "en-US",
-    isPartOf:     { "@id": `${SITE_URL}/#website` },
-    about:        { "@id": `${SITE_URL}/#organization` },
+    isPartOf:     { "@id": WEBSITE_ID },
+    about:        { "@id": ORGANIZATION_ID },
     breadcrumb: {
       "@type": "BreadcrumbList",
       itemListElement: [
