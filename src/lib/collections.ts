@@ -95,18 +95,18 @@ const INTROS: Record<string, string> = {
     "Graduation designs for a gift that is usually cash in an envelope. Caps, confetti and academic motifs, so at least the envelope looks like someone tried.",
 
   // ── Themes ──────────────────────────────────────────────────────────────────
-  cats: "For cat people, by people who understand. Kittens, cranky tabbies and cats behaving exactly as cats do, across gifts, wrapping paper and wearables.",
-  dogs: "Dog designs for every kind of dog person. Good boys, bad boys, and the ones who have never once come when called.",
-  gothic: "Dark and gothic designs — skulls, Victorian detail, and a moodier palette. For the people whose taste never quite left October.",
-  retro: "Retro and Y2K designs pulling from the nineties and early two-thousands. Nostalgic without being a costume.",
-  floral: "Floral and botanical designs, from delicate line-drawn stems to full saturated blooms. The safe gift that still feels chosen.",
+  cats: "More than forty cat breeds have a design of their own here, Bombay through Turkish Angora. Mostly Christmas wrapping paper, plus a phone case and a few shirts.",
+  dogs: "Breed by breed rather than generic dogs: border collies, Boston terriers, huskies, Great Danes and the rest. All Christmas wrapping paper, all seamless repeats.",
+  gothic: "Skulls, skeletons and black grounds, with a heavy run of Halloween birthday designs. Spans wrapping paper, shirts, hats, ornaments and mugs.",
+  retro: "Vintage and Victorian Christmas, a mid century repeat and a retro diner. Also where the vintage Halloween shirts live. Nostalgic without being a costume.",
+  floral: "Poinsettias and holly at one end, black roses at the other. Floral that runs from delicate line work through to fully gothic.",
   minimalist: "Minimalist designs — clean lines, restrained color, plenty of space. For rooms and people that do not need to shout.",
-  cottagecore: "Cottagecore and rustic designs with a farmhouse warmth to them. Slow mornings, worn wood, and things that look handmade.",
-  pride: "LGBTQ+ and Pride designs to wear, gift and decorate with. Rainbow and beyond, for June and every other month.",
+  cottagecore: "Plaid and tartan, Nordic reindeer and farmhouse warmth, plus the fall sweatshirts. Designs that look handmade without anybody having made them.",
+  pride: "Rainbow and LGBTQ+ designs, mostly Christmas: ornaments, trees, candy canes and a gingerbread house. For chosen family, in December and otherwise.",
   coastal: "Coastal and nautical designs — ocean color, beach days and seaside calm, for people happiest near the water.",
-  music: "Music designs for players and listeners alike. Guitars, vinyl, headphones, and the genres people build their identity around.",
+  music: "Guitars acoustic and electric, techno and house, and one mariachi Christmas. Wrapping paper for a gift that is probably music.",
   food: "Food and drink designs, from coffee obsession to pan dulce and late-night pizza. Nobody has ever regretted a snack.",
-  wildlife: "Woodland and wildlife designs — deer, foxes, bunnies, owls and bears. Cosy nature without the taxidermy.",
+  wildlife: "Reindeer above all, then moose, woodland animals and one teddy bear. Cozy nature without the taxidermy.",
   glam: "Glam and elegant designs with shine to them. Gold, glitter and sparkle, for occasions that call for a little excess.",
   family: "Matching designs for families and couples. The same design across everyone, which is either charming or deeply embarrassing depending on the teenager.",
 };
@@ -230,27 +230,27 @@ const INTERSECTIONS: Record<string, { label: string; intro: string }> = {
   "wrapping-paper|glam": {
     label: "Glam Wrapping Paper",
     intro:
-      "Gold tones, glitter-look texture and a lot of shine, printed flat on paper. These are the wraps for a gift that is already an occasion: the engagement, the milestone birthday, the anniversary you actually remembered.",
+      "Gold, pearl and lace, and a lot of shine. The metallic look is printed rather than foiled, so it folds like paper and costs what everything else here costs. For the gift that is already an occasion: the engagement, the milestone birthday, the anniversary you actually remembered.",
   },
   "wrapping-paper|gothic": {
     label: "Gothic Wrapping Paper",
     intro:
-      "Skulls, moths, Victorian botanicals and a great deal of black. Gothic gift wrap for the present that should not turn up in snowmen, whatever month it happens to be.",
+      "Skulls, moths, dark roses and a great deal of black. Gothic gift wrap for the present that should not turn up in snowmen, whatever month it happens to be.",
   },
   "wrapping-paper|cats": {
     label: "Cat Wrapping Paper",
     intro:
-      "Enough cat designs to find the specific cat they would die for. Tabbies, black cats, loaf cats and a few behaving exactly as cats do, repeated edge to edge across the sheet.",
+      "More than forty breeds have their own design, Bombay through Turkish Angora, so you can find their actual cat rather than a generic one. Repeated edge to edge across the sheet.",
   },
   "wrapping-paper|retro": {
     label: "Retro Wrapping Paper",
     intro:
-      "Nineties and Y2K gift wrap: pixel hearts, chrome lettering, checkerboard and colors that look like a disposable camera found them. For people who were there and the ones who found it later.",
+      "Vintage and Victorian gift wrap: carolers, nutcrackers, damask and scrollwork, with one mid century repeat and one pixel design. For people who were there and the ones who found it later.",
   },
   "wrapping-paper|floral": {
     label: "Floral Wrapping Paper",
     intro:
-      "Florals that are not the supermarket sort. Pressed botanical repeats, bold modern blooms and fine line stems, in palettes that suit a birthday as easily as a wedding gift.",
+      "Florals that are not the grocery store sort. Poinsettias and holly at one end, black roses at the other, in palettes that suit a birthday as easily as a wedding gift.",
   },
   "wrapping-paper|minimalist": {
     label: "Minimalist Wrapping Paper",
@@ -260,7 +260,7 @@ const INTERSECTIONS: Record<string, { label: string; intro: string }> = {
   "wrapping-paper|dogs": {
     label: "Dog Wrapping Paper",
     intro:
-      "Dog gift wrap that gets specific: dachshunds, corgis, greyhounds in coats, and a few generic good boys. For the dog person, or for the dog's birthday, which is a real thing people celebrate.",
+      "Dog gift wrap that gets specific: dachshunds, corgis, border collies, huskies and Great Danes, breed by breed. For the dog person, or for the dog's birthday, which is a real thing people celebrate.",
   },
   "wrapping-paper|food": {
     label: "Food Wrapping Paper",
@@ -270,7 +270,7 @@ const INTERSECTIONS: Record<string, { label: string; intro: string }> = {
   "wrapping-paper|cottagecore": {
     label: "Cottagecore Wrapping Paper",
     intro:
-      "Mushrooms, hand drawn florals, gingham and muted, slightly faded color. It reads hand blocked and costs the same as the shiny stuff.",
+      "Plaid and tartan, Nordic reindeer and muted, slightly faded color. It reads hand blocked and costs the same as the shiny stuff.",
   },
   "wrapping-paper|music": {
     label: "Music Wrapping Paper",
@@ -280,12 +280,12 @@ const INTERSECTIONS: Record<string, { label: string; intro: string }> = {
   "wrapping-paper|wildlife": {
     label: "Woodland Wrapping Paper",
     intro:
-      "Deer, foxes, bunnies, owls and bears in woodland repeats. It suits a baby shower and a sixtieth birthday equally well, which is rarer in gift wrap than it sounds.",
+      "Reindeer, moose, woodland animals and one teddy bear. It suits a baby shower and a sixtieth birthday equally well, which is rarer in gift wrap than it sounds.",
   },
   "wrapping-paper|pride": {
     label: "Pride Wrapping Paper",
     intro:
-      "Rainbow and beyond: progress stripes, bi and trans palettes, and queer coded motifs that are more than a flag on a background. For June and for the other eleven months.",
+      "Rainbow worked into the pattern rather than printed as a flag: ornaments, trees, candy canes and a gingerbread house. For June and for the other eleven months.",
   },
   "apparel|gothic": {
     label: "Gothic Shirts & Sweatshirts",
@@ -329,7 +329,7 @@ const INTERSECTIONS: Record<string, { label: string; intro: string }> = {
   "christmas|retro": {
     label: "Retro Christmas Wrapping Paper",
     intro:
-      "Seventies palettes, vintage baubles and mid century type. Christmas wrap that looks like it was found in an attic rather than bought this year.",
+      "Vintage Santas, Victorian carolers, nutcrackers and one mid century repeat. Christmas wrap that looks like it was found in an attic rather than bought this year.",
   },
   "christmas|dogs": {
     label: "Dog Christmas Wrapping Paper",
@@ -359,7 +359,7 @@ const INTERSECTIONS: Record<string, { label: string; intro: string }> = {
   "christmas|cottagecore": {
     label: "Cottagecore Christmas Wrapping Paper",
     intro:
-      "Mushrooms, hand drawn greenery, gingham and muted winter color. Christmas wrap that looks hand blocked and homemade without being either.",
+      "Plaid and tartan, Nordic reindeer and muted winter color. Christmas wrap that looks hand blocked and homemade without being either.",
   },
   "valentines|minimalist": {
     label: "Minimalist Valentine's Wrapping Paper",
@@ -369,7 +369,7 @@ const INTERSECTIONS: Record<string, { label: string; intro: string }> = {
   "christmas|wildlife": {
     label: "Woodland Christmas Wrapping Paper",
     intro:
-      "Deer, foxes, owls and winter hares in woodland repeats. The Christmas wrap that works for a grandparent and a toddler without changing design.",
+      "Reindeer mostly, plus moose, woodland animals and a teddy bear. The Christmas wrap that works for a grandparent and a toddler without changing design.",
   },
   "valentines|gothic": {
     label: "Gothic Valentine's Wrapping Paper",
@@ -379,7 +379,7 @@ const INTERSECTIONS: Record<string, { label: string; intro: string }> = {
   "valentines|floral": {
     label: "Floral Valentine's Wrapping Paper",
     intro:
-      "Roses, peonies and pressed botanicals for Valentine's, in palettes that are not drugstore pink. They carry an anniversary just as well.",
+      "Roses for Valentine's, from fine line work to fully gothic, in palettes that are not drugstore pink. They carry an anniversary just as well.",
   },
   "halloween|retro": {
     label: "Retro Halloween Designs",
@@ -389,7 +389,7 @@ const INTERSECTIONS: Record<string, { label: string; intro: string }> = {
   "christmas|pride": {
     label: "Pride Christmas Wrapping Paper",
     intro:
-      "Progress stripes, trans and bi palettes, and queer coded motifs worked into Christmas designs. For chosen family, and for anyone whose December is complicated.",
+      "Rainbow worked into Christmas designs rather than printed as a flag: ornaments, trees, candy canes, cookies and a gingerbread house. For chosen family, and for anyone whose December is complicated.",
   },
 };
 
