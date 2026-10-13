@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { getAllListings, getListingById, getRelatedListings, hasRealEtsyId } from "@/lib/shop";
 import { idFromSlug, listingAltText, listingName, listingPath, listingSlug } from "@/lib/slug";
 import { occasionLabel, primaryOccasion, productTypeLabel, themeLabel } from "@/lib/facets";
-import { shareImageUrl } from "@/lib/share-image";
+import { fullSizeImageUrl } from "@/lib/images";
 import { collectionPath } from "@/lib/collections";
 import { parseDescription } from "@/lib/description";
 import { PRICE_UNAVAILABLE, formatPrice, hasPrice } from "@/lib/price";
@@ -115,7 +115,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const description = metaDescription(listing);
 
   const share = listing.image
-    ? { url: shareImageUrl(listing.image.url), alt: listing.image.altText || name }
+    ? { url: fullSizeImageUrl(listing.image.url), alt: listing.image.altText || name }
     : null;
 
   return {
@@ -309,10 +309,18 @@ export default async function DesignPage({ params }: PageProps) {
         >
           {listing.image ? (
             <Image
-              src={listing.image.url}
+              // The largest render on the site, so it needs the full-size source. The
+              // stored thumbnail is 570 wide against a square slot about 600 across, and
+              // the landscape sources are 570x318, so this was upscaling roughly 2x.
+              src={fullSizeImageUrl(listing.image.url)}
               alt={listingAltText(listing)}
               fill
-              sizes="(max-width: 768px) 100vw, 50vw"
+              /*
+                The slot is a square about 600px across inside a two-column grid. With
+                `object-cover` a 1.79-aspect source has to be ~600 x 1.79 wide to fill it,
+                so the figure is a constant rather than a share of the viewport.
+              */
+              sizes="(max-width: 768px) 100vw, 1100px"
               className="object-cover"
               // The product photo is the LCP element on this page.
               priority

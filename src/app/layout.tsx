@@ -4,7 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ThemeScript } from "@/components/ThemeScript";
 import { Playfair_Display, Poppins } from "next/font/google";
-import { SITE_SHARE_IMAGE } from "@/lib/share-image";
+import { SITE_SHARE_IMAGE } from "@/lib/images";
 import { JsonLd } from "@/components/JsonLd";
 import { siteGraph } from "@/lib/site-graph";
 

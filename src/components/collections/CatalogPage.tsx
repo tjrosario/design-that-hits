@@ -19,7 +19,7 @@ import { ProductCard } from "@/components/products/ProductCard";
 import { Pagination } from "@/components/products/Pagination";
 import { listingPath, listingName } from "@/lib/slug";
 import { COLLECTION_PAGE_SIZE, type CatalogSpec } from "@/lib/collections";
-import { shareImageUrl } from "@/lib/share-image";
+import { fullSizeImageUrl } from "@/lib/images";
 import type { Listing } from "@/types/etsy";
 import { ORGANIZATION_ID, WEBSITE_ID } from "@/lib/site-graph";
 
@@ -270,7 +270,7 @@ export function catalogMetadata(spec: CatalogSpec, page: number): Metadata {
   const socialTitle = `${spec.label}${suffix} – Design That Hits`;
   const url = absolute(spec.pagePath(page));
   const share = spec.imageUrl
-    ? { url: shareImageUrl(spec.imageUrl), alt: socialTitle }
+    ? { url: fullSizeImageUrl(spec.imageUrl), alt: socialTitle }
     : null;
 
   return {

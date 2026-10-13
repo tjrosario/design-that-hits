@@ -21,7 +21,7 @@ import { ShopFront } from "@/components/ShopFront";
 import { JsonLd } from "@/components/JsonLd";
 import { HeroCarousel } from "@/components/HeroCarousel";
 import type { Listing } from "@/types/etsy";
-import { SITE_SHARE_IMAGE } from "@/lib/share-image";
+import { SITE_SHARE_IMAGE } from "@/lib/images";
 import { ORGANIZATION_ID, WEBSITE_ID } from "@/lib/site-graph";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";

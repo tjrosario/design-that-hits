@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { JsonLd } from "@/components/JsonLd";
 import { getRandomListingsMatching } from "@/lib/shop";
-import { SITE_SHARE_IMAGE } from "@/lib/share-image";
+import { SITE_SHARE_IMAGE } from "@/lib/images";
 import { ORGANIZATION_ID, WEBSITE_ID } from "@/lib/site-graph";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
