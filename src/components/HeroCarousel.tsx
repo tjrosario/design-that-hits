@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import type { Listing } from "@/types/etsy";
+import { fullSizeImageUrl } from "@/lib/images";
 
 interface HeroCarouselProps {
   listings: Listing[];
@@ -64,11 +65,24 @@ export function HeroCarousel({ listings, intervalMs = 4200 }: HeroCarouselProps)
             style={{ opacity: isActive ? 1 : 0 }}
           >
             <Image
-              src={listing.image.url}
+              /*
+                The stored URL is Etsy's 570px thumbnail on about a quarter of the
+                catalog, and `fill` then stretches 570 pixels across a slot roughly 770
+                wide, which is the softness this fixes. The full-size variant is 2048.
+              */
+              src={fullSizeImageUrl(listing.image.url)}
               alt=""
               fill
-              sizes="(max-width: 768px) 100vw, 45vw"
+              /*
+                The hero sits in a max-w-screen-xl section, so the slot is 62% of at most
+                1240px, about 770. "45vw" under-described that at common desktop widths
+                (45vw of 1280 is 576) and the browser picked a candidate too small.
+              */
+              sizes="(max-width: 768px) 100vw, (max-width: 1320px) 62vw, 800px"
               className="object-cover"
+              // The hero photo is the LCP element on this page, and it is a large
+              // detailed product shot, so it carries a little more quality than the grid.
+              quality={85}
               // Only the first slide is worth preloading; the rest are revealed over
               // several seconds and would otherwise compete with the real content.
               priority={slot === 0}

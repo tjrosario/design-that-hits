@@ -1,5 +1,5 @@
 /**
- * Share-card images, upgraded to Etsy's full-size variant.
+ * Etsy image URLs, upgraded to the full-size variant.
  *
  * The catalog carries whatever variant the CSV export or the shop-grid scrape produced:
  * mostly `il_fullxfull`, but 174 rows are `il_570xN` and two are `il_170x135`. A 170x135
@@ -9,12 +9,16 @@
  * so those range from 0.67 to 1.83 aspect and `summary_large_image` crops them hard.
  *
  * The size token is just a path segment, so asking for `il_fullxfull` returns the same
- * photo at 1024-2048px. Metadata only: the rendered grid keeps the smaller source, which
- * is what the LCP work tuned.
+ * photo at 1024-2048px, against 570 for the stored variant on about a quarter of the
+ * catalog.
+ *
+ * Used for share cards, the feed and the hero, which are the places something is rendered
+ * large. The product grid deliberately keeps the stored source: its cards are small and
+ * fetching 2048px originals for 24 of them at once is what the LCP work tuned away.
  */
 const ETSY_VARIANT = /\/il_[^./]+\./;
 
-export function shareImageUrl(url: string): string {
+export function fullSizeImageUrl(url: string): string {
   return url.replace(ETSY_VARIANT, "/il_fullxfull.");
 }
 

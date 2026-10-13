@@ -19,6 +19,12 @@ const nextConfig = {
       the first request for a given size, then cached.
     */
     formats: ["image/avif", "image/webp"],
+    /*
+      Next 16 made this an allowlist and defaults it to [75], so a `quality` prop outside
+      the list is silently ignored rather than erroring. 85 is here for the hero, which is
+      a large detailed photo; the grid stays on 75.
+    */
+    qualities: [75, 85],
     remotePatterns: [
       {
         protocol: "https",

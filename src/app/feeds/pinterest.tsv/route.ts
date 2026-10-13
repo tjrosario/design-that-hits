@@ -20,7 +20,7 @@ import { getAllListings } from "@/lib/shop";
 import { listingName, listingPath } from "@/lib/slug";
 import { occasionLabel, primaryOccasion, productTypeLabel, themeLabel } from "@/lib/facets";
 import { hasPrice } from "@/lib/price";
-import { shareImageUrl } from "@/lib/share-image";
+import { fullSizeImageUrl } from "@/lib/images";
 import type { Listing } from "@/types/etsy";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
@@ -145,7 +145,7 @@ function row(listing: Listing): string {
     link: `${SITE_URL}${listingPath(listing)}?utm_source=pinterest&utm_medium=social&utm_campaign=catalog`,
     // Pinterest wants at least 1000px on the primary image; the stored URL is often
     // Etsy's 570px thumbnail, so ask for the full-size variant.
-    image_link: shareImageUrl(image.url),
+    image_link: fullSizeImageUrl(image.url),
     price: `${listing.price.toFixed(2)} ${listing.currency}`,
     availability: "in stock",
     condition: "new",

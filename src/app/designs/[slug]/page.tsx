@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { getAllListings, getListingById, getRelatedListings, hasRealEtsyId } from "@/lib/shop";
 import { idFromSlug, listingAltText, listingName, listingPath, listingSlug } from "@/lib/slug";
 import { occasionLabel, primaryOccasion, productTypeLabel, themeLabel } from "@/lib/facets";
-import { shareImageUrl } from "@/lib/share-image";
+import { fullSizeImageUrl } from "@/lib/images";
 import { collectionPath } from "@/lib/collections";
 import { parseDescription } from "@/lib/description";
 import { PRICE_UNAVAILABLE, formatPrice, hasPrice } from "@/lib/price";
@@ -115,7 +115,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const description = metaDescription(listing);
 
   const share = listing.image
-    ? { url: shareImageUrl(listing.image.url), alt: listing.image.altText || name }
+    ? { url: fullSizeImageUrl(listing.image.url), alt: listing.image.altText || name }
     : null;
 
   return {
