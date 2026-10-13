@@ -20,9 +20,14 @@ const nextConfig = {
     */
     formats: ["image/avif", "image/webp"],
     /*
-      Next 16 made this an allowlist and defaults it to [75], so a `quality` prop outside
-      the list is silently ignored rather than erroring. 85 is here for the hero, which is
-      a large detailed photo; the grid stays on 75.
+      Next 16 made this a required allowlist, defaulting to [75]. A quality outside the
+      list is not coerced, it is refused: the optimizer returns 400 and the image does not
+      render. (The installed docs say otherwise at image.md:726; the code at
+      server/image-optimizer.js is authoritative, and a request for q=90 returns 400.)
+
+      So this line is load-bearing, not an optimization. 85 is used by the hero alone;
+      everything else, the product photo included, stays on the default 75. Narrowing this
+      while HTML referencing q=85 is still in a CDN cache would break those images.
     */
     qualities: [75, 85],
     remotePatterns: [

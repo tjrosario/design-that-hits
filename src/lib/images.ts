@@ -1,8 +1,8 @@
 /**
  * Etsy image URLs, upgraded to the full-size variant.
  *
- * The catalog carries whatever variant the CSV export or the shop-grid scrape produced:
- * mostly `il_fullxfull`, but 174 rows are `il_570xN` and two are `il_170x135`. A 170x135
+ * The catalog carries whatever variant the CSV export or the shop-grid scrape produced,
+ * mostly `il_fullxfull` but a quarter of it smaller, down to `il_170x135`. A 170x135
  * thumbnail is below Facebook's 200x200 floor and X's 300x157 one, so those pages render
  * a text-only card, and anything under 600x315 gets Facebook's small side-thumbnail
  * instead of the large card. `il_570xN` also means 570 wide with the height unconstrained,
@@ -12,9 +12,11 @@
  * photo at 1024-2048px, against 570 for the stored variant on about a quarter of the
  * catalog.
  *
- * Used for share cards, the feed and the hero, which are the places something is rendered
- * large. The product grid deliberately keeps the stored source: its cards are small and
- * fetching 2048px originals for 24 of them at once is what the LCP work tuned away.
+ * Used wherever one image is rendered large: share cards, the feed, the hero and the
+ * product page photo. The grid keeps the stored source, because fetching 2048px originals
+ * for 24 cards at once is what the LCP work tuned away. That is a deliberate trade rather
+ * than a claim the cards are big enough; on a phone a card is nearly the full viewport
+ * width, so the grid is the next thing worth measuring.
  */
 const ETSY_VARIANT = /\/il_[^./]+\./;
 
