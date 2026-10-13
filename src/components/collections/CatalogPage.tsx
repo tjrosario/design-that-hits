@@ -21,6 +21,7 @@ import { listingPath, listingName } from "@/lib/slug";
 import { COLLECTION_PAGE_SIZE, type CatalogSpec } from "@/lib/collections";
 import { shareImageUrl } from "@/lib/share-image";
 import type { Listing } from "@/types/etsy";
+import { ORGANIZATION_ID, WEBSITE_ID } from "@/lib/site-graph";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
 
@@ -59,8 +60,8 @@ export async function CatalogPage({ spec, page }: { spec: CatalogSpec; page: num
       url,
       description: spec.intro,
       inLanguage: "en-US",
-      isPartOf: { "@id": `${SITE_URL}/#website` },
-      publisher: { "@id": `${SITE_URL}/#organization` },
+      isPartOf: { "@id": WEBSITE_ID },
+      publisher: { "@id": ORGANIZATION_ID },
       /*
         Summary format: position and url only, per Google's ItemList spec for a category
         page that links out to detail pages. We used to embed a trimmed Product node per
@@ -228,6 +229,34 @@ export async function CatalogPage({ spec, page }: { spec: CatalogSpec; page: num
   );
 }
 
+/*
+  The intro doubles as the page's visible lead paragraph, where length is fine, and as its
+  meta description, where Google stops displaying around 160 characters. Several intros run
+  past that, so the meta tag alone is shortened; the visible copy is untouched.
+
+  A sentence end is preferred only when it is late enough to fill most of the snippet.
+  Accepting an early one throws the rest of the budget away: /collections/christmas has its
+  first period at character 74, so a low floor published 75 characters that never reached
+  "wrapping paper", "gothic" or "retro", and a snippet that short is the shape Google
+  discards in favour of its own extraction from the body.
+*/
+const META_DESCRIPTION_LIMIT = 160;
+const MIN_SENTENCE_CUT = 110;
+
+function snippet(intro: string): string {
+  const text = intro.replace(/\s+/g, " ").trim();
+  if (text.length <= META_DESCRIPTION_LIMIT) return text;
+
+  const cut = text.slice(0, META_DESCRIPTION_LIMIT);
+  const sentenceEnd = cut.lastIndexOf(". ");
+  if (sentenceEnd >= MIN_SENTENCE_CUT) return cut.slice(0, sentenceEnd + 1).trim();
+
+  // One short of the limit, so the ellipsis cannot push the result over it.
+  const body = cut.slice(0, META_DESCRIPTION_LIMIT - 1);
+  const wordEnd = body.lastIndexOf(" ");
+  return `${(wordEnd > 0 ? body.slice(0, wordEnd) : body).trim()}…`;
+}
+
 /**
  * Self-canonical per page, matching the rule the home grid follows: pointing page two at
  * page one tells Google the deeper pages are duplicates and discourages crawling past the
@@ -246,7 +275,7 @@ export function catalogMetadata(spec: CatalogSpec, page: number): Metadata {
 
   return {
     title,
-    description: spec.intro,
+    description: snippet(spec.intro),
     alternates: { canonical: url },
     robots: { index: true, follow: true },
     openGraph: {
@@ -254,6 +283,8 @@ export function catalogMetadata(spec: CatalogSpec, page: number): Metadata {
       locale: "en_US",
       siteName: "Design That Hits",
       title: socialTitle,
+      // The full intro here, not the snippet: the 160-character limit is Google's, and
+      // Pinterest and X both display considerably more.
       description: spec.intro,
       url,
       // A product from the collection. Without this the page emits no og:image at all:

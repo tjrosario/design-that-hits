@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
 import { SITE_SHARE_IMAGE } from "@/lib/share-image";
+import { WEBSITE_ID } from "@/lib/site-graph";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
 
@@ -72,7 +73,7 @@ export default function ContactPage() {
     name:         "Contact Design That Hits",
     description:  "Get in touch with Design That Hits for custom orders, questions, or general inquiries.",
     inLanguage:   "en-US",
-    isPartOf:     { "@id": `${SITE_URL}/#website` },
+    isPartOf:     { "@id": WEBSITE_ID },
     breadcrumb: {
       "@type": "BreadcrumbList",
       itemListElement: [

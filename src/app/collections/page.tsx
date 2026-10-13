@@ -4,6 +4,7 @@ import { getCollections, collectionPath } from "@/lib/collections";
 import { shareImageUrl } from "@/lib/share-image";
 import { CollectionTiles } from "@/components/collections/CollectionTiles";
 import { JsonLd } from "@/components/JsonLd";
+import { ORGANIZATION_ID, WEBSITE_ID } from "@/lib/site-graph";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
 
@@ -79,8 +80,8 @@ export default async function CollectionsPage() {
         url: `${SITE_URL}/collections`,
         description: DESCRIPTION,
         inLanguage: "en-US",
-        isPartOf: { "@id": `${SITE_URL}/#website` },
-        publisher: { "@id": `${SITE_URL}/#organization` },
+        isPartOf: { "@id": WEBSITE_ID },
+        publisher: { "@id": ORGANIZATION_ID },
         mainEntity: {
           "@type": "ItemList",
           numberOfItems: collections.length,

@@ -5,6 +5,8 @@ import { Footer } from "@/components/layout/Footer";
 import { ThemeScript } from "@/components/ThemeScript";
 import { Playfair_Display, Poppins } from "next/font/google";
 import { SITE_SHARE_IMAGE } from "@/lib/share-image";
+import { JsonLd } from "@/components/JsonLd";
+import { siteGraph } from "@/lib/site-graph";
 
 /*
   SELF-HOSTED WEBFONTS
@@ -200,6 +202,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeScript />
       </head>
       <body className="min-h-screen antialiased">
+        {/* Site-wide, so every page's publisher and isPartOf references resolve. */}
+        <JsonLd data={siteGraph} />
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:rounded focus:px-4 focus:py-2 focus:outline-none"

@@ -14,7 +14,6 @@ import {
   type Collection,
 } from "@/lib/collections";
 import { currentOccasions } from "@/lib/seasonal";
-import { SOCIAL_URLS } from "@/lib/social";
 import { CollectionTiles } from "@/components/collections/CollectionTiles";
 import Link from "next/link";
 import { listingPath } from "@/lib/slug";
@@ -23,6 +22,7 @@ import { JsonLd } from "@/components/JsonLd";
 import { HeroCarousel } from "@/components/HeroCarousel";
 import type { Listing } from "@/types/etsy";
 import { SITE_SHARE_IMAGE } from "@/lib/share-image";
+import { ORGANIZATION_ID, WEBSITE_ID } from "@/lib/site-graph";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
 
@@ -280,42 +280,6 @@ export default async function HomePage({ searchParams }: HomeProps) {
     .filter((l) => l.image)
     .slice(0, 8);
 
-  // ── JSON-LD: WebSite with SearchAction ────────────────────────────────────
-  const websiteJsonLd = {
-    "@type":    "WebSite",
-    "@id":      `${SITE_URL}/#website`,
-    name:        "Design That Hits",
-    url:          SITE_URL,
-    description: "Print-on-demand gifts, wrapping paper, and party designs for every occasion.",
-    inLanguage:  "en-US",
-    potentialAction: {
-      "@type":        "SearchAction",
-      target:         { "@type": "EntryPoint", urlTemplate: `${SITE_URL}?q={search_term_string}` },
-      "query-input":  "required name=search_term_string",
-    },
-  };
-
-  // ── JSON-LD: Organization ─────────────────────────────────────────────────
-  const orgJsonLd = {
-    "@type":      "Organization",
-    "@id":        `${SITE_URL}/#organization`,
-    name:          "Design That Hits",
-    url:            SITE_URL,
-    logo: {
-      "@type":    "ImageObject",
-      url:        `${SITE_URL}/brand-logo.png`,
-      width:      192,
-      height:     192,
-    },
-    sameAs: SOCIAL_URLS,
-    contactPoint: {
-      "@type":            "ContactPoint",
-      contactType:        "customer service",
-      email:              "hello@designthathits.com",
-      availableLanguage:  "English",
-    },
-  };
-
   // ── JSON-LD: CollectionPage + ItemList of products ────────────────────────
   const collectionJsonLd: Record<string, unknown> = {
     "@type":      "CollectionPage",
@@ -324,8 +288,8 @@ export default async function HomePage({ searchParams }: HomeProps) {
     url:            SITE_URL,
     description:   "Browse all print-on-demand designs, gifts, wrapping paper and party decorations.",
     inLanguage:    "en-US",
-    isPartOf:      { "@id": `${SITE_URL}/#website` },
-    publisher:     { "@id": `${SITE_URL}/#organization` },
+    isPartOf:      { "@id": WEBSITE_ID },
+    publisher:     { "@id": ORGANIZATION_ID },
   };
 
   if (initialData && initialData.listings.length > 0) {
@@ -358,15 +322,13 @@ export default async function HomePage({ searchParams }: HomeProps) {
   return (
     <>
       {/*
-        All structured data goes out as a single @graph rather than four separate
-        <script> tags. Same meaning to crawlers — the entities already cross-reference
-        each other by @id — but one inline script instead of four, which is both cleaner
-        HTML and less React dev-console noise about scripts inside components.
+        This page's own nodes, in one @graph. WebSite and Organization are not here: the
+        root layout emits them on every page, and these reference them by @id.
       */}
       <JsonLd
         data={{
           "@context": "https://schema.org",
-          "@graph": [websiteJsonLd, orgJsonLd, collectionJsonLd, breadcrumbJsonLd],
+          "@graph": [collectionJsonLd, breadcrumbJsonLd],
         }}
       />
 

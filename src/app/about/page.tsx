@@ -3,19 +3,20 @@ import Image from "next/image";
 import { JsonLd } from "@/components/JsonLd";
 import { getRandomListingsMatching } from "@/lib/shop";
 import { SITE_SHARE_IMAGE } from "@/lib/share-image";
+import { ORGANIZATION_ID, WEBSITE_ID } from "@/lib/site-graph";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
 
 export const metadata: Metadata = {
   title:       "About Us",
-  description: "Learn about Design That Hits — a print-on-demand Etsy shop specializing in unique gifts, wrapping paper, and party designs crafted to make every occasion memorable.",
+  description: "A print-on-demand Etsy shop making wrapping paper, apparel and party designs. Hundreds of patterns across Christmas, Halloween, birthdays and more.",
   alternates:  { canonical: `${SITE_URL}/about` },
   openGraph: {
     type:        "website",
     locale:      "en_US",
     siteName:    "Design That Hits",
     title:       "About Design That Hits",
-    description: "Learn about Design That Hits — a print-on-demand Etsy shop specializing in unique gifts, wrapping paper, and party designs crafted to make every occasion memorable.",
+    description: "A print-on-demand Etsy shop making wrapping paper, apparel and party designs. Hundreds of patterns across Christmas, Halloween, birthdays and more.",
     url:         `${SITE_URL}/about`,
     images:      [SITE_SHARE_IMAGE],
   },
@@ -58,8 +59,8 @@ export default async function AboutPage() {
     name:         "About Design That Hits",
     description:  "Design That Hits is a print-on-demand Etsy shop specializing in unique gifts, wrapping paper, and party designs.",
     inLanguage:   "en-US",
-    isPartOf:     { "@id": `${SITE_URL}/#website` },
-    about:        { "@id": `${SITE_URL}/#organization` },
+    isPartOf:     { "@id": WEBSITE_ID },
+    about:        { "@id": ORGANIZATION_ID },
     breadcrumb: {
       "@type": "BreadcrumbList",
       itemListElement: [
