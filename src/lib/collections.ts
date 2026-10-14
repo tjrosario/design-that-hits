@@ -452,6 +452,17 @@ export async function getIntersections(): Promise<Intersection[]> {
   return out.sort((a, b) => b.count - a.count);
 }
 
+/**
+ * Whether a pair has hand-written copy, in either direction.
+ *
+ * Reaching MIN_INTERSECTION_PRODUCTS is necessary but not sufficient: `getIntersections`
+ * walks INTERSECTIONS, so a pair with no entry has no page at any count. The planning
+ * view needs to tell those two blockers apart to say anything true.
+ */
+export function hasIntersectionCopy(a: string, b: string): boolean {
+  return `${a}|${b}` in INTERSECTIONS || `${b}|${a}` in INTERSECTIONS;
+}
+
 export async function resolveIntersection(
   primarySlug: string,
   secondarySlug: string

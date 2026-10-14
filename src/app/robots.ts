@@ -13,6 +13,12 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com
 
   /api/ stays disallowed. Those routes return JSON that duplicates what the pages already
   render, so crawling them only spends budget on content with no landing page.
+
+  /studio is deliberately NOT listed here. robots.txt is public and is the first place
+  anyone looks for unlinked paths, so a Disallow line would advertise it. Worse, the two
+  defeat each other: a crawler that obeys Disallow never fetches the page and so never
+  reads its noindex, which is what lets a URL discovered elsewhere get indexed bare. The
+  noindex on the route is the control; keeping the path out of this file is the privacy.
 */
 export default function robots(): MetadataRoute.Robots {
   return {
