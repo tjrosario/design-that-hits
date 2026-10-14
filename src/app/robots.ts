@@ -12,7 +12,9 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com
   nothing private.
 
   /api/ stays disallowed. Those routes return JSON that duplicates what the pages already
-  render, so crawling them only spends budget on content with no landing page.
+  render, so crawling them only spends budget on content with no landing page. /studio is
+  a private planning view with no customer-facing content; it is also noindex, and this
+  line keeps it out of a crawl rather than relying on that alone.
 */
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -20,7 +22,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow:     "/",
-        disallow:  ["/api/"],
+        disallow:  ["/api/", "/studio"],
       },
     ],
     sitemap:  `${SITE_URL}/sitemap.xml`,
