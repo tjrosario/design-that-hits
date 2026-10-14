@@ -227,6 +227,65 @@ export interface Intersection {
  * discount. Writing them is the gate.
  */
 const INTERSECTIONS: Record<string, { label: string; intro: string }> = {
+  /*
+    Ten pairs that already had the stock and were waiting only on copy. Each one is
+    written from its actual membership rather than from its axis names, and three
+    candidates were dropped rather than written: wrapping-paper|halloween, whose label
+    promises Halloween wrap while 22 of its 26 members are birthday designs;
+    gothic|food, which mixes Halloween barware with a Biker Santa; and birthday|floral,
+    half of which are gothic skulls that match "floral" only because `rose\b` catches
+    "Black Rose".
+  */
+  "halloween|birthday": {
+    label: "Halloween Birthday Wrapping Paper",
+    intro:
+      "Wrapping paper for the person born in October: skulls, witches, vampires and a disco cowgirl, built as birthday designs rather than party decor.",
+  },
+  "apparel|halloween": {
+    label: "Halloween Shirts & Sweatshirts",
+    intro:
+      "Halloween tees and sweatshirts, from pink coquette ghosts to occupational puns for nurses and firefighters. Worn in October rather than wrapped.",
+  },
+  "halloween|food": {
+    label: "Halloween Party Drinks & Treats",
+    intro:
+      "Sipper cups, bar themed tees and cocktail wrap for the Halloween party rather than the trick or treat round. Jack-o-lanterns, candy corn and witch's brew.",
+  },
+  "gothic|retro": {
+    label: "Victorian Gothic Wrapping Paper",
+    intro:
+      "Damask, scrollwork, crows and nutcrackers in black. The dark designs that lean old rather than modern, plus the vintage Halloween shirts and cups.",
+  },
+  "gothic|floral": {
+    label: "Gothic Floral Wrapping Paper",
+    intro:
+      "Black roses, mostly. Dark romance for Valentine's and a run of gothic birthday wrap, plus a greeting card set and one broken heart shirt.",
+  },
+  "glam|gothic": {
+    label: "Dark Elegant Wrapping Paper",
+    intro:
+      "Black grounds with gold, damask and ornate detail. For a gift that should read expensive and faintly sinister at once. Mostly Christmas.",
+  },
+  "glam|retro": {
+    label: "Vintage Glam Wrapping Paper",
+    intro:
+      "Gold, damask, lace and vintage roses. Wrap that looks inherited rather than bought, mostly Christmas with a couple of birthdays and one Valentine's.",
+  },
+  "glam|floral": {
+    label: "Elegant Floral Wrapping Paper",
+    intro:
+      "Poinsettias, roses and neutral botanicals across weddings, quinceañeras, Valentine's and Christmas. The florals that suit an adult rather than a child.",
+  },
+  "glam|cats": {
+    label: "Elegant Cat Christmas Wrapping Paper",
+    intro:
+      "Ten cat breeds done as elegant Christmas wrap rather than cartoons: Bombay, Russian Blue, Persian, Egyptian Mau, Chartreux and the rest.",
+  },
+  "glam|minimalist": {
+    label: "Minimal Elegant Wrapping Paper",
+    intro:
+      "Gold on a plain ground, fine snowflakes and plenty of space. Restrained wrap for Christmas, graduation and Valentine's that still reads expensive.",
+  },
   "wrapping-paper|glam": {
     label: "Glam Wrapping Paper",
     intro:
