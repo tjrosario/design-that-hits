@@ -8,9 +8,11 @@
  */
 
 import type { Metadata } from "next";
+import { MIN_INTERSECTION_PRODUCTS as MIN_PRODUCTS } from "@/lib/collections";
 import Link from "next/link";
-import { buildStudioReport, type Opportunity } from "@/lib/studio";
-import { collectionPath, intersectionPath } from "@/lib/collections";
+import { buildStudioReport, THIN_AXIS, type Opportunity } from "@/lib/studio";
+import { collectionPath } from "@/lib/collections";
+import { occasionLabel } from "@/lib/facets";
 
 export const revalidate = 3600;
 
@@ -26,12 +28,10 @@ const dateFormat = new Intl.DateTimeFormat("en-US", {
 });
 
 function OpportunityRow({ item }: { item: Opportunity }) {
-  const href = intersectionPath(item.primary.slug, item.secondary.slug, 1);
-
   return (
     <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-3" style={{ borderTop: "1px solid var(--border-soft)" }}>
       <span className="text-sm sm:text-base font-semibold" style={{ color: "var(--text)" }}>
-        {item.secondary.label} {item.primary.label}
+        {item.a.label} + {item.b.label}
       </span>
       {item.seasonal && (
         <span
@@ -47,23 +47,18 @@ function OpportunityRow({ item }: { item: Opportunity }) {
           <>
             {" · "}
             <strong style={{ color: "var(--text-soft)" }}>
-              {item.shortfall} more {item.shortfall === 1 ? "opens" : "open"} a page
+              {item.shortfall} more, then copy
             </strong>
           </>
         )}
       </span>
-      {item.shortfall === 0 && (
-        <Link href={href} className="text-sm hover:underline" style={{ color: "var(--text-muted)" }}>
-          needs copy
-        </Link>
-      )}
     </li>
   );
 }
 
 export default async function StudioPage() {
   const report = await buildStudioReport();
-  const thin = report.axes.filter((a) => a.count < 20);
+  const thin = report.axes.filter((a) => a.count < THIN_AXIS);
 
   return (
     <div className="mx-auto max-w-screen-lg px-4 sm:px-5 py-8 sm:py-12">
@@ -87,7 +82,7 @@ export default async function StudioPage() {
           <p className="text-sm sm:text-base" style={{ color: "var(--text-soft)" }}>
             {report.openOccasions.map((slug) => (
               <Link key={slug} href={collectionPath(slug)} className="hover:underline mr-3" style={{ color: "var(--text)" }}>
-                {slug}
+                {occasionLabel(slug)}
               </Link>
             ))}
           </p>
@@ -95,52 +90,54 @@ export default async function StudioPage() {
       )}
 
       {/*
-        The headline list. A pair this close to the threshold is the cheapest work
-        available: a few designs both fill a gap a shopper is already searching and turn
-        on an indexable collection page that does not exist yet.
+        The cheapest work on the site: these already have the products, so a label and an
+        intro in INTERSECTIONS is the entire remaining cost of a new indexable page.
       */}
       <section className="mb-12">
         <h2 className="display-title mb-1" style={{ fontSize: "clamp(1.3rem, 3vw, 1.8rem)" }}>
-          Nearly a page
+          Write copy, get a page
         </h2>
         <p className="text-sm mb-4" style={{ color: "var(--text-muted)" }}>
-          Combinations within four designs of the threshold. Each one that reaches it becomes a
-          collection page in the sitemap, so the work pays twice.
+          Already past {MIN_PRODUCTS} products. A page needs stock <em>and</em> a hand-written entry in{" "}
+          <code className="text-xs">INTERSECTIONS</code>, and these are only missing the entry. No design
+          work at all.
         </p>
-        {report.nearMisses.length === 0 ? (
-          <p className="text-sm" style={{ color: "var(--text-soft)" }}>Nothing within reach right now.</p>
+        {report.copyOnly.length === 0 ? (
+          <p className="text-sm" style={{ color: "var(--text-soft)" }}>Nothing waiting on copy.</p>
         ) : (
           <ul>
-            {report.nearMisses.map((item) => (
-              <OpportunityRow key={`${item.primary.slug}|${item.secondary.slug}`} item={item} />
+            {report.copyOnly.map((item) => (
+              <OpportunityRow key={`${item.a.slug}|${item.b.slug}`} item={item} />
             ))}
           </ul>
         )}
       </section>
 
-      {report.unbuilt.length > 0 && (
-        <section className="mb-12">
-          <h2 className="display-title mb-1" style={{ fontSize: "clamp(1.3rem, 3vw, 1.8rem)" }}>
-            Already there, no page
-          </h2>
-          <p className="text-sm mb-4" style={{ color: "var(--text-muted)" }}>
-            These clear the threshold on stock alone. They need a label and an intro in{" "}
-            <code className="text-xs">INTERSECTIONS</code>, not more designs.
-          </p>
+      <section className="mb-12">
+        <h2 className="display-title mb-1" style={{ fontSize: "clamp(1.3rem, 3vw, 1.8rem)" }}>
+          A few designs short
+        </h2>
+        <p className="text-sm mb-4" style={{ color: "var(--text-muted)" }}>
+          Within four designs of {MIN_PRODUCTS}. These need the designs first and then copy, so they
+          cost more than the list above.
+        </p>
+        {report.needsDesigns.length === 0 ? (
+          <p className="text-sm" style={{ color: "var(--text-soft)" }}>Nothing within reach.</p>
+        ) : (
           <ul>
-            {report.unbuilt.map((item) => (
-              <OpportunityRow key={`${item.primary.slug}|${item.secondary.slug}`} item={item} />
+            {report.needsDesigns.map((item) => (
+              <OpportunityRow key={`${item.a.slug}|${item.b.slug}`} item={item} />
             ))}
           </ul>
-        </section>
-      )}
+        )}
+      </section>
 
       <section className="mb-12">
         <h2 className="display-title mb-1" style={{ fontSize: "clamp(1.3rem, 3vw, 1.8rem)" }}>
           Thinnest shelves
         </h2>
         <p className="text-sm mb-4" style={{ color: "var(--text-muted)" }}>
-          Occasions and themes with under twenty designs. A shelf this light reads as an
+          Occasions and themes under {THIN_AXIS} designs. A shelf this light reads as an
           afterthought to a shopper who lands on it.
         </p>
         <ul className="flex flex-wrap gap-2">
@@ -166,14 +163,18 @@ export default async function StudioPage() {
           {report.byType.map((a) => (
             <li key={a.slug} className="flex items-center gap-3 py-1.5">
               <span className="text-sm w-44 flex-shrink-0" style={{ color: "var(--text-soft)" }}>{a.label}</span>
-              <span
-                className="h-2 rounded-full"
-                style={{
-                  width: `${Math.max(2, (a.count / report.totalListings) * 100)}%`,
-                  background: "var(--gradient-brand)",
-                }}
-              />
-              <span className="text-xs tabular-nums" style={{ color: "var(--text-muted)" }}>{a.count}</span>
+              {/* The track takes the remaining width and the fill is a share of it, so the
+                  widest bar cannot squeeze the label out of its own row. */}
+              <span className="flex-1 h-2 rounded-full" style={{ background: "var(--border-soft)" }}>
+                <span
+                  className="block h-2 rounded-full"
+                  style={{
+                    width: `${Math.max(2, (a.count / report.totalListings) * 100)}%`,
+                    background: "var(--gradient-brand)",
+                  }}
+                />
+              </span>
+              <span className="text-xs tabular-nums w-10 text-right flex-shrink-0" style={{ color: "var(--text-muted)" }}>{a.count}</span>
             </li>
           ))}
         </ul>
