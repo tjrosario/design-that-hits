@@ -226,7 +226,7 @@ export function filterListings(
   listings: Listing[],
   opts: Pick<
     ListingsQueryOptions,
-    "q" | "sectionIds" | "types" | "themes" | "occasions" | "priceBands"
+    "q" | "sectionIds" | "types" | "themes" | "occasions" | "allThemes" | "allOccasions" | "priceBands"
   >,
   bands = computePriceBands(listings)
 ): Listing[] {
@@ -235,6 +235,9 @@ export function filterListings(
   const types = opts.types?.length ? new Set(opts.types) : null;
   const themes = opts.themes?.length ? new Set(opts.themes) : null;
   const occasions = opts.occasions?.length ? new Set(opts.occasions) : null;
+  // Kept as arrays: these are tested with `every`, not `has`.
+  const allThemes = opts.allThemes?.length ? opts.allThemes : null;
+  const allOccasions = opts.allOccasions?.length ? opts.allOccasions : null;
 
   // Resolve band ids once rather than per listing.
   const selectedBands = opts.priceBands?.length
@@ -252,6 +255,12 @@ export function filterListings(
       return false;
     }
     if (themes && !(listing.themes ?? []).some((theme) => themes.has(theme))) {
+      return false;
+    }
+    if (allOccasions && !allOccasions.every((o) => (listing.occasions ?? []).includes(o))) {
+      return false;
+    }
+    if (allThemes && !allThemes.every((t) => (listing.themes ?? []).includes(t))) {
       return false;
     }
     if (selectedBands && !selectedBands.some((band) => matchesPriceBand(listing, band))) {
@@ -371,7 +380,10 @@ export async function getListings(
  * Degrades to an empty array so the UI shows an empty state rather than crashing.
  */
 export async function getListingsForRanking(
-  opts: Pick<ListingsQueryOptions, "q" | "sectionIds" | "types" | "themes" | "occasions" | "priceBands"> = {},
+  opts: Pick<
+    ListingsQueryOptions,
+    "q" | "sectionIds" | "types" | "themes" | "occasions" | "allThemes" | "allOccasions" | "priceBands"
+  > = {},
   source?: Listing[]
 ): Promise<Listing[]> {
   const listings = source ?? allListings();

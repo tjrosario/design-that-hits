@@ -54,6 +54,16 @@ export interface ListingsQueryOptions {
   types?: string[];
   themes?: string[];
   occasions?: string[];
+  /*
+    AND within the group, where `themes` and `occasions` above OR.
+
+    The filter sidebar wants OR: ticking Cats and Dogs should widen the result. An
+    intersection page wants AND: /collections/glam/gothic is the ten products that are
+    both, not the 170 that are either. Composing one from the OR fields is impossible,
+    which is how eight pages shipped rendering their secondary axis alone.
+  */
+  allThemes?: string[];
+  allOccasions?: string[];
   priceBands?: string[];
   sortOn?: "created" | "price" | "score";
   sortOrder?: "asc" | "desc";

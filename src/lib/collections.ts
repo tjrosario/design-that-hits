@@ -17,7 +17,9 @@
  */
 
 import { getAllListings, getFacetGroups } from "@/lib/shop";
+import { filterListings } from "@/lib/catalog";
 import type { FacetOption, Listing } from "@/types/etsy";
+import type { ListingsQueryOptions } from "@/types/shop";
 
 export type CollectionKind = "type" | "theme" | "occasion";
 
@@ -207,9 +209,13 @@ export { introFor as collectionIntro };
 export const MIN_INTERSECTION_PRODUCTS = 10;
 
 export interface Intersection {
-  /** The first URL segment: a product type or an occasion. */
+  /** The first URL segment. */
   primary: Collection;
-  /** The second segment. Always a theme today. */
+  /*
+    The second segment. Any kind: `intersectionQuery` composes by group, so two themes or
+    two occasions work. Two types cannot, a listing having exactly one product type, so
+    such a pair has no members and never reaches a page.
+  */
   secondary: Collection;
   /** What the page is about, written out rather than composed from the two labels. */
   label: string;
@@ -218,7 +224,7 @@ export interface Intersection {
 }
 
 /**
- * The intersections that get a page, keyed `<type>|<theme>`.
+ * The intersections that get a page, keyed `<primary>|<secondary>`.
  *
  * Both the label and the intro are written by hand, and a pair with no entry here gets no
  * page even when it clears the threshold. That is deliberate: composing "Cats" and
@@ -440,13 +446,36 @@ export async function getIntersections(): Promise<Intersection[]> {
     if (matching.length < MIN_INTERSECTION_PRODUCTS) continue;
 
     const hero = newestFirst.find((l) => belongsTo(l, primary) && belongsTo(l, secondary));
-    out.push({
+    const entry: Intersection = {
       primary,
       secondary,
       label: copy.label,
       count: matching.length,
       ...(hero?.image ? { imageUrl: hero.image.url } : {}),
-    });
+    };
+
+    /*
+      The page must render the products this entry counts.
+
+      `count` comes from `belongsTo`, while the grid comes from running `intersectionQuery`
+      through `filterListings`. Those are two different code paths that have to agree, and
+      when they silently disagreed eight pages published their secondary axis alone:
+      /collections/glam/gothic promised ten products and served all 88 Gothic ones, and
+      three URLs served one identical grid. Type-check, lint, build and a 200 check were
+      all green throughout.
+
+      A pair that fails this is dropped rather than published, so the same mistake costs a
+      missing page instead of a duplicate-content one.
+    */
+    const rendered = filterListings(listings, intersectionQuery(entry));
+    if (rendered.length !== matching.length) {
+      console.error(
+        `[collections] ${key} counts ${matching.length} products but its query returns ${rendered.length}; not publishing it.`
+      );
+      continue;
+    }
+
+    out.push(entry);
   }
 
   return out.sort((a, b) => b.count - a.count);
@@ -588,12 +617,37 @@ export async function collectionSpec(collection: Collection): Promise<CatalogSpe
   };
 }
 
+/**
+ * The query for a pair, composed by group rather than by spreading two objects.
+ *
+ * Spreading was the bug: `collectionQuery` keys its result by kind, so two themes both
+ * produced `{themes}` and the second overwrote the first. `/collections/glam/gothic`
+ * then rendered all 88 Gothic products while claiming to be the 10 that are also Glam,
+ * and three URLs served one identical grid. Nothing in the build could see it, because
+ * the page was valid, indexable and returned 200.
+ *
+ * Themes and occasions use the AND variants, since an intersection means both. Two types
+ * cannot intersect at all, a listing having exactly one product type, so such a pair has
+ * no members and `getIntersections` drops it before this runs.
+ */
+export function intersectionQuery(i: Intersection): ListingsQueryOptions {
+  const query: ListingsQueryOptions = {};
+
+  for (const collection of [i.primary, i.secondary]) {
+    if (collection.kind === "type") (query.types ??= []).push(collection.slug);
+    else if (collection.kind === "occasion") (query.allOccasions ??= []).push(collection.slug);
+    else (query.allThemes ??= []).push(collection.slug);
+  }
+
+  return query;
+}
+
 export function intersectionSpec(i: Intersection): CatalogSpec {
   return {
     label: i.label,
     eyebrow: i.primary.label,
     intro: intersectionIntro(i),
-    query: { ...collectionQuery(i.primary), ...collectionQuery(i.secondary) },
+    query: intersectionQuery(i),
     pagePath: (page) => intersectionPath(i.primary.slug, i.secondary.slug, page),
     imageUrl: i.imageUrl,
     // Up is the primary axis, which is the broader page a visitor would widen to.
