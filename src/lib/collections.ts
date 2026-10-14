@@ -17,7 +17,9 @@
  */
 
 import { getAllListings, getFacetGroups } from "@/lib/shop";
+import { filterListings } from "@/lib/catalog";
 import type { FacetOption, Listing } from "@/types/etsy";
+import type { ListingsQueryOptions } from "@/types/shop";
 
 export type CollectionKind = "type" | "theme" | "occasion";
 
@@ -207,9 +209,13 @@ export { introFor as collectionIntro };
 export const MIN_INTERSECTION_PRODUCTS = 10;
 
 export interface Intersection {
-  /** The first URL segment: a product type or an occasion. */
+  /** The first URL segment. */
   primary: Collection;
-  /** The second segment. Always a theme today. */
+  /*
+    The second segment. Any kind: `intersectionQuery` composes by group, so two themes or
+    two occasions work. Two types cannot, a listing having exactly one product type, so
+    such a pair has no members and never reaches a page.
+  */
   secondary: Collection;
   /** What the page is about, written out rather than composed from the two labels. */
   label: string;
@@ -218,7 +224,7 @@ export interface Intersection {
 }
 
 /**
- * The intersections that get a page, keyed `<type>|<theme>`.
+ * The intersections that get a page, keyed `<primary>|<secondary>`.
  *
  * Both the label and the intro are written by hand, and a pair with no entry here gets no
  * page even when it clears the threshold. That is deliberate: composing "Cats" and
@@ -227,65 +233,6 @@ export interface Intersection {
  * discount. Writing them is the gate.
  */
 const INTERSECTIONS: Record<string, { label: string; intro: string }> = {
-  /*
-    Ten pairs that already had the stock and were waiting only on copy. Each one is
-    written from its actual membership rather than from its axis names, and three
-    candidates were dropped rather than written: wrapping-paper|halloween, whose label
-    promises Halloween wrap while 22 of its 26 members are birthday designs;
-    gothic|food, which mixes Halloween barware with a Biker Santa; and birthday|floral,
-    half of which are gothic skulls that match "floral" only because `rose\b` catches
-    "Black Rose".
-  */
-  "halloween|birthday": {
-    label: "Halloween Birthday Wrapping Paper",
-    intro:
-      "Wrapping paper for the person born in October: skulls, witches, vampires and a disco cowgirl, built as birthday designs rather than party decor.",
-  },
-  "apparel|halloween": {
-    label: "Halloween Shirts & Sweatshirts",
-    intro:
-      "Halloween tees and sweatshirts, from pink coquette ghosts to occupational puns for nurses and firefighters. Worn in October rather than wrapped.",
-  },
-  "halloween|food": {
-    label: "Halloween Party Drinks & Treats",
-    intro:
-      "Sipper cups, bar themed tees and cocktail wrap for the Halloween party rather than the trick or treat round. Jack-o-lanterns, candy corn and witch's brew.",
-  },
-  "gothic|retro": {
-    label: "Victorian Gothic Wrapping Paper",
-    intro:
-      "Damask, scrollwork, crows and nutcrackers in black. The dark designs that lean old rather than modern, plus the vintage Halloween shirts and cups.",
-  },
-  "gothic|floral": {
-    label: "Gothic Floral Wrapping Paper",
-    intro:
-      "Black roses, mostly. Dark romance for Valentine's and a run of gothic birthday wrap, plus a greeting card set and one broken heart shirt.",
-  },
-  "glam|gothic": {
-    label: "Dark Elegant Wrapping Paper",
-    intro:
-      "Black grounds with gold, damask and ornate detail. For a gift that should read expensive and faintly sinister at once. Mostly Christmas.",
-  },
-  "glam|retro": {
-    label: "Vintage Glam Wrapping Paper",
-    intro:
-      "Gold, damask, lace and vintage roses. Wrap that looks inherited rather than bought, mostly Christmas with a couple of birthdays and one Valentine's.",
-  },
-  "glam|floral": {
-    label: "Elegant Floral Wrapping Paper",
-    intro:
-      "Poinsettias, roses and neutral botanicals across weddings, quinceañeras, Valentine's and Christmas. The florals that suit an adult rather than a child.",
-  },
-  "glam|cats": {
-    label: "Elegant Cat Christmas Wrapping Paper",
-    intro:
-      "Ten cat breeds done as elegant Christmas wrap rather than cartoons: Bombay, Russian Blue, Persian, Egyptian Mau, Chartreux and the rest.",
-  },
-  "glam|minimalist": {
-    label: "Minimal Elegant Wrapping Paper",
-    intro:
-      "Gold on a plain ground, fine snowflakes and plenty of space. Restrained wrap for Christmas, graduation and Valentine's that still reads expensive.",
-  },
   "wrapping-paper|glam": {
     label: "Glam Wrapping Paper",
     intro:
@@ -499,13 +446,36 @@ export async function getIntersections(): Promise<Intersection[]> {
     if (matching.length < MIN_INTERSECTION_PRODUCTS) continue;
 
     const hero = newestFirst.find((l) => belongsTo(l, primary) && belongsTo(l, secondary));
-    out.push({
+    const entry: Intersection = {
       primary,
       secondary,
       label: copy.label,
       count: matching.length,
       ...(hero?.image ? { imageUrl: hero.image.url } : {}),
-    });
+    };
+
+    /*
+      The page must render the products this entry counts.
+
+      `count` comes from `belongsTo`, while the grid comes from running `intersectionQuery`
+      through `filterListings`. Those are two different code paths that have to agree, and
+      when they silently disagreed eight pages published their secondary axis alone:
+      /collections/glam/gothic promised ten products and served all 88 Gothic ones, and
+      three URLs served one identical grid. Type-check, lint, build and a 200 check were
+      all green throughout.
+
+      A pair that fails this is dropped rather than published, so the same mistake costs a
+      missing page instead of a duplicate-content one.
+    */
+    const rendered = filterListings(listings, intersectionQuery(entry));
+    if (rendered.length !== matching.length) {
+      console.error(
+        `[collections] ${key} counts ${matching.length} products but its query returns ${rendered.length}; not publishing it.`
+      );
+      continue;
+    }
+
+    out.push(entry);
   }
 
   return out.sort((a, b) => b.count - a.count);
@@ -647,12 +617,37 @@ export async function collectionSpec(collection: Collection): Promise<CatalogSpe
   };
 }
 
+/**
+ * The query for a pair, composed by group rather than by spreading two objects.
+ *
+ * Spreading was the bug: `collectionQuery` keys its result by kind, so two themes both
+ * produced `{themes}` and the second overwrote the first. `/collections/glam/gothic`
+ * then rendered all 88 Gothic products while claiming to be the 10 that are also Glam,
+ * and three URLs served one identical grid. Nothing in the build could see it, because
+ * the page was valid, indexable and returned 200.
+ *
+ * Themes and occasions use the AND variants, since an intersection means both. Two types
+ * cannot intersect at all, a listing having exactly one product type, so such a pair has
+ * no members and `getIntersections` drops it before this runs.
+ */
+export function intersectionQuery(i: Intersection): ListingsQueryOptions {
+  const query: ListingsQueryOptions = {};
+
+  for (const collection of [i.primary, i.secondary]) {
+    if (collection.kind === "type") (query.types ??= []).push(collection.slug);
+    else if (collection.kind === "occasion") (query.allOccasions ??= []).push(collection.slug);
+    else (query.allThemes ??= []).push(collection.slug);
+  }
+
+  return query;
+}
+
 export function intersectionSpec(i: Intersection): CatalogSpec {
   return {
     label: i.label,
     eyebrow: i.primary.label,
     intro: intersectionIntro(i),
-    query: { ...collectionQuery(i.primary), ...collectionQuery(i.secondary) },
+    query: intersectionQuery(i),
     pagePath: (page) => intersectionPath(i.primary.slug, i.secondary.slug, page),
     imageUrl: i.imageUrl,
     // Up is the primary axis, which is the broader page a visitor would widen to.

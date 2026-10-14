@@ -17,6 +17,7 @@ import { getAllListings } from "@/lib/shop";
 import {
   belongsTo,
   getCollections,
+  getIntersections,
   hasIntersectionCopy,
   MIN_INTERSECTION_PRODUCTS,
 } from "@/lib/collections";
@@ -32,6 +33,8 @@ export interface Opportunity {
   shortfall: number;
   /** True when any member of the pair carries an occasion whose window is open. */
   seasonal: boolean;
+  /** The published page that already shows the most of this set, if one does. */
+  rival?: { label: string; share: number };
 }
 
 export interface Axis {
@@ -73,6 +76,14 @@ const MAX_PARENT_SHARE = 0.85;
 /** How much of a pair has to sit in an open window before "in season" means anything. */
 const SEASONAL_SHARE = 0.6;
 
+/*
+  How much of a candidate an existing page can already show before the new one is a
+  duplicate rather than an addition. Comparing against published intersections only, not
+  against the two parent collections, since every pair is a subset of both of those by
+  construction.
+*/
+const MAX_RIVAL_SHARE = 0.8;
+
 export async function buildStudioReport(now = new Date()): Promise<StudioReport> {
   // The same source `getCollections` and `getIntersections` read, so the counts here are
   // the counts that decide whether a page exists. The bare catalog can lag it.
@@ -82,6 +93,15 @@ export async function buildStudioReport(now = new Date()): Promise<StudioReport>
   const openOccasions = new Set(relevantOccasions(now));
   const members = new Map<string, Listing[]>();
   for (const c of collections) members.set(c.slug, listings.filter((l) => belongsTo(l, c)));
+
+  // The pages that already exist, so a candidate can be checked against them rather than
+  // only against the other candidates.
+  const published = (await getIntersections()).map((i) => ({
+    label: i.label,
+    ids: new Set(
+      listings.filter((l) => belongsTo(l, i.primary) && belongsTo(l, i.secondary)).map((l) => l.id)
+    ),
+  }));
 
   const copyOnly: Opportunity[] = [];
   const needsDesigns: Opportunity[] = [];
@@ -116,7 +136,23 @@ export async function buildStudioReport(now = new Date()): Promise<StudioReport>
       const inWindow = shared.filter((l) => (l.occasions ?? []).some((o) => openOccasions.has(o)));
       const seasonal = inWindow.length >= shared.length * SEASONAL_SHARE;
       const shortfall = MIN_INTERSECTION_PRODUCTS - shared.length;
-      const entry: Opportunity = { a, b, count: shared.length, shortfall: Math.max(0, shortfall), seasonal };
+
+      // Whichever live page already shows the most of this set.
+      let rival: Opportunity["rival"];
+      for (const page of published) {
+        const overlap = shared.filter((l) => page.ids.has(l.id)).length / shared.length;
+        if (overlap > (rival?.share ?? 0)) rival = { label: page.label, share: overlap };
+      }
+      if (rival && rival.share >= MAX_RIVAL_SHARE) continue;
+
+      const entry: Opportunity = {
+        a,
+        b,
+        count: shared.length,
+        shortfall: Math.max(0, shortfall),
+        seasonal,
+        ...(rival ? { rival } : {}),
+      };
 
       if (shortfall <= 0) copyOnly.push(entry);
       else if (shortfall <= MAX_SHORTFALL) needsDesigns.push(entry);
