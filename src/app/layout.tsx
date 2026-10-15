@@ -7,6 +7,7 @@ import { Playfair_Display, Poppins } from "next/font/google";
 import { SITE_SHARE_IMAGE } from "@/lib/images";
 import { JsonLd } from "@/components/JsonLd";
 import { siteGraph } from "@/lib/site-graph";
+import { Analytics } from "@vercel/analytics/next";
 
 /*
   SELF-HOSTED WEBFONTS
@@ -216,6 +217,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
         <Footer />
+        {/* Cookieless page-view counting. Loads after hydration, so it stays out of the
+            way of the LCP work on the home and product pages. */}
+        <Analytics />
       </body>
     </html>
   );
