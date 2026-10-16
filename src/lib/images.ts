@@ -27,12 +27,14 @@ export function fullSizeImageUrl(url: string): string {
 /**
  * The brand card, for pages with no product of their own.
  *
- * `src/app/opengraph-image.tsx` only applies to the segment that owns it, and only while
+ * `src/app/opengraph-image.png` only applies to the segment that owns it, and only while
  * that segment's own `openGraph` has no `images` key. Every page here declares one, so
  * until this was referenced explicitly `/`, `/about` and `/contact` emitted no og:image.
  */
 export const SITE_SHARE_IMAGE = {
-  url: "/opengraph-image",
+  // The .png extension matters: this was a generated route at /opengraph-image and is now
+  // a static file, so the extensionless path 404s.
+  url: "/opengraph-image.png",
   alt: "Design That Hits — print-on-demand gifts, wrapping paper and party designs",
   width: 1200,
   height: 630,

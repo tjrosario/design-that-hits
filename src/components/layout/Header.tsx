@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import Image from "next/image";
 
 // A nav item is current across its own subtree, so Shop stays highlighted on
 // /collections/cats. Exact match for "/", which would otherwise match everything.
@@ -35,12 +36,23 @@ export function Header() {
       <div className="mx-auto max-w-screen-xl flex items-center justify-between gap-2 sm:gap-3 min-w-0">
         {/* Wordmark — serif, with the middle word in brand pink. min-w-0 + truncate let
             it give way rather than push the controls off-screen on narrow phones. */}
-        <Link
-          href="/"
-          className="text-lg sm:text-xl md:text-2xl leading-none truncate min-w-0"
-          style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "var(--text)" }}
-        >
-          Design<span style={{ color: "var(--brand)", fontStyle: "italic" }}>That</span>Hits
+        <Link href="/" className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+          {/* The mark only. The full lockup's wordmark is white, so it disappears on the
+              light theme; the text beside it is themed and carries the name for a crawler. */}
+          <Image
+            src="/logo-mark.png"
+            alt=""
+            width={384}
+            height={354}
+            priority
+            className="h-7 sm:h-8 md:h-9 w-auto flex-shrink-0"
+          />
+          <span
+            className="text-lg sm:text-xl md:text-2xl leading-none truncate min-w-0"
+            style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "var(--text)" }}
+          >
+            Design<span style={{ color: "var(--brand)", fontStyle: "italic" }}>That</span>Hits
+          </span>
         </Link>
 
         {/* Desktop nav */}
