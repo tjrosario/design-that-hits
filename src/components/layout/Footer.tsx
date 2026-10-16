@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SOCIAL_PROFILES } from "@/lib/social";
+import Image from 'next/image';
 
 /** Brand glyphs for the footer profile links. Decorative: the <a> carries the label. */
 function SocialIcon({ label }: { label: string }) {
@@ -33,12 +34,25 @@ export function Footer() {
       <div className="mx-auto max-w-screen-xl px-4 sm:px-5 py-10 sm:py-14">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           <div>
-            <p
-              className="text-xl mb-3"
-              style={{ fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--text)' }}
-            >
-              Design<span style={{ color: 'var(--brand)', fontStyle: 'italic' }}>That</span>Hits
-            </p>
+            {/* role="img" with the name on the wrapper, so the pair reads as one thing
+                and the accessible name survives whichever wordmark the theme hides. */}
+            <div className="flex items-center gap-2 sm:gap-2.5 mb-3" role="img" aria-label="Design That Hits">
+              <Image src="/logo-mark.png" alt="" width={384} height={354} className="h-9 sm:h-10 w-auto flex-shrink-0" />
+              <Image
+                src="/logo-text.png"
+                alt=""
+                width={768}
+                height={185}
+                className="logo-text-on-dark h-9 sm:h-10 w-auto flex-shrink-0"
+              />
+              <Image
+                src="/logo-text-light.png"
+                alt=""
+                width={768}
+                height={185}
+                className="logo-text-on-light h-9 sm:h-10 w-auto flex-shrink-0"
+              />
+            </div>
             <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
               Print-on-demand gifts, wrapping paper & party designs for every occasion.
             </p>
