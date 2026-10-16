@@ -47,22 +47,7 @@ export function Header() {
             priority
             className="h-8 sm:h-9 w-auto flex-shrink-0"
           />
-          <Image
-            src="/logo-text.png"
-            alt=""
-            width={768}
-            height={185}
-            priority
-            className="logo-text-on-dark h-8 sm:h-9 w-auto flex-shrink-0"
-          />
-          <Image
-            src="/logo-text-light.png"
-            alt=""
-            width={768}
-            height={185}
-            priority
-            className="logo-text-on-light h-8 sm:h-9 w-auto flex-shrink-0"
-          />
+          <span aria-hidden="true" className="logo-wordmark h-8 sm:h-9 flex-shrink-0" />
         </Link>
 
         {/* Desktop nav */}

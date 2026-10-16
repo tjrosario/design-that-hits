@@ -679,12 +679,20 @@
 :root[data-theme="light"] .theme-icon-light { display: none; }
 
 /*
-  Wordmark swap, for the same reason as the icons above.
+  Wordmark swap.
 
   The supplied wordmark sets DESIGN in white, which vanishes on the light theme's
   #FAEAF2. The light copy is the same artwork with the white repainted to --text; the
   THAT HITS row is pink in both and is untouched.
+
+  A background rather than two <img> elements, because the theme is only known in the
+  browser. Rendering both and hiding one downloaded the hidden copy and, since Next
+  preloads an eager image, preloaded it too: three image preloads on every page for a
+  logo that is not the LCP element. A background is fetched only when its rule applies.
 */
-.logo-text-on-light { display: none; }
-:root[data-theme="light"] .logo-text-on-dark  { display: none; }
-:root[data-theme="light"] .logo-text-on-light { display: block; }
+.logo-wordmark {
+  display: block;
+  aspect-ratio: 768 / 185;
+  background: url("/logo-text.png") center / contain no-repeat;
+}
+:root[data-theme="light"] .logo-wordmark { background-image: url("/logo-text-light.png"); }
