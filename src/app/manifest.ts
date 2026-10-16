@@ -4,8 +4,9 @@ import type { MetadataRoute } from "next";
  * Web app manifest, replacing the /manifest.json reference that returned 404 (the browser
  * logged a fetch failure on every page load).
  *
- * Icons point at the generated app icons rather than files in public/, so there is
- * nothing to keep in sync by hand.
+ * Icons point at the app icon files. The paths carry their extensions: these used to be
+ * generated routes served at /icon and /apple-icon, and are now `icon.png` and
+ * `apple-icon.png` file conventions, where the extensionless path 404s.
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -18,8 +19,8 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#0E0C0F",
     theme_color: "#0E0C0F",
     icons: [
-      { src: "/icon", sizes: "64x64", type: "image/png" },
-      { src: "/apple-icon", sizes: "180x180", type: "image/png" },
+      { src: "/icon.png", sizes: "192x192", type: "image/png" },
+      { src: "/apple-icon.png", sizes: "180x180", type: "image/png" },
     ],
   };
 }

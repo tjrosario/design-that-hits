@@ -35,7 +35,8 @@ export const siteGraph = {
       "@id": ORGANIZATION_ID,
       name: "Design That Hits",
       url: SITE_URL,
-      // Served by src/app/brand-logo.png/route.tsx, not from a public/ directory.
+      // A fixed address on purpose: app/icon.png gets a hashed URL that changes between
+      // builds, which is no good for a logo Google caches for the knowledge panel.
       logo: { "@type": "ImageObject", url: `${SITE_URL}/brand-logo.png`, width: 192, height: 192 },
       sameAs: SOCIAL_URLS,
       contactPoint: {

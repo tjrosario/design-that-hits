@@ -133,11 +133,9 @@ export const metadata: Metadata = {
   classification:  "E-Commerce, Gifts, Print on Demand",
 
   // ── Icons and manifest ───────────────────────────────────────────────────
-  // Deliberately not declared here. app/icon.tsx, app/apple-icon.tsx and
-  // app/manifest.ts generate them and Next emits the tags automatically. The previous
-  // hand-written entries pointed at /favicon.ico, /icon.png, /icon-192.png,
-  // /apple-icon.png and /manifest.json — none of which existed, because the project has
-  // no public/ directory. Every one returned 404.
+  // Deliberately not declared here. app/icon.png, app/apple-icon.png and app/manifest.ts
+  // are file conventions, so Next emits the tags and the cache-busting hashes itself.
+  // Hand-written entries went stale and 404ed last time they existed.
 
   // ── Site verification ─────────────────────────────────────────────────────
   // Add your real tokens from each platform's Search Console / Webmaster Tools.

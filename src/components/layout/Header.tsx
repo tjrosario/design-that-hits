@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import Image from "next/image";
 
 // A nav item is current across its own subtree, so Shop stays highlighted on
 // /collections/cats. Exact match for "/", which would otherwise match everything.
@@ -35,12 +36,33 @@ export function Header() {
       <div className="mx-auto max-w-screen-xl flex items-center justify-between gap-2 sm:gap-3 min-w-0">
         {/* Wordmark — serif, with the middle word in brand pink. min-w-0 + truncate let
             it give way rather than push the controls off-screen on narrow phones. */}
-        <Link
-          href="/"
-          className="text-lg sm:text-xl md:text-2xl leading-none truncate min-w-0"
-          style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "var(--text)" }}
-        >
-          Design<span style={{ color: "var(--brand)", fontStyle: "italic" }}>That</span>Hits
+        {/* aria-label on the link, alt="" on both images: only one wordmark is visible
+            at a time, and this gives the link one accessible name whichever that is. */}
+        <Link href="/" aria-label="Design That Hits" className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+          <Image
+            src="/logo-mark.png"
+            alt=""
+            width={384}
+            height={354}
+            priority
+            className="h-8 sm:h-9 w-auto flex-shrink-0"
+          />
+          <Image
+            src="/logo-text.png"
+            alt=""
+            width={768}
+            height={185}
+            priority
+            className="logo-text-on-dark h-8 sm:h-9 w-auto flex-shrink-0"
+          />
+          <Image
+            src="/logo-text-light.png"
+            alt=""
+            width={768}
+            height={185}
+            priority
+            className="logo-text-on-light h-8 sm:h-9 w-auto flex-shrink-0"
+          />
         </Link>
 
         {/* Desktop nav */}
