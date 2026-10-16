@@ -36,23 +36,33 @@ export function Header() {
       <div className="mx-auto max-w-screen-xl flex items-center justify-between gap-2 sm:gap-3 min-w-0">
         {/* Wordmark — serif, with the middle word in brand pink. min-w-0 + truncate let
             it give way rather than push the controls off-screen on narrow phones. */}
-        <Link href="/" className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-          {/* The mark only. The full lockup's wordmark is white, so it disappears on the
-              light theme; the text beside it is themed and carries the name for a crawler. */}
+        {/* aria-label on the link, alt="" on both images: only one wordmark is visible
+            at a time, and this gives the link one accessible name whichever that is. */}
+        <Link href="/" aria-label="Design That Hits" className="flex items-center gap-2 sm:gap-2.5 min-w-0">
           <Image
             src="/logo-mark.png"
             alt=""
             width={384}
             height={354}
             priority
-            className="h-7 sm:h-8 md:h-9 w-auto flex-shrink-0"
+            className="h-8 sm:h-9 w-auto flex-shrink-0"
           />
-          <span
-            className="text-lg sm:text-xl md:text-2xl leading-none truncate min-w-0"
-            style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "var(--text)" }}
-          >
-            Design<span style={{ color: "var(--brand)", fontStyle: "italic" }}>That</span>Hits
-          </span>
+          <Image
+            src="/logo-text.png"
+            alt=""
+            width={768}
+            height={185}
+            priority
+            className="logo-text-on-dark h-8 sm:h-9 w-auto flex-shrink-0"
+          />
+          <Image
+            src="/logo-text-light.png"
+            alt=""
+            width={768}
+            height={185}
+            priority
+            className="logo-text-on-light h-8 sm:h-9 w-auto flex-shrink-0"
+          />
         </Link>
 
         {/* Desktop nav */}

@@ -677,3 +677,14 @@
 .theme-icon-light { display: block; }
 :root[data-theme="light"] .theme-icon-dark  { display: block; }
 :root[data-theme="light"] .theme-icon-light { display: none; }
+
+/*
+  Wordmark swap, for the same reason as the icons above.
+
+  The supplied wordmark sets DESIGN in white, which vanishes on the light theme's
+  #FAEAF2. The light copy is the same artwork with the white repainted to --text; the
+  THAT HITS row is pink in both and is untouched.
+*/
+.logo-text-on-light { display: none; }
+:root[data-theme="light"] .logo-text-on-dark  { display: none; }
+:root[data-theme="light"] .logo-text-on-light { display: block; }
