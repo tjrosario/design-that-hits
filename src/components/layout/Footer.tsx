@@ -38,20 +38,7 @@ export function Footer() {
                 and the accessible name survives whichever wordmark the theme hides. */}
             <div className="flex items-center gap-2 sm:gap-2.5 mb-3" role="img" aria-label="Design That Hits">
               <Image src="/logo-mark.png" alt="" width={384} height={354} className="h-9 sm:h-10 w-auto flex-shrink-0" />
-              <Image
-                src="/logo-text.png"
-                alt=""
-                width={768}
-                height={185}
-                className="logo-text-on-dark h-9 sm:h-10 w-auto flex-shrink-0"
-              />
-              <Image
-                src="/logo-text-light.png"
-                alt=""
-                width={768}
-                height={185}
-                className="logo-text-on-light h-9 sm:h-10 w-auto flex-shrink-0"
-              />
+              <span aria-hidden="true" className="logo-wordmark h-9 sm:h-10 flex-shrink-0" />
             </div>
             <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
               Print-on-demand gifts, wrapping paper & party designs for every occasion.
