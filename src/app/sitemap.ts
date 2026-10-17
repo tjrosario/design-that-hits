@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { getAllListings } from "@/lib/shop";
 import { listingPath } from "@/lib/slug";
 import type { Listing } from "@/types/etsy";
+import { since, NEW_ARRIVALS_DAYS } from "@/lib/arrivals";
 import {
   COLLECTION_PAGE_SIZE,
   collectionPagePath,
@@ -46,6 +47,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     { url: SITE_URL,                   changeFrequency: "daily",   priority: 1.0 },
     { url: `${SITE_URL}/collections`,  changeFrequency: "weekly",  priority: 0.8 },
+    { url: `${SITE_URL}/collections/new`, changeFrequency: "daily", priority: 0.7 },
     { url: `${SITE_URL}/about`,        changeFrequency: "monthly", priority: 0.7 },
     { url: `${SITE_URL}/contact`,      changeFrequency: "yearly",  priority: 0.5 },
   ];
@@ -135,9 +137,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // last genuinely changed.
   const catalogUpdated = newestUpdate(listings);
   const catalogDriven = new Set([SITE_URL, `${SITE_URL}/collections`]);
-  const datedStatic: MetadataRoute.Sitemap = staticPages.map((entry) =>
-    catalogUpdated && catalogDriven.has(entry.url) ? { ...entry, lastModified: catalogUpdated } : entry,
-  );
+
+  /*
+    New Arrivals is dated from its own members, not from the catalog as a whole. Editing a
+    listing older than the window changes the catalog's newest `updatedAt` but not this
+    page, and claiming otherwise is the kind of lastmod that teaches Google to ignore the
+    field.
+  */
+  const arrivalsUpdated = newestUpdate(since(listings, NEW_ARRIVALS_DAYS));
+  const datedStatic: MetadataRoute.Sitemap = staticPages.map((entry) => {
+    if (entry.url === `${SITE_URL}/collections/new`) {
+      return arrivalsUpdated ? { ...entry, lastModified: arrivalsUpdated } : entry;
+    }
+    return catalogUpdated && catalogDriven.has(entry.url) ? { ...entry, lastModified: catalogUpdated } : entry;
+  });
 
   return [...datedStatic, ...categoryPages, ...intersectionPages, ...productPages];
 }

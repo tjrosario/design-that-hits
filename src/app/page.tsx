@@ -23,6 +23,8 @@ import { HeroCarousel } from "@/components/HeroCarousel";
 import type { Listing } from "@/types/etsy";
 import { SITE_SHARE_IMAGE } from "@/lib/images";
 import { ORGANIZATION_ID, WEBSITE_ID } from "@/lib/site-graph";
+import { justDropped, JUST_DROPPED_DAYS } from "@/lib/arrivals";
+import { ProductCard } from "@/components/products/ProductCard";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
 
@@ -276,6 +278,10 @@ export default async function HomePage({ searchParams }: HomeProps) {
       ? { listings: listingsResult.data.listings, total: listingsResult.data.total, page: parsed.page, pageSize: 24 }
       : null;
 
+  // Time-bounded, so the strip is absent on a quiet fortnight rather than relabelling
+  // the top of the grid as a drop.
+  const dropped = await justDropped(8);
+
   const heroListings = (heroResult.ok ? heroResult.data.listings : [])
     .filter((l) => l.image)
     .slice(0, 8);
@@ -439,6 +445,36 @@ export default async function HomePage({ searchParams }: HomeProps) {
                 </Link>
               ))}
             </div>
+          </div>
+        </section>
+      )}
+
+      {/*
+        Just dropped. Only rendered when something actually landed inside the window;
+        the grid below is already newest-first, so an always-on strip would just be the
+        same products under a louder heading.
+      */}
+      {dropped.length > 0 && (
+        <section className="mx-auto max-w-screen-xl px-4 sm:px-5 pb-10 sm:pb-12">
+          <div className="flex items-baseline justify-between gap-4 mb-5">
+            <div>
+              <p className="eyebrow mb-2">Just dropped</p>
+              <h2 className="display-title" style={{ fontSize: "clamp(1.4rem, 3.2vw, 2rem)" }}>
+                New in the last {JUST_DROPPED_DAYS} days
+              </h2>
+            </div>
+            <Link
+              href="/collections/new"
+              className="text-sm whitespace-nowrap hover:underline flex-shrink-0"
+              style={{ color: "var(--brand)" }}
+            >
+              See all new
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {dropped.map((listing) => (
+              <ProductCard key={listing.id} listing={listing} />
+            ))}
           </div>
         </section>
       )}
