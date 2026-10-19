@@ -4,7 +4,7 @@
     "etsyShopName": "designthathits",
     "url": "https://www.etsy.com/shop/designthathits"
   },
-  "syncedAt": "2026-10-18T20:24:23.831Z",
+  "syncedAt": "2026-10-19T22:12:08.596Z",
   "sections": [],
   "listings": [
     {
@@ -1809,7 +1809,7 @@
       "price": 18.32,
       "currency": "USD",
       "createdAt": 1785985987,
-      "updatedAt": 1785985987,
+      "updatedAt": 1792427273,
       "sectionId": null,
       "tags": [
         "biker_xmas",
@@ -1829,7 +1829,7 @@
       "favorites": 0,
       "views": 0,
       "image": {
-        "url": "https://i.etsystatic.com/60870456/r/il/84547e/7503238438/il_fullxfull.7503238438_58n4.jpg",
+        "url": "https://i.etsystatic.com/60870456/r/il/84547e/7503238438/il_570xN.7503238438_58n4.jpg",
         "altText": "Biker Santa Christmas Wrapping Paper - Skeleton Santa on Motorcycle | Badass Holiday Gift Wrap | Rocker & Biker Xmas Decor"
       },
       "sku": "10072688468001048918,10922126493358854772,19229524658785367105,42171013843822434185,12752560389083697160,24827858854675184249"
@@ -7881,7 +7881,7 @@
       "price": 21.83,
       "currency": "USD",
       "createdAt": 1785985987,
-      "updatedAt": 1790831670,
+      "updatedAt": 1792427273,
       "sectionId": null,
       "tags": [
         "gothic_wrapping",
