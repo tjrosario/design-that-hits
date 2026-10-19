@@ -7,8 +7,10 @@ type Status = "idle" | "loading" | "success" | "error";
 export function ContactForm() {
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState("");
-  // `company` is the honeypot: off-screen, unlabelled for people, filled by bots.
-  const [form, setForm] = useState({ name: "", email: "", message: "", company: "" });
+  // `referralSource` is the bot trap. Not "company", "organization" or "phone": those
+  // are names browser and password-manager autofill recognise, so a real person would
+  // have it filled for them and their message would be discarded.
+  const [form, setForm] = useState({ name: "", email: "", message: "", referralSource: "" });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,10 +22,12 @@ export function ContactForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to send");
+      // The platform can answer with a non-JSON body on a timeout or a crash, and an
+      // unguarded parse would put "Unexpected token" in front of the visitor.
+      const data = await res.json().catch(() => ({}) as { error?: string });
+      if (!res.ok) throw new Error(data.error ?? "That message did not send. Please try again.");
       setStatus("success");
-      setForm({ name: "", email: "", message: "", company: "" });
+      setForm({ name: "", email: "", message: "", referralSource: "" });
     } catch (err) {
       setStatus("error");
       setErrorMsg(err instanceof Error ? err.message : "Unknown error");
@@ -56,17 +60,21 @@ export function ContactForm() {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-4">
-      {/* Positioned off-screen rather than display:none, which some bots skip. aria-hidden
-          and tabIndex keep it away from screen readers and the keyboard. */}
-      <div aria-hidden="true" className="absolute left-[-9999px] top-auto w-px h-px overflow-hidden">
-        <label htmlFor="contact-company">Company</label>
+      {/* sr-only rather than an absolutely positioned first child, which contributed no
+          height but still gave the Name field a space-y margin above it. */}
+      {/* Off-screen rather than display:none, which some bots skip. aria-hidden and
+          tabIndex keep it from screen readers and the keyboard; autoComplete="new-password"
+          is the value Chromium actually honours for suppressing address autofill. */}
+      <div aria-hidden="true" className="sr-only">
+        <label htmlFor="contact-referral">Do not fill this in</label>
         <input
-          id="contact-company"
+          id="contact-referral"
+          name="referralSource"
           type="text"
           tabIndex={-1}
-          autoComplete="off"
-          value={form.company}
-          onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
+          autoComplete="new-password"
+          value={form.referralSource}
+          onChange={(e) => setForm((f) => ({ ...f, referralSource: e.target.value }))}
         />
       </div>
       <div>
