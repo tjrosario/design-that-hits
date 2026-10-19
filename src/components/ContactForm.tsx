@@ -7,7 +7,8 @@ type Status = "idle" | "loading" | "success" | "error";
 export function ContactForm() {
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState("");
-  const [form, setForm] = useState({ name: "", email: "", message: "" });
+  // `company` is the honeypot: off-screen, unlabelled for people, filled by bots.
+  const [form, setForm] = useState({ name: "", email: "", message: "", company: "" });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +23,7 @@ export function ContactForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to send");
       setStatus("success");
-      setForm({ name: "", email: "", message: "" });
+      setForm({ name: "", email: "", message: "", company: "" });
     } catch (err) {
       setStatus("error");
       setErrorMsg(err instanceof Error ? err.message : "Unknown error");
@@ -55,6 +56,19 @@ export function ContactForm() {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-4">
+      {/* Positioned off-screen rather than display:none, which some bots skip. aria-hidden
+          and tabIndex keep it away from screen readers and the keyboard. */}
+      <div aria-hidden="true" className="absolute left-[-9999px] top-auto w-px h-px overflow-hidden">
+        <label htmlFor="contact-company">Company</label>
+        <input
+          id="contact-company"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          value={form.company}
+          onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
+        />
+      </div>
       <div>
         <label htmlFor="contact-name" className="block text-xs font-black uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-display)' }}>Name *</label>
         <input id="contact-name" type="text" required value={form.name}
