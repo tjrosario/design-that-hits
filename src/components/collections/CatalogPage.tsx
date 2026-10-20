@@ -243,7 +243,7 @@ export async function CatalogPage({ spec, page }: { spec: CatalogSpec; page: num
 const META_DESCRIPTION_LIMIT = 160;
 const MIN_SENTENCE_CUT = 110;
 
-function snippet(intro: string): string {
+export function snippet(intro: string): string {
   const text = intro.replace(/\s+/g, " ").trim();
   if (text.length <= META_DESCRIPTION_LIMIT) return text;
 
