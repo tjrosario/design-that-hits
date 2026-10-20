@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
 import { SITE_SHARE_IMAGE } from "@/lib/images";
 import { WEBSITE_ID } from "@/lib/site-graph";
+import { ContactForm } from "@/components/ContactForm";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
 
@@ -9,15 +10,9 @@ const CONTACT_EMAIL = "hello@designthathits.com";
 const ETSY_SHOP_URL = "https://designthathits.etsy.com";
 
 /*
-  Replaces the contact form until email sending is wired up.
-
-  The form could not be left in place: its API route was a stub that logged the message
-  and returned success, so visitors were told their message had been sent while it went
-  nowhere. An FAQ answers the questions that form was mostly receiving, and every route
-  out of it is a real one — a mailto and Etsy Messages, both of which work today.
-
-  Kept deliberately free of invented specifics (delivery windows, exact policies) since
-  those belong to the Etsy listings and would be wrong the moment they change.
+  An FAQ beside the form, answering the questions the form mostly receives so most
+  visitors never need to write one. Below both sit a mailto and Etsy Messages, which keep
+  working when the mail service is not configured and the form returns its 503.
 */
 const FAQS: { q: string; a: string }[] = [
   {
@@ -204,6 +199,21 @@ export default function ContactPage() {
                 </p>
               </details>
             ))}
+          </div>
+
+          {/* The form, with the mailto and Etsy links kept below it: if the mail service
+              is not configured the route says so, and those two still work. */}
+          <div className="mt-7 pt-6" style={{ borderTop: "1px solid var(--border-soft)" }}>
+            <h2
+              className="text-2xl mb-2"
+              style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "var(--text)" }}
+            >
+              Send us a message
+            </h2>
+            <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>
+              Custom orders, wholesale, or anything the questions above did not cover.
+            </p>
+            <ContactForm />
           </div>
 
           <div

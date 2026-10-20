@@ -99,6 +99,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `ETSY_API_KEY` | Optional | Etsy API v3 keystring. Unavailable to us today. Setting it switches the storefront back to the live API |
 | `RESEND_API_KEY` | Optional | For contact form email integration |
 | `CONTACT_EMAIL` | Optional | Email to receive contact form submissions |
+| `CONTACT_FROM` | Optional | From header; must be on a Resend-verified domain |
 
 ---
 
@@ -511,4 +512,4 @@ These all stem from having no Etsy API access. See [Product Data Sources](#produ
 4. **No favorites or view counts.** Both default to 0, so "Best Sellers" and "Trending" fall back to newest-first until you fill in `favorites` by hand.
 5. **No real-time inventory.** Nothing tells us when an item sells out, so a sold-out listing can stay visible until the next sync. Clicking through to Etsy always shows the true state.
 6. **Catalog edits need a rebuild.** `catalog.json` is bundled at build time. New listings still appear without one, via the RSS overlay.
-7. **Contact form is a stub.** Integrate Resend, SendGrid, or similar to send actual emails.
+7. **Contact form needs a key.** It sends through Resend; set `RESEND_API_KEY` and verify the domain there. Without it the route returns 503 and the form points at the mailto and Etsy links.
