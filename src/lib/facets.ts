@@ -186,6 +186,26 @@ export function primaryOccasion(listing: Listing): string | null {
   return deriveOccasions(listing)[0] ?? null;
 }
 
+/**
+ * The one theme to send a visitor to, for a listing that matches several.
+ *
+ * Same reasoning as `primaryOccasion`: `deriveThemes` returns rule order, so an elegant
+ * vintage Christmas wrap whose tags happen to include `dark_green_wrap` leads with
+ * Gothic. The theme the title names first is the one the shopper is looking at.
+ */
+export function primaryTheme(listing: Listing): string | null {
+  const title = listing.title.toLowerCase();
+
+  let best: { id: string; at: number } | null = null;
+  for (const rule of THEME_RULES) {
+    const at = title.search(rule.pattern);
+    if (at >= 0 && (!best || at < best.at)) best = { id: rule.id, at };
+  }
+  if (best) return best.id;
+
+  return deriveThemes(listing)[0] ?? null;
+}
+
 export function occasionLabel(id: string): string {
   return OCCASION_RULES.find((r) => r.id === id)?.label ?? id;
 }

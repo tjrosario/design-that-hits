@@ -83,50 +83,6 @@ export function Footer() {
               ))}
             </ul>
 
-            <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>Updates & new arrivals in your inbox</p>
-            <div className="flex gap-2">
-              {/*
-                Password managers inject an icon element next to any field they take for a
-                login, and this newsletter box qualifies. That injected node lands in the
-                DOM before React hydrates, so React finds a child it never rendered and
-                throws a hydration mismatch.
-
-                Two defences, because one is not enough:
-
-                1. The opt-out attributes below. Each vendor documents its own, and they
-                   stop the injection at the source. That is the actual fix.
-                2. The wrapper div. suppressHydrationWarning on it only covers attributes
-                   and text — it does NOT excuse an unexpected child element — so it is
-                   not a fix on its own. What the wrapper does buy is containment: if some
-                   other extension injects anyway, the node lands here instead of between
-                   the input and the Subscribe button, where it used to displace the
-                   button and break the layout as well as hydration.
-              */}
-              <div className="flex-1 min-w-0" suppressHydrationWarning>
-                <input
-                  type="email"
-                  placeholder="your@email.com"
-                  className="w-full rounded-full px-4 py-2 text-xs focus:outline-none font-medium"
-                  style={{ backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border-soft)' }}
-                  aria-label="Email for newsletter"
-                  autoComplete="off"
-                  data-lpignore="true"
-                  data-1p-ignore=""
-                  data-bwignore="true"
-                  data-form-type="other"
-                  suppressHydrationWarning
-                />
-              </div>
-              <button
-                className="rounded-full w-9 h-9 flex items-center justify-center flex-shrink-0 transition-opacity hover:opacity-85"
-                style={{ background: 'var(--gradient-brand)', color: 'var(--brand-ink)' }}
-                aria-label="Subscribe"
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H7M17 7v10" />
-                </svg>
-              </button>
-            </div>
           </div>
         </div>
 
