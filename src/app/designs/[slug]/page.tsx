@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAllListings, getListingById, getRelatedListings, hasRealEtsyId } from "@/lib/shop";
+import { getAllListings, getListingById, hasRealEtsyId } from "@/lib/shop";
 import { idFromSlug, listingAltText, listingName, listingPath, listingSlug } from "@/lib/slug";
 import { occasionLabel, primaryOccasion, productTypeLabel, themeLabel } from "@/lib/facets";
 import { fullSizeImageUrl } from "@/lib/images";
@@ -10,9 +10,10 @@ import { collectionPath } from "@/lib/collections";
 import { parseDescription } from "@/lib/description";
 import { PRICE_UNAVAILABLE, formatPrice, hasPrice } from "@/lib/price";
 import { JsonLd } from "@/components/JsonLd";
-import { ProductCard } from "@/components/products/ProductCard";
 import type { Listing } from "@/types/etsy";
 import { ORGANIZATION_ID } from "@/lib/site-graph";
+import { relatedRails } from "@/lib/related";
+import { ProductRail } from "@/components/products/ProductRail";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
 
@@ -193,7 +194,7 @@ export default async function DesignPage({ params }: PageProps) {
 
   const name = listingName(listing);
   const descriptionBlocks = parseDescription(listing.description);
-  const related = await getRelatedListings(listing, 4);
+  const rails = await relatedRails(listing);
   const url = `${SITE_URL}${listingPath(listing)}`;
   const typeLabel = listing.productType ? productTypeLabel(listing.productType) : null;
 
@@ -456,23 +457,11 @@ export default async function DesignPage({ params }: PageProps) {
         </div>
       </div>
 
-      {related.length > 0 && (
-        <section className="mt-14 sm:mt-20">
-          <h2
-            className="display-title mb-6"
-            style={{ fontSize: "clamp(1.4rem, 3vw, 2rem)" }}
-          >
-            You might also <span className="display-accent">like</span>
-          </h2>
-          <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-            {related.map((item) => (
-              <li key={item.id} className="product-zone">
-                <ProductCard listing={item} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      {/* One row per reason, rather than a single unlabelled grid of four. Each row is
+          also a crawl path out of a page that otherwise linked to very little. */}
+      {rails.map((rail) => (
+        <ProductRail key={rail.id} rail={rail} />
+      ))}
     </div>
   );
 }

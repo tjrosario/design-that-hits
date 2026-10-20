@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { primaryOccasion, deriveOccasions, deriveThemes, deriveProductType } from "@/lib/facets";
+import { primaryOccasion, primaryTheme, deriveOccasions, deriveThemes, deriveProductType } from "@/lib/facets";
 import { getAllListings } from "@/lib/shop";
 
 describe("primaryOccasion", () => {
@@ -22,6 +22,44 @@ describe("primaryOccasion", () => {
       /^Gothic Skull Birthday Wrapping Paper/.test(l.title)
     );
     if (gothicBirthday) expect(primaryOccasion(gothicBirthday)).toBe("birthday");
+  });
+});
+
+describe("primaryTheme", () => {
+  it("always returns one of the listing's own themes", async () => {
+    for (const l of await getAllListings()) {
+      const chosen = primaryTheme(l);
+      if (chosen === null) expect(deriveThemes(l)).toHaveLength(0);
+      else expect(deriveThemes(l)).toContain(chosen);
+    }
+  });
+
+  /*
+    The property, not a hardcoded answer: whichever theme the title names earliest wins.
+    Rule order would hand "Elegant Ornamental Christmas ... Vintage Scrollwork" its first
+    derived theme, which on real data is gothic via a dark_green_wrap tag; the title says
+    Elegant at character zero.
+  */
+  it("prefers the theme the title names earliest, not rule order", () => {
+    const base = {
+      id: 1, description: "", url: "", price: 1, currency: "USD", numFavorers: 0,
+      views: 0, createdAt: 0, updatedAt: 0, sectionId: null, image: null,
+    };
+    const elegantFirst = { ...base, title: "Elegant Vintage Wrapping Paper", tags: [] };
+    const vintageFirst = { ...base, title: "Vintage Elegant Wrapping Paper", tags: [] };
+
+    expect(deriveThemes(elegantFirst)).toEqual(deriveThemes(vintageFirst));
+    expect(primaryTheme(elegantFirst)).toBe("glam");
+    expect(primaryTheme(vintageFirst)).toBe("retro");
+  });
+
+  it("falls back to a tag-only match when the title names no theme", () => {
+    const tagOnly = {
+      id: 2, title: "Plain Wrapping Paper", description: "", url: "", price: 1,
+      currency: "USD", numFavorers: 0, views: 0, createdAt: 0, updatedAt: 0,
+      sectionId: null, image: null, tags: ["dark_green_wrap"],
+    };
+    expect(primaryTheme(tagOnly)).toBe(deriveThemes(tagOnly)[0] ?? null);
   });
 });
 
