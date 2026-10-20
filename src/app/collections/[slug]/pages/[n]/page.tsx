@@ -24,7 +24,7 @@ interface PageProps {
   to 19: /collections/wrapping-paper/pages/10 through 14 were listed in the sitemap and
   served a 404.
 */
-function parsePageNumber(raw: string): number | null {
+export function parsePageNumber(raw: string): number | null {
   if (!/^[1-9]\d*$/.test(raw)) return null;
   const n = Number(raw);
   return Number.isSafeInteger(n) && n >= 2 ? n : null;
