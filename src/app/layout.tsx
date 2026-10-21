@@ -150,8 +150,10 @@ export const metadata: Metadata = {
   other: {
     // Bing / Microsoft
     "msvalidate.01":          process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION ?? "",
-    // Pinterest domain verification
-    "p:domain_verify":        process.env.NEXT_PUBLIC_PINTEREST_VERIFICATION ?? "",
+    // Pinterest domain verification. Public by definition, since it is served in the
+    // HTML for anyone to read, so it lives here rather than in an env var that can go
+    // missing between deploys and silently un-claim the domain.
+    "p:domain_verify":        "bdcd78d0eaf03774c56a134f5d13439f",
     // Referrer policy
     "referrer":               "origin-when-cross-origin",
     // Mobile web-app
