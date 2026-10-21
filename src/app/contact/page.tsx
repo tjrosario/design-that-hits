@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
 import { SITE_SHARE_IMAGE } from "@/lib/images";
 import { WEBSITE_ID } from "@/lib/site-graph";
-import { ContactForm } from "@/components/ContactForm";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
 
@@ -201,20 +200,14 @@ export default function ContactPage() {
             ))}
           </div>
 
-          {/* The form, with the mailto and Etsy links kept below it: if the mail service
-              is not configured the route says so, and those two still work. */}
-          <div className="mt-7 pt-6" style={{ borderTop: "1px solid var(--border-soft)" }}>
-            <h2
-              className="text-2xl mb-2"
-              style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "var(--text)" }}
-            >
-              Send us a message
-            </h2>
-            <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>
-              Custom orders, wholesale, or anything the questions above did not cover.
-            </p>
-            <ContactForm />
-          </div>
+          {/*
+            The form is hidden while Resend rejects the send. It is written, tested and
+            wired; `/api/contact` returns 502 because the domain is not verified there
+            yet. Showing a form that cannot deliver is the failure this page was built to
+            avoid, so the mailto and Etsy links below carry it until the key works.
+
+            To restore: import ContactForm and render it here. Nothing else changes.
+          */}
 
           <div
             className="mt-7 pt-6 flex flex-col sm:flex-row gap-3"
