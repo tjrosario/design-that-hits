@@ -6,7 +6,6 @@
  */
 
 import { listingName, listingPath } from "@/lib/slug";
-import { fullSizeImageUrl } from "@/lib/images";
 import type { Listing } from "@/types/etsy";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
@@ -86,24 +85,47 @@ export function pinDescription(listing: Listing): string {
   return truncate(`${name}. ${body}`, PIN_DESCRIPTION_MAX);
 }
 
+/** Longest name the pin panel fits in three lines. */
+const MAX_NAME_CHARS = 64;
+
+/* Cutting mid-phrase strands a connector, so "Stars &…" loses the ampersand. */
+const DANGLING_TAIL = /[\s,+&-]*\b(?:and|with|for|the|in|on|to|of|a|an)?[\s,+&-]*$/i;
+
+/** The product name, cut to what the pin image's text panel can hold. */
+export function clampName(name: string): string {
+  if (name.length <= MAX_NAME_CHARS) return name;
+  const cut = name.slice(0, MAX_NAME_CHARS);
+  const space = cut.lastIndexOf(" ");
+  const body = space > MAX_NAME_CHARS * 0.6 ? cut.slice(0, space) : cut;
+  return `${body.replace(DANGLING_TAIL, "").trimEnd()}…`;
+}
+
 /** Tags a destination so Pinterest traffic is attributable in analytics. */
 export function pinterestLink(listing: Listing, campaign: string): string {
   return `${SITE_URL}${listingPath(listing)}?utm_source=pinterest&utm_medium=social&utm_campaign=${campaign}`;
 }
 
 /**
+ * The 2:3 image a save pins, generated from the product photo.
+ *
+ * Absolute, because Pinterest fetches it from its own servers and cannot resolve a
+ * relative path.
+ */
+export function pinImageUrl(listing: Listing): string {
+  return `${SITE_URL}${listingPath(listing)}/pin-image`;
+}
+
+/**
  * The Pinterest compose URL for a listing, or null when it has no photo to pin.
  *
  * A plain link, so the button costs no third-party script and works before hydration.
- * `media` asks for the full-size Etsy variant because Pinterest wants at least 1000px
- * and the stored URL is often a 570px thumbnail.
  */
 export function pinItUrl(listing: Listing): string | null {
   if (!listing.image) return null;
 
   const params = new URLSearchParams({
     url: pinterestLink(listing, "save-button"),
-    media: fullSizeImageUrl(listing.image.url),
+    media: pinImageUrl(listing),
     description: pinDescription(listing),
   });
 
