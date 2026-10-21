@@ -17,13 +17,12 @@
 
 import { getCatalogListings } from "@/lib/catalog";
 import { getAllListings } from "@/lib/shop";
-import { listingName, listingPath } from "@/lib/slug";
+import { listingName } from "@/lib/slug";
 import { occasionLabel, primaryOccasion, productTypeLabel, themeLabel } from "@/lib/facets";
 import { hasPrice } from "@/lib/price";
 import { fullSizeImageUrl } from "@/lib/images";
+import { FEED_DESCRIPTION_MAX, cell, pinterestDescription, pinterestLink, truncate } from "@/lib/pinterest";
 import type { Listing } from "@/types/etsy";
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
 
 /*
   A ceiling, not the effective figure: the RSS overlay's own fetch revalidate is lower and
@@ -68,50 +67,6 @@ const COLUMNS = [
   "custom_label_1",
 ] as const;
 
-/*
-  A tab or a newline inside a cell would shift every column after it.
-
-  The leading double quote matters too: this file is unquoted, but an RFC-4180 parser
-  treats a quote as special only at the start of a field and would then swallow the
-  following tabs. Descriptions carry inch marks like 30"x36", so this is reachable.
-*/
-function cell(value: string): string {
-  return value
-    .replace(/[\t\r\n]+/g, " ")
-    .replace(/\s{2,}/g, " ")
-    .trim()
-    .replace(/^"+/, "");
-}
-
-function truncate(text: string, max: number): string {
-  if (text.length <= max) return text;
-  const clipped = text.slice(0, max);
-  const lastSpace = clipped.lastIndexOf(" ");
-  // Only break on a space if one falls late enough to keep most of the text.
-  const body = lastSpace > max * 0.6 ? clipped.slice(0, lastSpace) : clipped;
-  return `${body.trimEnd()}…`;
-}
-
-/*
-  A spec-and-care block repeats across most listings, in the last third of the text, so
-  cutting at its heading leaves the copy that is actually about this design.
-
-  The match is unanchored, so a listing whose opening sentence happens to mention care
-  instructions would otherwise be cut to nothing. Keep the cut only when enough survives.
-*/
-const BOILERPLATE_HEADING = /\s*(?:Product features|Care instructions)\b/i;
-const MIN_KEPT_CHARS = 120;
-const MIN_KEPT_FRACTION = 0.3;
-
-function feedDescription(listing: Listing): string {
-  const full = cell(listing.description ?? "");
-  const trimmed = cell(full.split(BOILERPLATE_HEADING)[0]);
-  const keep = trimmed.length >= MIN_KEPT_CHARS && trimmed.length >= full.length * MIN_KEPT_FRACTION;
-  // Last resort is the full Etsy title, which carries the keyword phrases the short
-  // display name drops.
-  return truncate((keep ? trimmed : full) || cell(listing.title), 2000);
-}
-
 /* "Wrapping Paper > Christmas > Gothic & Dark", skipping whichever axis is unknown. */
 function productType(listing: Listing, occasion: string | null): string {
   const parts = [
@@ -139,10 +94,10 @@ function row(listing: Listing): string {
     // keyword stuffing, which Pinterest's feed policy treats as a quality problem.
     // `withDisplayNames` has already resolved names that collide across the catalog.
     title: truncate(cell(listingName(listing)), 150),
-    description: feedDescription(listing),
+    description: pinterestDescription(listing, FEED_DESCRIPTION_MAX),
     // utm so Pinterest traffic is attributable. The product page canonicalises to the
     // clean URL, so the parameters cannot create a duplicate.
-    link: `${SITE_URL}${listingPath(listing)}?utm_source=pinterest&utm_medium=social&utm_campaign=catalog`,
+    link: pinterestLink(listing, "catalog"),
     // Pinterest wants at least 1000px on the primary image; the stored URL is often
     // Etsy's 570px thumbnail, so ask for the full-size variant.
     image_link: fullSizeImageUrl(image.url),

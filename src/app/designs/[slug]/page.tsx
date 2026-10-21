@@ -14,6 +14,7 @@ import type { Listing } from "@/types/etsy";
 import { ORGANIZATION_ID } from "@/lib/site-graph";
 import { relatedRails } from "@/lib/related";
 import { ProductRail } from "@/components/products/ProductRail";
+import { SaveToPinterest } from "@/components/products/SaveToPinterest";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
 
@@ -368,6 +369,7 @@ export default async function DesignPage({ params }: PageProps) {
             <Link href={browseMore.href} className="btn-outline flex-1">
               {browseMore.label}
             </Link>
+            <SaveToPinterest listing={listing} />
           </div>
 
           {descriptionBlocks.length > 0 && (
