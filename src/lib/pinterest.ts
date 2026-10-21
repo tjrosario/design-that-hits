@@ -6,7 +6,6 @@
  */
 
 import { listingName, listingPath } from "@/lib/slug";
-import { fullSizeImageUrl } from "@/lib/images";
 import type { Listing } from "@/types/etsy";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";

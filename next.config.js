@@ -11,8 +11,9 @@ const nextConfig = {
   },
 
   /*
-    The pin-image route reads its fonts with fs at runtime. The tracer cannot follow a
-    path.join, so the files would be missing from the deployed bundle without this.
+    Insurance for a --webpack build. The pin-image route reads its fonts with fs at
+    runtime; Turbopack, the default here, traces that read on its own, and webpack's
+    collectBuildTraces would not.
   */
   outputFileTracingIncludes: {
     "/designs/[slug]/pin-image": ["./src/assets/fonts/**"],
