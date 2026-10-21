@@ -4,7 +4,9 @@ import { listingName, listingPath } from "@/lib/slug";
 import {
   PIN_DESCRIPTION_MAX,
   cell,
+  clampName,
   pinDescription,
+  pinImageUrl,
   pinItUrl,
   pinterestLink,
   truncate,
@@ -41,20 +43,25 @@ describe("pinItUrl", () => {
 
     expect(url.origin + url.pathname).toBe("https://www.pinterest.com/pin/create/button/");
     expect(url.searchParams.get("url")).toBe(pinterestLink(l, "save-button"));
-    expect(url.searchParams.get("media")).toBe(
-      "https://i.etsystatic.com/1/r/il/abc/9/il_fullxfull.9_a.jpg"
-    );
+    expect(url.searchParams.get("media")).toBe(pinImageUrl(l));
     expect(url.searchParams.get("description")).toBe(pinDescription(l));
   });
 
   /*
-    Pinterest wants at least 1000px on the pinned image and a quarter of the catalog
-    stores Etsy's 570px variant, so pinning the stored URL would hand it a thumbnail.
+    A save pins the generated 2:3 composite, not the square Etsy photo. Pinterest's grid
+    is vertical, so a square is passed over for a pin that fills the column.
   */
-  it("asks for the full-size image, not the stored thumbnail", () => {
+  it("pins the generated 2:3 image rather than the Etsy photo", () => {
     const media = new URL(pinItUrl(listing())!).searchParams.get("media")!;
-    expect(media).toContain("il_fullxfull.");
-    expect(media).not.toContain("il_570xN");
+    expect(media).toBe("https://designthathits.com/designs/gothic-skull-birthday-wrapping-paper-123/pin-image");
+    expect(media).not.toContain("etsystatic");
+  });
+
+  // Pinterest fetches this from its own servers, so a relative path would resolve
+  // against pinterest.com and 404.
+  it("gives the image as an absolute URL", () => {
+    expect(pinImageUrl(listing())).toMatch(/^https:\/\/designthathits\.com\//);
+    expect(pinImageUrl(listing())).toBe(`https://designthathits.com${listingPath(listing())}/pin-image`);
   });
 
   it("renders nothing to pin when the listing has no photo", () => {
@@ -133,6 +140,38 @@ describe("cell", () => {
 
   it("strips a run of leading quotes", () => {
     expect(cell('""x')).toBe("x");
+  });
+});
+
+describe("clampName", () => {
+  it("leaves a name the panel can hold", () => {
+    expect(clampName("Gothic Skull Birthday Wrapping Paper")).toBe(
+      "Gothic Skull Birthday Wrapping Paper"
+    );
+  });
+
+  // The pin panel holds three lines; past that the text would run under the brand line.
+  it("cuts a long name at a word boundary", () => {
+    const out = clampName(
+      "Glam Lips Christmas Wrapping Paper - Glitter Lips, Stars & Lightning Holiday Wrap"
+    );
+    expect(out.length).toBeLessThan(70);
+    expect(out.endsWith("…")).toBe(true);
+  });
+
+  // "Stars &…" reads as a typo rather than a truncation.
+  it("drops a stranded connector before the ellipsis", () => {
+    const out = clampName(
+      "Glam Lips Christmas Wrapping Paper - Glitter Lips, Stars & Lightning Holiday Wrap"
+    );
+    expect(out).toBe("Glam Lips Christmas Wrapping Paper - Glitter Lips, Stars…");
+    expect(out).not.toMatch(/[,&+-]…$/);
+  });
+
+  it("never strands a connector on any name in the catalog", async () => {
+    for (const l of await getAllListings()) {
+      expect(clampName(listingName(l)), listingName(l)).not.toMatch(/[\s,&+-]…$/);
+    }
   });
 });
 

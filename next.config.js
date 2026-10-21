@@ -10,6 +10,14 @@ const nextConfig = {
     root: __dirname,
   },
 
+  /*
+    The pin-image route reads its fonts with fs at runtime. The tracer cannot follow a
+    path.join, so the files would be missing from the deployed bundle without this.
+  */
+  outputFileTracingIncludes: {
+    "/designs/[slug]/pin-image": ["./src/assets/fonts/**"],
+  },
+
   images: {
     /*
       AVIF first, WebP second. Next's default is WebP alone, and it serves the first
