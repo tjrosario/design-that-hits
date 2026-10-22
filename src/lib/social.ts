@@ -13,6 +13,9 @@ export interface SocialProfile {
 
 export const SOCIAL_PROFILES: SocialProfile[] = [
   { label: "Etsy", url: "https://designthathits.etsy.com" },
+  // Trailing slash is Pinterest's canonical form; the bare path 301s to it, and a
+  // redirect in `sameAs` is a weaker claim than the URL it lands on.
+  { label: "Pinterest", url: "https://www.pinterest.com/designthathits/" },
   { label: "Instagram", url: "https://www.instagram.com/designthathits" },
   { label: "TikTok", url: "https://www.tiktok.com/@design.that.hits" },
 ];
