@@ -231,7 +231,9 @@ export default async function DesignPage({ params }: PageProps) {
         ...(listing.title !== name ? { alternateName: listing.title } : {}),
         description: listing.description || name,
         url,
-        ...(listing.image ? { image: [listing.image.url] } : {}),
+        // Full size, not the stored variant: a third of the catalog stores a 570px
+        // thumbnail, and Google asks for at least 1200px on a product image.
+        ...(listing.image ? { image: [fullSizeImageUrl(listing.image.url)] } : {}),
         ...(typeLabel ? { category: typeLabel } : {}),
         ...(listing.tags.length ? { keywords: listing.tags.join(", ") } : {}),
         brand: { "@type": "Brand", name: "Design That Hits" },

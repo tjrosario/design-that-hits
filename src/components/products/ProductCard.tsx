@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { gridImageUrl } from "@/lib/images";
 import Link from "next/link";
 // import { useState } from "react"; // re-enable with the favourite button below
 import { listingAltText, listingName, listingPath } from "@/lib/slug";
@@ -57,7 +58,7 @@ export function ProductCard({ listing, priority = false }: ProductCardProps) {
       >
         {listing.image ? (
           <Image
-            src={listing.image.url}
+            src={gridImageUrl(listing.image.url)}
             alt={listingAltText(listing)}
             fill
             /*
