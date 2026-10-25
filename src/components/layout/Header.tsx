@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { HeaderSearch } from "@/components/layout/HeaderSearch";
 import Image from "next/image";
 
 // A nav item is current across its own subtree, so Shop stays highlighted on
@@ -24,6 +25,10 @@ const navLinks = [
 export function Header() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // The home page has its own search in the page body, and it owns the committed query.
+  // Rendering a second input here would be two boxes whose values never agree.
+  const showSearch = pathname !== "/";
 
   return (
     <header
@@ -66,6 +71,13 @@ export function Header() {
           </div>
         </nav>
 
+        {showSearch && (
+          <HeaderSearch
+            inputId="header-search"
+            className="hidden md:block flex-1 min-w-0 max-w-[13rem] lg:max-w-[18rem]"
+          />
+        )}
+
         {/* Right cluster — never shrinks, so the controls stay tappable */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <a
@@ -107,6 +119,15 @@ export function Header() {
           aria-label="Mobile navigation"
           className="md:hidden mt-3 panel p-3 mx-auto max-w-screen-xl"
         >
+          {showSearch && (
+            <HeaderSearch
+              inputId="mobile-search"
+              className="mb-3"
+              autoFocus
+              onNavigate={() => setMobileOpen(false)}
+            />
+          )}
+
           <ul className="space-y-1">
             {navLinks.map((link) => (
               <li key={link.href}>
