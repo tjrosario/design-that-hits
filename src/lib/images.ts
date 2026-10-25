@@ -25,6 +25,22 @@ export function fullSizeImageUrl(url: string): string {
 }
 
 /**
+ * The variant a grid card should load.
+ *
+ * The stored URL is whatever the export produced: 276 listings carry `il_fullxfull` at
+ * around 2754px, 137 carry `il_570xN`, and one carries a 170px thumbnail. Both ends are
+ * wrong for a card. The 570px ones are upscaled, because a phone at 100vw and 2x asks
+ * the optimizer for about 828px; the full-size ones make the optimizer fetch and resize
+ * a 2754px original for a card that is never wider than 320px on a desktop.
+ *
+ * 1140 is the largest Etsy variant below full size and covers the widest real request,
+ * so it sharpens a third of the grid and cuts the origin fetch for the rest.
+ */
+export function gridImageUrl(url: string): string {
+  return url.replace(ETSY_VARIANT, "/il_1140xN.");
+}
+
+/**
  * The brand card, for pages with no product of their own.
  *
  * `src/app/opengraph-image.png` only applies to the segment that owns it, and only while

@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getAllListings } from "@/lib/shop";
+import { fullSizeImageUrl } from "@/lib/images";
 import { listingPath } from "@/lib/slug";
 import type { Listing } from "@/types/etsy";
 import { since, NEW_ARRIVALS_DAYS } from "@/lib/arrivals";
@@ -130,7 +131,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       Google has to infer them from the page markup, and off-domain images are the ones it
       is least willing to index on inference alone.
     */
-    ...(listing.image ? { images: [listing.image.url] } : {}),
+    ...(listing.image ? { images: [fullSizeImageUrl(listing.image.url)] } : {}),
   }));
 
   // The home grid and the hub both list the catalog, so the newest product is when they
