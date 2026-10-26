@@ -24,10 +24,17 @@ describe("GET /api/suggest", () => {
     }
   });
 
-  // An empty answer is cheap to recompute and would otherwise pin a CDN entry for every
-  // one-character prefix anyone types.
+  /*
+    Every distinct query string is its own CDN key. Caching empty answers would let
+    anyone pin unbounded edge entries with junk prefixes, and an empty answer costs one
+    pass over the catalog to rebuild, so it is never worth storing.
+  */
   it("does not let an empty answer be cached", async () => {
-    expect((await call("?q=c")).headers.get("cache-control")).toBe("no-store");
+    for (const query of ["?q=c", "?q=zzzznotathing", `?q=${"a".repeat(5000)}`]) {
+      const response = await call(query);
+      expect((await response.clone().json()).suggestions, query).toEqual([]);
+      expect(response.headers.get("cache-control"), query).toBe("no-store");
+    }
   });
 
   it("lets a real answer be cached at the edge", async () => {

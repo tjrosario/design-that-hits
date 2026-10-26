@@ -29,14 +29,24 @@ export async function GET(request: NextRequest) {
   }
 
   const [listings, collections] = await Promise.all([getAllListings(), getCollections()]);
+  const suggestions = suggest(q, listings, collections);
+
+  /*
+    Only a query that matched something is worth an edge entry. Every distinct string is
+    its own cache key, so caching empty answers lets anyone pin unbounded entries with
+    junk prefixes, and an empty answer costs one pass over the catalog to rebuild.
+  */
+  const cache = suggestions.length
+    ? "public, max-age=0, s-maxage=600, stale-while-revalidate=3600"
+    : "no-store";
 
   return NextResponse.json(
-    { suggestions: suggest(q, listings, collections) },
+    { suggestions },
     {
       headers: {
         // The catalog only moves on a sync, so a repeated prefix is worth caching. Short
         // enough that a new product shows up the same day it lands.
-        "Cache-Control": "public, max-age=0, s-maxage=600, stale-while-revalidate=3600",
+        "Cache-Control": cache,
         // Suggestions are not pages and have no business in an index.
         "X-Robots-Tag": "noindex",
       },
