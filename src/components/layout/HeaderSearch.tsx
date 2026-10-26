@@ -2,8 +2,8 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MIN_QUERY_CHARS } from "@/lib/suggest";
-import type { Suggestion } from "@/lib/suggest";
+import { MIN_QUERY_CHARS } from "@/lib/suggest-contract";
+import type { Suggestion } from "@/lib/suggest-contract";
 
 /**
  * Search from any page, with typeahead.
@@ -58,9 +58,13 @@ export function HeaderSearch({
           setSuggestions(data.suggestions ?? []);
           setActive(-1);
         })
-        // An abort is the expected path on every keystroke, and a failed suggestion
-        // lookup must never break the form underneath it.
-        .catch(() => {});
+        .catch((error) => {
+          // An abort is the expected path on every keystroke and means a newer request
+          // is already running. Any other failure has to clear the list: `visible` gates
+          // on the current query's length, not its text, so the previous query's
+          // suggestions would otherwise stay on screen and stay clickable.
+          if (error?.name !== "AbortError") setSuggestions([]);
+        });
     }, 180);
 
     return () => {
@@ -82,8 +86,13 @@ export function HeaderSearch({
 
   const visible = open && query.length >= MIN_QUERY_CHARS && suggestions.length > 0;
 
-  const go = (href: string) => {
+  const close = () => {
     setOpen(false);
+    setActive(-1);
+  };
+
+  const go = (href: string) => {
+    close();
     router.push(href);
     onNavigate?.();
   };
@@ -98,20 +107,31 @@ export function HeaderSearch({
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Escape") {
-      setOpen(false);
-      setActive(-1);
+      // On a type="search" input the browser clears the field on Escape. ARIA wants the
+      // first Escape to dismiss the popup only, so the typed query survives it.
+      if (visible) event.preventDefault();
+      close();
       return;
     }
-    if (!visible) return;
 
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      event.preventDefault();
-      const step = event.key === "ArrowDown" ? 1 : -1;
-      // Wraps through -1, which is "no option highlighted", so arrowing back past the
-      // top returns the typed text rather than jumping to the bottom.
-      const next = active + step;
-      setActive(next < -1 ? suggestions.length - 1 : next >= suggestions.length ? -1 : next);
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+
+    // Arrowing reopens a list dismissed by Escape or an outside click, rather than
+    // making the visitor type another character to get it back.
+    if (!visible) {
+      if (suggestions.length > 0 && query.length >= MIN_QUERY_CHARS) {
+        event.preventDefault();
+        setOpen(true);
+      }
+      return;
     }
+
+    event.preventDefault();
+    const step = event.key === "ArrowDown" ? 1 : -1;
+    // Wraps through -1, which is "no option highlighted", so arrowing back past the top
+    // returns the typed text rather than jumping to the bottom.
+    const next = active + step;
+    setActive(next < -1 ? suggestions.length - 1 : next >= suggestions.length ? -1 : next);
   };
 
   return (
@@ -188,12 +208,14 @@ export function HeaderSearch({
             id={`${listId}-${index}`}
             role="option"
             aria-selected={index === active}
-            // Pointerdown, not click: a click fires after blur, by which time the list
-            // has closed and the press lands on nothing.
-            onPointerDown={(event) => {
-              event.preventDefault();
-              go(suggestion.href);
-            }}
+            /*
+              Click, not pointerdown. Pointerdown fires the moment a finger lands, before
+              the browser can tell a tap from the start of a scroll, so swiping to scroll
+              over the list navigated instead. Click also reaches the screen readers that
+              activate an option by synthesising one. Nothing here closes on blur, so the
+              click still lands on the option.
+            */
+            onClick={() => go(suggestion.href)}
             onMouseEnter={() => setActive(index)}
             className="flex cursor-pointer items-baseline justify-between gap-3 px-4 py-2 text-sm"
             style={{

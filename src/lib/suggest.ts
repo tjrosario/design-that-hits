@@ -15,14 +15,12 @@ import { collectionPath } from "@/lib/collections";
 import { listingName, listingPath } from "@/lib/slug";
 import type { Collection } from "@/lib/collections";
 import type { Listing } from "@/types/etsy";
+import { MIN_QUERY_CHARS } from "@/lib/suggest-contract";
+import type { Suggestion } from "@/lib/suggest-contract";
 
-export type Suggestion =
-  | { kind: "collection"; label: string; href: string; count: number }
-  | { kind: "product"; label: string; href: string }
-  | { kind: "query"; label: string; href: string; count: number };
+export { MIN_QUERY_CHARS };
+export type { Suggestion };
 
-/** One character matches most of the catalog, which is noise rather than a suggestion. */
-export const MIN_QUERY_CHARS = 2;
 
 const MAX_COLLECTIONS = 3;
 const MAX_PRODUCTS = 5;

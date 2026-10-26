@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parsePageNumber } from "@/app/collections/[slug]/pages/[n]/page";
+import { parsePageNumber } from "@/lib/pagination";
 
 /**
  * `/^[2-9]\d*$/` looks like "two or more" and reads as "starts with 2 through 9", so
