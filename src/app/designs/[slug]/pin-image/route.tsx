@@ -26,8 +26,10 @@ import { PinPhotoError, fetchPinPhoto, photoBox } from "@/lib/pin-photo";
 // fs and the photo fetch both need Node.
 export const runtime = "nodejs";
 
-export const PIN_WIDTH = 1000;
-export const PIN_HEIGHT = 1500;
+// Not exported: Next only allows a route module to export handlers and segment
+// config, and a --webpack build fails type checking on anything else.
+const PIN_WIDTH = 1000;
+const PIN_HEIGHT = 1500;
 
 const BG = "#0E0C0F";
 const TEXT = "#F8F5F7";
