@@ -4,7 +4,11 @@
  * Which occasion collections are worth merchandising on a given day. The windows cover
  * the shopping run-up rather than the date itself, and they overlap on purpose: October
  * sells Halloween and Christmas at the same time.
+ *
+ * The dated shipping deadline is a separate concern and lives in lib/shipping.ts.
  */
+
+import { shopToday } from "@/lib/shop-time";
 
 /** Inclusive window bound, as [month, day] with January as 1. */
 type MonthDay = [month: number, day: number];
@@ -31,18 +35,10 @@ function ordinal([month, day]: MonthDay): number {
   return month * 100 + day;
 }
 
-/** The shop sells in USD to US buyers, so its calendar day is the one that matters. */
-const SHOP_TIME_ZONE = "America/New_York";
-
 /** Month and day in the shop's timezone, so a window never turns over mid-evening. */
 function shopMonthDay(now: Date): MonthDay {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: SHOP_TIME_ZONE,
-    month: "numeric",
-    day: "numeric",
-  }).formatToParts(now);
-  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
-  return [get("month"), get("day")];
+  const { month, day } = shopToday(now);
+  return [month, day];
 }
 
 /**
