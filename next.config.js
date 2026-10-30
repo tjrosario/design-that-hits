@@ -21,6 +21,13 @@ const nextConfig = {
 
   images: {
     /*
+      Product photos resolve to an Etsy CDN variant rather than /_next/image. Optimizing
+      a photo Etsy has already resized costs one billed transformation per image per
+      width, and when that allowance ran out the optimizer answered 402 on every cache
+      miss and the grid filled with broken images.
+    */
+    loaderFile: "./src/lib/etsy-image-loader.ts",
+    /*
       AVIF first, WebP second. Next's default is WebP alone, and it serves the first
       format the browser accepts, so this costs nothing for browsers without AVIF. On a
       catalogue of 366 product photos where the image is the product, the 20-30% AVIF
