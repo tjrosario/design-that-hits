@@ -12,13 +12,7 @@ import { PRICE_UNAVAILABLE, formatPrice, hasPrice } from "@/lib/price";
 import { JsonLd } from "@/components/JsonLd";
 import type { Listing } from "@/types/etsy";
 import { ORGANIZATION_ID } from "@/lib/site-graph";
-import {
-  HANDLING_DAYS,
-  TRANSIT_DAYS,
-  WRAPPING_PAPER_RATE,
-  deliveryEstimateText,
-  hasDeliveryEstimate,
-} from "@/lib/shipping";
+import { deliveryEstimateText, hasDeliveryEstimate, offerShippingDetails } from "@/lib/shipping";
 import { relatedRails } from "@/lib/related";
 import { ProductRail } from "@/components/products/ProductRail";
 import { SaveToPinterest } from "@/components/products/SaveToPinterest";
@@ -48,30 +42,7 @@ const PRICE_VALID_UNTIL = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
  * `unitCode: "DAY"` is UN/CEFACT, which is what Google reads here. The rate is the
  * single-roll charge, matching the single-unit Offer it hangs off.
  */
-const SHIPPING_DETAILS = {
-  "@type": "OfferShippingDetails",
-  shippingDestination: { "@type": "DefinedRegion", addressCountry: "US" },
-  shippingRate: {
-    "@type": "MonetaryAmount",
-    value: WRAPPING_PAPER_RATE.first.toFixed(2),
-    currency: WRAPPING_PAPER_RATE.currency,
-  },
-  deliveryTime: {
-    "@type": "ShippingDeliveryTime",
-    handlingTime: {
-      "@type": "QuantitativeValue",
-      minValue: HANDLING_DAYS.min,
-      maxValue: HANDLING_DAYS.max,
-      unitCode: "DAY",
-    },
-    transitTime: {
-      "@type": "QuantitativeValue",
-      minValue: TRANSIT_DAYS.min,
-      maxValue: TRANSIT_DAYS.max,
-      unitCode: "DAY",
-    },
-  },
-};
+const SHIPPING_DETAILS = offerShippingDetails();
 
 /*
   WHY THESE PAGES EXIST

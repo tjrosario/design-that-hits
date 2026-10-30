@@ -3,9 +3,9 @@
  *
  * How long an order takes, and the last day to order for Christmas.
  *
- * The deadline is never written down as a date. It is derived by walking the delivery
- * estimate backwards, so the date the site advertises and the figures behind it cannot
- * drift apart.
+ * The deadline is never written down as a date. It is derived by walking the printer's
+ * measured pace backwards, which is a deliberately shorter window than the processing time
+ * the site quotes the buyer: see HANDLING_DAYS and OBSERVED_HANDLING_DAYS.
  */
 
 import {
@@ -26,8 +26,8 @@ export interface DayRange {
 }
 
 /**
- * Production as the shop's Etsy listings allow for it, quoted on the product page and in the
- * structured data so the site never advertises faster than checkout. Not the deadline.
+ * Production as the shop's Etsy listings allow for it. Quoted on the product page, in the
+ * contact FAQ and in offerShippingDetails, so nothing advertises faster than checkout.
  */
 export const HANDLING_DAYS: DayRange = { min: 2, max: 5 };
 
@@ -193,6 +193,37 @@ export function christmasCutoff(year: number): ChristmasCutoff {
   };
 }
 
+/**
+ * The Offer's shipping block. Quotes HANDLING_DAYS, never the measured pace: a crawler must
+ * not be told the shop processes faster than its own Etsy checkout says.
+ */
+export function offerShippingDetails() {
+  return {
+    "@type": "OfferShippingDetails",
+    shippingDestination: { "@type": "DefinedRegion", addressCountry: "US" },
+    shippingRate: {
+      "@type": "MonetaryAmount",
+      value: WRAPPING_PAPER_RATE.first.toFixed(2),
+      currency: WRAPPING_PAPER_RATE.currency,
+    },
+    deliveryTime: {
+      "@type": "ShippingDeliveryTime",
+      handlingTime: {
+        "@type": "QuantitativeValue",
+        minValue: HANDLING_DAYS.min,
+        maxValue: HANDLING_DAYS.max,
+        unitCode: "DAY",
+      },
+      transitTime: {
+        "@type": "QuantitativeValue",
+        minValue: TRANSIT_DAYS.min,
+        maxValue: TRANSIT_DAYS.max,
+        unitCode: "DAY",
+      },
+    },
+  };
+}
+
 /** The per-product delivery sentence. Only for listings hasDeliveryEstimate accepts. */
 export function deliveryEstimateText(): string {
   return `Made to order in ${HANDLING_DAYS.min} to ${HANDLING_DAYS.max} business days, then ${TRANSIT_DAYS.min} to ${TRANSIT_DAYS.max} business days in transit within the US. Ships from ${SHIP_FROM}.`;
@@ -222,9 +253,9 @@ export interface ShippingNotice {
 const NOTICE_DETAIL =
   "Based on wrapping paper delivered within the US. Other items and digital downloads vary.";
 
-/** Why the deadline is later than the product page's processing window implies. */
+/** Why the deadline is later than the processing window quoted elsewhere on the site implies. */
 const PACE_BASIS =
-  "Assumes the printer's current production pace rather than the longer window the listing allows.";
+  "Assumes the printer's current production pace rather than the longer processing window the shop allows for.";
 
 /**
  * The Christmas delivery notice for `now`, or null when there is nothing honest to say.
@@ -252,8 +283,8 @@ export function shippingNotice(now: Date): ShippingNotice | null {
     return {
       ...common,
       state: "late",
-      headline: "Past the safe cutoff for Christmas delivery",
-      detail: `An order placed by ${common.lastChanceLabel} can still arrive in time, but only if production and transit both run at their fastest. ${NOTICE_DETAIL}`,
+      headline: "Past the recommended cutoff for Christmas delivery",
+      detail: `An order placed by ${common.lastChanceLabel} can still arrive in time, but only at the printer's quickest observed production and the quickest transit, both faster than the window the shop allows for. ${NOTICE_DETAIL}`,
     };
   }
 

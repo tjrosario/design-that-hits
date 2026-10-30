@@ -5,6 +5,7 @@ import {
   TRANSIT_DAYS,
   christmasCutoff,
   deliveryEstimateText,
+  offerShippingDetails,
   deliveryWindow,
   hasDeliveryEstimate,
   observed,
@@ -136,10 +137,11 @@ describe("deliveryWindow", () => {
 });
 
 /*
-  The invariant that makes the advertised date safe to print. The cutoff is derived from the
-  delivery estimate, so the two can never disagree: ordering on the cutoff has to arrive in
-  time even at the slow end, and the next day has to miss. Without the second half the test
-  would pass for any date early enough, including a needlessly early one.
+  The invariant that makes the advertised date printable. The cutoff is walked back from the
+  measured pace, so ordering on it has to arrive in time at that bracket's slow end and the
+  next day has to miss. Without the second half the test would pass for any date early
+  enough, including a needlessly early one. It disagrees with the longer window the site
+  quotes the buyer by design, which the offerShippingDetails test pins separately.
 */
 describe("christmasCutoff", () => {
   it("is the last day whose slowest measured delivery still arrives in time", () => {
@@ -200,6 +202,28 @@ describe("christmasCutoff", () => {
     expect(HANDLING_DAYS).toEqual({ min: 2, max: 5 });
     expect(OBSERVED_HANDLING_DAYS.max).toBeLessThan(HANDLING_DAYS.max);
     expect(deliveryEstimateText()).toContain("2 to 5 business days");
+  });
+});
+
+/*
+  A crawler must never be told the shop processes faster than its own Etsy checkout says.
+  Nothing guarded this, so swapping these to the measured pace used to pass on green CI.
+*/
+describe("offerShippingDetails", () => {
+  it("publishes the listing's processing window, not the measured pace", () => {
+    const { handlingTime, transitTime } = offerShippingDetails().deliveryTime;
+    expect(handlingTime.minValue).toBe(HANDLING_DAYS.min);
+    expect(handlingTime.maxValue).toBe(HANDLING_DAYS.max);
+    expect(handlingTime.maxValue).not.toBe(OBSERVED_HANDLING_DAYS.max);
+    expect(transitTime.minValue).toBe(TRANSIT_DAYS.min);
+    expect(transitTime.maxValue).toBe(TRANSIT_DAYS.max);
+  });
+
+  it("quotes days in the unit Google reads, and the single-roll rate", () => {
+    const details = offerShippingDetails();
+    expect(details.deliveryTime.handlingTime.unitCode).toBe("DAY");
+    expect(details.deliveryTime.transitTime.unitCode).toBe("DAY");
+    expect(details.shippingRate.value).toBe("8.49");
   });
 });
 
@@ -313,6 +337,27 @@ describe("shippingNotice", () => {
       expect(copy, toISODate(date)).not.toContain("Made to order");
       expect(notice.detail, toISODate(date)).toContain("Other items and digital downloads vary");
     }
+  });
+
+  /*
+    The deadline is later than the processing window the product page and the FAQ quote, so
+    every state has to name the pace it assumes. Without this the disclosure can be deleted
+    and the banner ships an unexplained date on green CI.
+  */
+  it("says what the deadline assumes, in every state", () => {
+    const seen = new Set<string>();
+    for (let offset = 0; offset <= 32; offset += 1) {
+      const date = addDays({ year: 2026, month: 11, day: 19 }, offset);
+      const notice = shippingNotice(shopNoon(date.year, date.month, date.day));
+      if (!notice) continue;
+      const where = `${toISODate(date)} (${notice.state})`;
+      seen.add(notice.state);
+      expect(notice.detail, where).toContain("the shop allows for");
+      if (notice.state !== "late") {
+        expect(notice.detail, where).toContain("current production pace");
+      }
+    }
+    expect([...seen].sort()).toEqual(["last-call", "late", "open"]);
   });
 
   it("reads the date in the shop's timezone rather than UTC", () => {
