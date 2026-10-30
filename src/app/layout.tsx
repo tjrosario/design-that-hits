@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { ShippingNotice } from "@/components/layout/ShippingNotice";
 import { ThemeScript } from "@/components/ThemeScript";
 import { Playfair_Display, Poppins } from "next/font/google";
 import { SITE_SHARE_IMAGE } from "@/lib/images";
@@ -217,6 +218,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
         <Footer />
+        {/* Pinned to the viewport, so it is last in the DOM to match. */}
+        <ShippingNotice />
         {/* Cookieless page-view counting. Loads after hydration, so it stays out of the
             way of the LCP work on the home and product pages. */}
         <Analytics />

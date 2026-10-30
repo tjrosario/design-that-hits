@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
 import { SITE_SHARE_IMAGE } from "@/lib/images";
 import { WEBSITE_ID } from "@/lib/site-graph";
+import { HANDLING_DAYS, SHIP_FROM, TRANSIT_DAYS } from "@/lib/shipping";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
 
@@ -24,7 +25,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "How long will my order take?",
-    a: "Everything is printed on demand rather than held in stock, so each item is made after you order it. Current production and delivery estimates are shown on each Etsy listing at checkout.",
+    a: `Everything is printed on demand rather than held in stock, so each item is made after you order it. Wrapping paper is printed in ${HANDLING_DAYS.min} to ${HANDLING_DAYS.max} business days and ships from ${SHIP_FROM}, arriving in another ${TRANSIT_DAYS.min} to ${TRANSIT_DAYS.max} business days within the US. Estimates for every other item are shown on its Etsy listing at checkout.`,
   },
   {
     q: "Do you take bulk or wholesale orders?",

@@ -17,6 +17,11 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],
-    env: { SHOP_DISABLE_RSS: "1" },
+    /*
+      `TZ` is pinned so the suite sees a runtime zone that is not the shop's. Unpinned, a
+      dev machine on US Eastern makes the shop-timezone tests vacuous, because the runtime
+      zone and the shop zone agree and dropping the zone entirely still passes.
+    */
+    env: { SHOP_DISABLE_RSS: "1", TZ: "UTC" },
   },
 });

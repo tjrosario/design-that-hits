@@ -12,6 +12,7 @@ import { PRICE_UNAVAILABLE, formatPrice, hasPrice } from "@/lib/price";
 import { JsonLd } from "@/components/JsonLd";
 import type { Listing } from "@/types/etsy";
 import { ORGANIZATION_ID } from "@/lib/site-graph";
+import { deliveryEstimateText, hasDeliveryEstimate, offerShippingDetails } from "@/lib/shipping";
 import { relatedRails } from "@/lib/related";
 import { ProductRail } from "@/components/products/ProductRail";
 import { SaveToPinterest } from "@/components/products/SaveToPinterest";
@@ -33,6 +34,15 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com
 const PRICE_VALID_UNTIL = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
   .toISOString()
   .slice(0, 10);
+
+/**
+ * Delivery terms for the offer, in schema.org's shape.
+ *
+ * The same for every listing that publishes it, so it is built once rather than per page.
+ * `unitCode: "DAY"` is UN/CEFACT, which is what Google reads here. The rate is the
+ * single-roll charge, matching the single-unit Offer it hangs off.
+ */
+const SHIPPING_DETAILS = offerShippingDetails();
 
 /*
   WHY THESE PAGES EXIST
@@ -219,6 +229,8 @@ export default async function DesignPage({ params }: PageProps) {
     ? { href: collectionPath(listing.productType), label: `More ${typeLabel}` }
     : { href: "/collections", label: "Browse collections" };
 
+  const hasShippingEstimate = hasDeliveryEstimate(listing);
+
   const productJsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -261,6 +273,9 @@ export default async function DesignPage({ params }: PageProps) {
                 // The offer points at Etsy because that is where the transaction happens.
                 url: listing.url,
                 seller: { "@id": ORGANIZATION_ID },
+                // Search Console flags a merchant listing with no shipping details. Only
+                // published where hasDeliveryEstimate vouches for the figures.
+                ...(hasShippingEstimate ? { shippingDetails: SHIPPING_DETAILS } : {}),
               },
             }
           : {}),
@@ -354,7 +369,9 @@ export default async function DesignPage({ params }: PageProps) {
             {hasPrice(listing) ? formatPrice(listing.price, listing.currency) : PRICE_UNAVAILABLE}
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 mb-8">
+          <div
+            className={`flex flex-col sm:flex-row gap-3 ${hasShippingEstimate ? "mb-4" : "mb-8"}`}
+          >
             <a
               href={listing.url}
               target="_blank"
@@ -373,6 +390,13 @@ export default async function DesignPage({ params }: PageProps) {
             </Link>
             <SaveToPinterest listing={listing} />
           </div>
+
+          {/* Under the buy button rather than above it: reassurance after the decision. */}
+          {hasShippingEstimate && (
+            <p className="text-sm mb-8" style={{ color: "var(--text-muted)" }}>
+              {deliveryEstimateText()}
+            </p>
+          )}
 
           {descriptionBlocks.length > 0 && (
             <div className="mb-8">
