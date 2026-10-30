@@ -142,16 +142,14 @@ describe("deliveryWindow", () => {
   would pass for any date early enough, including a needlessly early one.
 */
 describe("christmasCutoff", () => {
-  it("is the last day whose slowest published delivery still arrives in time", () => {
+  it("is the last day whose slowest measured delivery still arrives in time", () => {
     for (const year of [2026, 2027, 2028, 2029, 2030]) {
       const { arriveBy, safe } = christmasCutoff(year);
-      expect(dateKey(deliveryWindow(safe).latest), `${year} cutoff`).toBeLessThanOrEqual(
+      const window = (d: typeof safe) => deliveryWindow(d, OBSERVED_HANDLING_DAYS).latest;
+      expect(dateKey(window(safe)), `${year} cutoff`).toBeLessThanOrEqual(dateKey(arriveBy));
+      expect(dateKey(window(addDays(safe, 1))), `${year} day after cutoff`).toBeGreaterThan(
         dateKey(arriveBy)
       );
-      expect(
-        dateKey(deliveryWindow(addDays(safe, 1)).latest),
-        `${year} day after cutoff`
-      ).toBeGreaterThan(dateKey(arriveBy));
     }
   });
 
@@ -175,24 +173,33 @@ describe("christmasCutoff", () => {
     Pinned deliberately. 2026 is the year this ships for, and Christmas Day falling on a
     Friday costs a weekend right at the end. A change here means a fulfilment figure moved.
   */
-  it("puts the 2026 Christmas cutoff on December 7", () => {
+  it("puts the 2026 Christmas cutoff on December 10", () => {
     const { safe, likely } = christmasCutoff(2026);
-    expect(toISODate(safe)).toBe("2026-12-07");
+    expect(toISODate(safe)).toBe("2026-12-10");
     expect(toISODate(likely)).toBe("2026-12-17");
   });
 
   /*
-    The advertised deadline must never be derived from a production figure faster than the
-    one the buyer is promised at Etsy checkout, which is 2 to 5 business days. Quoting the
-    providers' 1.1 and 1.4 day averages here would let the site promise a date the shop's
-    own listing contradicts.
+    The deadline comes off the printer's measured pace, while the product page and the
+    structured data keep quoting the listing's longer allowance. Both figures are true, and
+    the gap between them is the slack the shop is choosing to spend.
   */
-  it("derives the advertised date from the published processing window, not the average", () => {
+  it("derives the advertised date from the measured pace, not the published allowance", () => {
+    const { safe, arriveBy } = christmasCutoff(2026);
+    expect(dateKey(deliveryWindow(safe, OBSERVED_HANDLING_DAYS).latest)).toBeLessThanOrEqual(
+      dateKey(arriveBy)
+    );
+    expect(dateKey(deliveryWindow(safe, HANDLING_DAYS).latest)).toBeGreaterThan(dateKey(arriveBy));
+  });
+
+  /*
+    The quoted window is a separate promise from the deadline and must stay the listing's,
+    so the product page and the Offer never advertise faster than Etsy checkout.
+  */
+  it("still quotes the published processing window to the buyer", () => {
     expect(HANDLING_DAYS).toEqual({ min: 2, max: 5 });
     expect(OBSERVED_HANDLING_DAYS.max).toBeLessThan(HANDLING_DAYS.max);
-    const fromAverage = deliveryWindow(christmasCutoff(2026).safe, OBSERVED_HANDLING_DAYS);
-    const fromPublished = deliveryWindow(christmasCutoff(2026).safe, HANDLING_DAYS);
-    expect(dateKey(fromAverage.latest)).toBeLessThan(dateKey(fromPublished.latest));
+    expect(deliveryEstimateText()).toContain("2 to 5 business days");
   });
 });
 
@@ -252,25 +259,25 @@ describe("shippingNotice", () => {
   });
 
   it("opens three weeks before the cutoff", () => {
-    expect(shippingNotice(shopNoon(2026, 11, 15))).toBeNull();
-    expect(shippingNotice(shopNoon(2026, 11, 16))?.state).toBe("open");
+    expect(shippingNotice(shopNoon(2026, 11, 18))).toBeNull();
+    expect(shippingNotice(shopNoon(2026, 11, 19))?.state).toBe("open");
   });
 
   it("counts down over the last three days", () => {
-    expect(shippingNotice(shopNoon(2026, 12, 3))?.state).toBe("open");
-    expect(shippingNotice(shopNoon(2026, 12, 4))?.headline).toBe(
+    expect(shippingNotice(shopNoon(2026, 12, 6))?.state).toBe("open");
+    expect(shippingNotice(shopNoon(2026, 12, 7))?.headline).toBe(
       "3 days left to order for Christmas delivery"
     );
-    expect(shippingNotice(shopNoon(2026, 12, 6))?.headline).toBe(
+    expect(shippingNotice(shopNoon(2026, 12, 9))?.headline).toBe(
       "1 day left to order for Christmas delivery"
     );
-    expect(shippingNotice(shopNoon(2026, 12, 7))?.headline).toBe(
+    expect(shippingNotice(shopNoon(2026, 12, 10))?.headline).toBe(
       "Today is the last day to order for Christmas delivery"
     );
   });
 
   it("drops to the optimistic date once the safe one has gone", () => {
-    const notice = shippingNotice(shopNoon(2026, 12, 8));
+    const notice = shippingNotice(shopNoon(2026, 12, 11));
     expect(notice?.state).toBe("late");
     expect(notice?.detail).toContain("December 17");
     // "can still arrive", not "often": it is the best case, not a typical one.
@@ -287,8 +294,8 @@ describe("shippingNotice", () => {
 
   it("always names the date it is counting to", () => {
     const notice = shippingNotice(shopNoon(2026, 12, 1));
-    expect(notice?.headline).toContain("December 7");
-    expect(toISODate(notice!.cutoff)).toBe("2026-12-07");
+    expect(notice?.headline).toContain("December 10");
+    expect(toISODate(notice!.cutoff)).toBe("2026-12-10");
   });
 
   /*
@@ -297,8 +304,8 @@ describe("shippingNotice", () => {
     other providers and one Canva download that ships from nowhere.
   */
   it("never makes a wrapping-paper-only claim in sitewide copy", () => {
-    for (let day = 16; day <= 48; day += 1) {
-      const date = addDays({ year: 2026, month: 11, day: 16 }, day - 16);
+    for (let day = 19; day <= 51; day += 1) {
+      const date = addDays({ year: 2026, month: 11, day: 19 }, day - 19);
       const notice = shippingNotice(shopNoon(date.year, date.month, date.day));
       if (!notice) continue;
       const copy = `${notice.headline} ${notice.detail}`;
@@ -309,14 +316,14 @@ describe("shippingNotice", () => {
   });
 
   it("reads the date in the shop's timezone rather than UTC", () => {
-    // 2026-12-08 01:00 UTC is 2026-12-07 20:00 Eastern, still the cutoff day.
-    expect(shippingNotice(new Date("2026-12-08T01:00:00Z"))?.headline).toBe(
+    // 2026-12-11 01:00 UTC is 2026-12-10 20:00 Eastern, still the cutoff day.
+    expect(shippingNotice(new Date("2026-12-11T01:00:00Z"))?.headline).toBe(
       "Today is the last day to order for Christmas delivery"
     );
-    // One hour before midnight Eastern on the cutoff it is still the last day.
-    expect(shippingNotice(new Date("2026-12-08T04:59:00Z"))?.state).toBe("last-call");
+    // One minute before midnight Eastern on the cutoff it is still the last day.
+    expect(shippingNotice(new Date("2026-12-11T04:59:00Z"))?.state).toBe("last-call");
     // One minute after, it is not.
-    expect(shippingNotice(new Date("2026-12-08T05:01:00Z"))?.state).toBe("late");
+    expect(shippingNotice(new Date("2026-12-11T05:01:00Z"))?.state).toBe("late");
   });
 
   it("never reports a headline that disagrees with its own state", () => {

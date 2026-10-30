@@ -26,16 +26,15 @@ export interface DayRange {
 }
 
 /**
- * Production, as the shop's Etsy listings promise it at checkout.
- *
- * This is the figure the site quotes and derives its deadline from. The two Printify
- * providers actually average 1.1 and 1.4 business days, but a storefront must not promise
- * faster than the checkout the buyer is sent to: quoting 1 to 2 here would undercut the
- * shop's own listing and leave no room for a slow queue day.
+ * Production as the shop's Etsy listings allow for it, quoted on the product page and in the
+ * structured data so the site never advertises faster than checkout. Not the deadline.
  */
 export const HANDLING_DAYS: DayRange = { min: 2, max: 5 };
 
-/** What the providers measurably average, used only for the optimistic fallback date. */
+/**
+ * Production as the two Printify providers measurably run it, averaging 1.1 and 1.4 days.
+ * Both Christmas dates derive from this bracket: the slow end for one, the fast end for the other.
+ */
 export const OBSERVED_HANDLING_DAYS: DayRange = { min: 1, max: 2 };
 
 /** US delivery after production, from the shop's verified Etsy shipping template. */
@@ -153,10 +152,8 @@ export function deliveryWindow(
 }
 
 /**
- * How confident a cutoff is.
- *
- * `safe` requires the slow end of the published brackets to land in time. `likely` allows
- * the fast end of the measured ones, which is the best case and nothing more.
+ * How confident a cutoff is. `safe` needs the slow end of the measured pace to land in time,
+ * `likely` only its fast end, which is the best case and nothing more.
  */
 export type Pace = "safe" | "likely";
 
@@ -171,7 +168,7 @@ export function lastOrderDate(arriveBy: CalendarDate, pace: Pace): CalendarDate 
   for (let step = 0; step < 90; step += 1) {
     const arrival =
       pace === "safe"
-        ? deliveryWindow(candidate, HANDLING_DAYS).latest
+        ? deliveryWindow(candidate, OBSERVED_HANDLING_DAYS).latest
         : deliveryWindow(candidate, OBSERVED_HANDLING_DAYS).earliest;
     if (dateKey(arrival) <= dateKey(arriveBy)) return candidate;
     candidate = addDays(candidate, -1);
@@ -181,7 +178,7 @@ export function lastOrderDate(arriveBy: CalendarDate, pace: Pace): CalendarDate 
 
 export interface ChristmasCutoff {
   arriveBy: CalendarDate;
-  /** The date the site advertises: in time even at the slow end of the published brackets. */
+  /** The date the site advertises: in time at the slow end of the measured production pace. */
   safe: CalendarDate;
   /** Past `safe`, the last date that arrives only if everything runs at its measured best. */
   likely: CalendarDate;
@@ -225,6 +222,10 @@ export interface ShippingNotice {
 const NOTICE_DETAIL =
   "Based on wrapping paper delivered within the US. Other items and digital downloads vary.";
 
+/** Why the deadline is later than the product page's processing window implies. */
+const PACE_BASIS =
+  "Assumes the printer's current production pace rather than the longer window the listing allows.";
+
 /**
  * The Christmas delivery notice for `now`, or null when there is nothing honest to say.
  *
@@ -264,7 +265,7 @@ export function shippingNotice(now: Date): ShippingNotice | null {
         daysLeft === 0
           ? "Today is the last day to order for Christmas delivery"
           : `${daysLeft} day${daysLeft === 1 ? "" : "s"} left to order for Christmas delivery`,
-      detail: NOTICE_DETAIL,
+      detail: `${PACE_BASIS} ${NOTICE_DETAIL}`,
     };
   }
 
@@ -272,6 +273,6 @@ export function shippingNotice(now: Date): ShippingNotice | null {
     ...common,
     state: "open",
     headline: `Order by ${common.cutoffLabel} for Christmas delivery`,
-    detail: NOTICE_DETAIL,
+    detail: `${PACE_BASIS} ${NOTICE_DETAIL}`,
   };
 }
