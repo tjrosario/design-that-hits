@@ -10,16 +10,14 @@ import type { Listing } from "@/types/etsy";
 
 interface ProductCardProps {
   listing: Listing;
-  /** Fetch this card's photo immediately rather than lazily. For the first row only. */
-  eager?: boolean;
   /**
-   * Ask the browser to fetch this photo ahead of the other eager ones.
+   * Fetch this card's photo immediately rather than lazily, which also preloads it.
    *
-   * For the single card most likely to be the LCP element, which on a phone is the first:
-   * the grid is one column there, so card one fills the viewport on its own. Nothing here
-   * preloads, because which card is the LCP changes with the breakpoint and Next's docs
-   * rule preload out for exactly that case.
+   * One card per grid, because each preload competes at top priority with the one that
+   * decides LCP. See `gridImagePriority`, which every grid gets this from.
    */
+  eager?: boolean;
+  /** Fetch this photo ahead of everything else. The card most likely to be the LCP. */
   lcp?: boolean;
 }
 
