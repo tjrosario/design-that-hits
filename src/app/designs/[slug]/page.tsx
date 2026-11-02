@@ -357,8 +357,9 @@ export default async function DesignPage({ params }: PageProps) {
               */
               sizes="(max-width: 768px) 100vw, 1100px"
               className="object-cover"
-              // The product photo is the LCP element on this page.
-              priority
+              // The one unambiguous LCP element on the site, so this is the one place
+              // Next's docs call for a preload rather than just a high fetch priority.
+              preload
             />
           ) : (
             <div className="flex h-full items-center justify-center text-sm" style={{ color: "var(--text-muted)" }}>

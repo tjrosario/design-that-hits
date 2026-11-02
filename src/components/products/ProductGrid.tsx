@@ -2,6 +2,7 @@
 
 import type { Listing } from "@/types/etsy";
 import { ProductCard } from "./ProductCard";
+import { gridImagePriority } from "@/lib/grid-priority";
 import { ProductCardSkeleton } from "./ProductCardSkeleton";
 
 interface ProductGridProps {
@@ -77,10 +78,10 @@ export function ProductGrid({ listings, loading, error, onClear }: ProductGridPr
       className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4"
       aria-label={`${listings.length} products`}
     >
-      {listings.map((listing) => (
+      {listings.map((listing, i) => (
         // product-zone is the stationary hover target; the card inside it does the moving.
         <li key={listing.id} className="product-zone">
-          <ProductCard listing={listing} />
+          <ProductCard listing={listing} {...gridImagePriority(i)} />
         </li>
       ))}
     </ul>

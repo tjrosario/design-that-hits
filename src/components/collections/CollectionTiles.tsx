@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { gridImagePriority } from "@/lib/grid-priority";
 import Link from "next/link";
 import { collectionPath, type Collection } from "@/lib/collections";
 
@@ -8,7 +9,7 @@ interface CollectionTilesProps {
    * How many tiles to load eagerly. Set it to the first row on a page where these sit
    * near the top, leave it at 0 where they are below the fold.
    */
-  priorityCount?: number;
+  eagerCount?: number;
 }
 
 /**
@@ -18,7 +19,7 @@ interface CollectionTilesProps {
  * pages read as a site map rather than a storefront, and on a shop the picture is what
  * tells someone whether a category is for them.
  */
-export function CollectionTiles({ collections, priorityCount = 0 }: CollectionTilesProps) {
+export function CollectionTiles({ collections, eagerCount = 0 }: CollectionTilesProps) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
       {collections.map((c, i) => (
@@ -37,7 +38,8 @@ export function CollectionTiles({ collections, priorityCount = 0 }: CollectionTi
                 // columns on a phone, three from md, four from lg where 25% is 320px.
                 sizes="(max-width: 767px) 50vw, (max-width: 1023px) 33vw, 320px"
                 className="object-cover transition-transform duration-500 group-hover:scale-105"
-                priority={i < priorityCount}
+                loading={gridImagePriority(i, eagerCount).eager ? "eager" : "lazy"}
+                fetchPriority={gridImagePriority(i, eagerCount).lcp ? "high" : undefined}
               />
               {/* Scrim, so the label keeps its contrast over any photo. */}
               <div

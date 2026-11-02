@@ -11,6 +11,7 @@
  */
 
 import type { Metadata } from "next";
+import { gridImagePriority } from "@/lib/grid-priority";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getListings } from "@/lib/shop";
@@ -153,7 +154,7 @@ export async function CatalogPage({ spec, page }: { spec: CatalogSpec; page: num
           is the LCP element and lazy-loading it is the classic way to lose LCP. */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
         {listings.map((listing, i) => (
-          <ProductCard key={listing.id} listing={listing} priority={i < 4} />
+          <ProductCard key={listing.id} listing={listing} {...gridImagePriority(i)} />
         ))}
       </div>
 

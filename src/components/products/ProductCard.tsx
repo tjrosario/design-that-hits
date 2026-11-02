@@ -10,14 +10,17 @@ import type { Listing } from "@/types/etsy";
 
 interface ProductCardProps {
   listing: Listing;
+  /** Fetch this card's photo immediately rather than lazily. For the first row only. */
+  eager?: boolean;
   /**
-   * Load this card's photo eagerly, at high priority, with a preload hint.
+   * Ask the browser to fetch this photo ahead of the other eager ones.
    *
-   * Set it on the handful of cards that are above the fold. Everything below stays lazy:
-   * `priority` preloads, and preloading a whole grid competes with itself and makes the
-   * LCP worse rather than better.
+   * For the single card most likely to be the LCP element, which on a phone is the first:
+   * the grid is one column there, so card one fills the viewport on its own. Nothing here
+   * preloads, because which card is the LCP changes with the breakpoint and Next's docs
+   * rule preload out for exactly that case.
    */
-  priority?: boolean;
+  lcp?: boolean;
 }
 
 // Truncate title to ~20 chars for the badge
@@ -31,7 +34,7 @@ function badgeTitle(title: string): string {
   return out || title.slice(0, 16);
 }
 
-export function ProductCard({ listing, priority = false }: ProductCardProps) {
+export function ProductCard({ listing, eager = false, lcp = false }: ProductCardProps) {
   // Etsy titles are pipe-separated keyword blocks. Screen readers would otherwise read
   // the whole 150-character blob as the link name for every card in the grid.
   const name = listingName(listing);
@@ -78,7 +81,8 @@ export function ProductCard({ listing, priority = false }: ProductCardProps) {
             */
             sizes="(max-width: 639px) 100vw, (max-width: 767px) 50vw, (max-width: 1279px) 33vw, 320px"
             className="object-cover product-image"
-            priority={priority}
+            loading={eager ? "eager" : "lazy"}
+            fetchPriority={lcp ? "high" : undefined}
           />
         ) : (
           <div className="flex h-full items-center justify-center" style={{ color: 'var(--border)' }}>

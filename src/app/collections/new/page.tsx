@@ -10,6 +10,7 @@
  */
 
 import type { Metadata } from "next";
+import { gridImagePriority } from "@/lib/grid-priority";
 import Link from "next/link";
 import { newArrivals, NEW_ARRIVALS_DAYS } from "@/lib/arrivals";
 import { JsonLd } from "@/components/JsonLd";
@@ -118,7 +119,7 @@ export default async function NewArrivalsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
           {listings.map((listing, i) => (
-            <ProductCard key={listing.id} listing={listing} priority={i < 4} />
+            <ProductCard key={listing.id} listing={listing} {...gridImagePriority(i)} />
           ))}
         </div>
       )}
