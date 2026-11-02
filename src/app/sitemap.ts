@@ -4,6 +4,7 @@ import { fullSizeImageUrl } from "@/lib/images";
 import { listingPath } from "@/lib/slug";
 import type { Listing } from "@/types/etsy";
 import { since, NEW_ARRIVALS_DAYS } from "@/lib/arrivals";
+import { deferredPrimaryId } from "@/lib/duplicates";
 import {
   COLLECTION_PAGE_SIZE,
   collectionPagePath,
@@ -116,7 +117,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
   });
 
-  const productPages: MetadataRoute.Sitemap = listings.map((listing) => ({
+  /*
+    A listing the shop has on Etsy twice canonicalises to the other copy, so only the copy
+    that carries the ranking is submitted. Offering both invites Google to pick for itself.
+  */
+  const present = new Set(listings.map((l) => l.id));
+  const indexable = listings.filter((l) => deferredPrimaryId(l, (id) => present.has(id)) === null);
+
+  const productPages: MetadataRoute.Sitemap = indexable.map((listing) => ({
     url: `${SITE_URL}${listingPath(listing)}`,
     // Etsy's own updated timestamp, so re-crawls track real edits rather than build time.
     lastModified:    new Date(listing.updatedAt * 1000),

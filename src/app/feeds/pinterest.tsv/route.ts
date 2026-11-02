@@ -19,6 +19,7 @@ import { getCatalogListings } from "@/lib/catalog";
 import { getAllListings } from "@/lib/shop";
 import { listingName } from "@/lib/slug";
 import { occasionLabel, primaryOccasion, productTypeLabel, themeLabel } from "@/lib/facets";
+import { defersToAnother } from "@/lib/duplicates";
 import { hasPrice } from "@/lib/price";
 import { fullSizeImageUrl } from "@/lib/images";
 import { FEED_DESCRIPTION_MAX, cell, pinterestDescription, pinterestLink, truncate } from "@/lib/pinterest";
@@ -96,7 +97,8 @@ function row(listing: Listing): string {
     title: truncate(cell(listingName(listing)), 150),
     description: pinterestDescription(listing, FEED_DESCRIPTION_MAX),
     // utm so Pinterest traffic is attributable. The product page canonicalises to the
-    // clean URL, so the parameters cannot create a duplicate.
+    // clean URL, so the parameters cannot create a duplicate. Rows whose page
+    // canonicalises to a different product are dropped in GET below, not here.
     link: pinterestLink(listing, "catalog"),
     // Pinterest wants at least 1000px on the primary image; the stored URL is often
     // Etsy's 570px thumbnail, so ask for the full-size variant.
@@ -133,7 +135,15 @@ export async function GET() {
     left out than published wrong.
   */
   const sellable = listings.filter((listing) => hasPrice(listing) && listing.image);
-  const rows = sellable.map(row).filter(Boolean);
+
+  /*
+    A listing the shop has on Etsy twice is left out. Its page canonicalises to the other
+    copy and advertises that copy's og:url, so two feed rows would land on one URL, which
+    is what Pinterest's landing-page checks exist to catch. The row-count floor below is
+    394 and dropping three from 415 clears it.
+  */
+  const publishable = sellable.filter((listing) => !defersToAnother(listing, listings));
+  const rows = publishable.map(row).filter(Boolean);
 
   /*
     Thrown, not returned as a 503.

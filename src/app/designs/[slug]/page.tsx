@@ -13,6 +13,7 @@ import { JsonLd } from "@/components/JsonLd";
 import type { Listing } from "@/types/etsy";
 import { ORGANIZATION_ID } from "@/lib/site-graph";
 import { deliveryEstimateText, hasDeliveryEstimate, offerShippingDetails } from "@/lib/shipping";
+import { canonicalIdFor } from "@/lib/duplicates";
 import { relatedRails } from "@/lib/related";
 import { ProductRail } from "@/components/products/ProductRail";
 import { SaveToPinterest } from "@/components/products/SaveToPinterest";
@@ -74,6 +75,19 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+/**
+ * The URL this page should be indexed under.
+ *
+ * A listing the shop has on Etsy twice points at the copy that carries the ranking, so the
+ * two pages stop competing for the same query. A delisted primary leaves this page as the
+ * only one for the product, so it stands on its own, which is the rule the sitemap applies.
+ */
+async function canonicalUrlFor(listing: Listing): Promise<string> {
+  const primaryId = canonicalIdFor(listing);
+  const primary = primaryId === null ? null : await getListingById(primaryId);
+  return `${SITE_URL}${listingPath(primary ?? listing)}`;
+}
+
 async function resolveListing(slugPromise: PageProps["params"]): Promise<Listing | null> {
   const { slug } = await slugPromise;
   const id = idFromSlug(slug);
@@ -123,6 +137,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!listing) return { title: "Design not found" };
 
   const url = `${SITE_URL}${listingPath(listing)}`;
+  const canonical = await canonicalUrlFor(listing);
   const name = listingName(listing);
   const description = metaDescription(listing);
 
@@ -139,7 +154,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     */
     title: { absolute: name },
     description,
-    alternates: { canonical: url },
+    alternates: { canonical },
     openGraph: {
       /*
         No `type` here on purpose. This is a product page, so og:type should be "product",
@@ -153,7 +168,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       siteName: "Design That Hits",
       title: name,
       description,
-      url,
+      // The canonical URL, so a share of a duplicate resolves to the copy that ranks.
+      url: canonical,
       // The product photo makes a far better share card than the generic site image.
       ...(share ? { images: [share] } : {}),
     },
