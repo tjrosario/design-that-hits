@@ -13,6 +13,7 @@ import { JsonLd } from "@/components/JsonLd";
 import type { Listing } from "@/types/etsy";
 import { ORGANIZATION_ID } from "@/lib/site-graph";
 import { deliveryEstimateText, hasDeliveryEstimate, offerShippingDetails } from "@/lib/shipping";
+import { canonicalIdFor } from "@/lib/duplicates";
 import { relatedRails } from "@/lib/related";
 import { ProductRail } from "@/components/products/ProductRail";
 import { SaveToPinterest } from "@/components/products/SaveToPinterest";
@@ -74,6 +75,18 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+/**
+ * The URL this page should be indexed under.
+ *
+ * A listing the shop has on Etsy twice points at the copy that carries the ranking, so
+ * the two pages stop competing for the same query.
+ */
+async function canonicalUrlFor(listing: Listing): Promise<string> {
+  const primaryId = canonicalIdFor(listing);
+  const primary = primaryId === null ? listing : ((await getListingById(primaryId)) ?? listing);
+  return `${SITE_URL}${listingPath(primary)}`;
+}
+
 async function resolveListing(slugPromise: PageProps["params"]): Promise<Listing | null> {
   const { slug } = await slugPromise;
   const id = idFromSlug(slug);
@@ -122,7 +135,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const listing = await resolveListing(params);
   if (!listing) return { title: "Design not found" };
 
-  const url = `${SITE_URL}${listingPath(listing)}`;
+  const url = await canonicalUrlFor(listing);
   const name = listingName(listing);
   const description = metaDescription(listing);
 
@@ -206,7 +219,7 @@ export default async function DesignPage({ params }: PageProps) {
   const name = listingName(listing);
   const descriptionBlocks = parseDescription(listing.description);
   const rails = await relatedRails(listing);
-  const url = `${SITE_URL}${listingPath(listing)}`;
+  const url = await canonicalUrlFor(listing);
   const typeLabel = listing.productType ? productTypeLabel(listing.productType) : null;
 
   /*
