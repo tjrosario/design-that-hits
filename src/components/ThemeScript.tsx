@@ -45,24 +45,46 @@
  */
 
 import { seasonSchedule } from "@/lib/season";
-import { SHOP_TIME_ZONE } from "@/lib/shop-time";
+import { dateKey, SHOP_TIME_ZONE, shopToday } from "@/lib/shop-time";
 
 export const THEME_STORAGE_KEY = "dth-theme";
 
 /*
   Two years from the start of the current one. A deploy is never more than a few hours
-  behind the catalog sync, so this is generous; past the end the script falls back to the
-  season the month implies rather than dropping the palette entirely.
+  behind the catalog sync, so this is generous.
 */
 const SCHEDULE_YEARS = 2;
 
-/** `[[20261105,"fall","thanksgiving"], ...]`, the compact form the inline script reads. */
+const literalByYear = new Map<number, string>();
+
+/**
+ * `[[20261105,"fall","thanksgiving"], ..., [20280101,null,null]]` for the inline script.
+ *
+ * The last row is a sentinel with no season: the script's scan lands on it once the table
+ * has run out, which is how it knows to stop trusting the table rather than pinning the
+ * final holiday forever.
+ *
+ * Memoised by year. Building a schedule walks two years of the holiday rules, and this is
+ * called from the root layout, so every page of a build would otherwise pay for it.
+ */
 export function scheduleLiteral(fromYear: number): string {
-  const rows = seasonSchedule(fromYear, SCHEDULE_YEARS).map((t) => [t.from, t.season, t.holiday]);
-  return JSON.stringify(rows);
+  const cached = literalByYear.get(fromYear);
+  if (cached !== undefined) return cached;
+
+  const rows: (number | string | null)[][] = seasonSchedule(fromYear, SCHEDULE_YEARS).map((t) => [
+    t.from,
+    t.season,
+    t.holiday,
+  ]);
+  rows.push([dateKey({ year: fromYear + SCHEDULE_YEARS, month: 1, day: 1 }), null, null]);
+
+  const literal = JSON.stringify(rows);
+  literalByYear.set(fromYear, literal);
+  return literal;
 }
 
-function body(schedule: string): string {
+/** The inline script's source. Exported so a test can run the real thing. */
+export function themeScriptBody(schedule: string): string {
   return `
 (function () {
   var el = document.documentElement;
@@ -86,7 +108,9 @@ function body(schedule: string): string {
     var schedule = ${schedule};
     var row = null;
     for (var j = 0; j < schedule.length; j++) if (schedule[j][0] <= today) row = schedule[j];
-    if (!row) {
+    // No row, or the sentinel past the end of the table: the month alone still gives a
+    // season, which is better than pinning whichever holiday the table ended on.
+    if (!row || !row[1]) {
       var m = +get('month');
       row = [0, m > 2 && m < 6 ? 'spring' : m > 5 && m < 9 ? 'summer' : m > 8 && m < 12 ? 'fall' : 'winter', null];
     }
@@ -101,7 +125,7 @@ function body(schedule: string): string {
 export function ThemeScript() {
   return (
     <script
-      dangerouslySetInnerHTML={{ __html: body(scheduleLiteral(new Date().getUTCFullYear())) }}
+      dangerouslySetInnerHTML={{ __html: themeScriptBody(scheduleLiteral(shopToday(new Date()).year)) }}
     />
   );
 }

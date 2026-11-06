@@ -71,12 +71,16 @@ export function easterSunday(year: number): CalendarDate {
   return { year, month: Math.floor(shift / 31), day: (shift % 31) + 1 };
 }
 
+/* `month: "long"` because the month is matched by name: the Hebrew calendar's numeric
+   index moves with the leap month, so Kislev is not a fixed number. */
 const HEBREW_CALENDAR = new Intl.DateTimeFormat("en-u-ca-hebrew", {
   timeZone: "UTC",
   year: "numeric",
-  month: "numeric",
+  month: "long",
   day: "numeric",
 });
+
+const hanukkahByYear = new Map<number, CalendarDate | null>();
 
 /**
  * The Gregorian day that is 25 Kislev, the first night of Hanukkah.
@@ -86,6 +90,17 @@ const HEBREW_CALENDAR = new Intl.DateTimeFormat("en-u-ca-hebrew", {
  * the wrong week once it ran out. 25 Kislev always falls inside the scanned range.
  */
 export function hanukkahFirstNight(year: number): CalendarDate | null {
+  // Memoised because holidayFor asks for three years on every day it resolves, and each
+  // miss walks up to six weeks of the Hebrew calendar through Intl.
+  const cached = hanukkahByYear.get(year);
+  if (cached !== undefined) return cached;
+
+  const found = scanForKislev25(year);
+  hanukkahByYear.set(year, found);
+  return found;
+}
+
+function scanForKislev25(year: number): CalendarDate | null {
   let date: CalendarDate = { year, month: 11, day: 20 };
   const end = dateKey({ year, month: 12, day: 31 });
   while (dateKey(date) <= end) {
@@ -115,8 +130,10 @@ interface HolidayDefinition {
 
 /*
   Leads are shopping lead times, not decoration: a gift is bought well before the day it
-  is given. Thanksgiving trails to the Monday after so it covers Black Friday and Cyber
-  Monday, then hands straight to Christmas on December 1 with no gap and no overlap.
+  is given. Thanksgiving trails four days so that Black Friday and Cyber Monday always
+  fall inside it, which is what the trail is for rather than meeting Christmas exactly:
+  depending on where the fourth Thursday lands, the two windows abut, overlap by a day or
+  leave one or two days of bare fall between them.
 */
 const HOLIDAYS: HolidayDefinition[] = [
   { id: "new-year", on: (y) => ({ year: y, month: 1, day: 1 }), lead: 5, trail: 1, priority: 65 },
@@ -208,11 +225,48 @@ export interface SeasonalTransition {
 }
 
 /**
+ * Below this, a palette would read as a flicker rather than a season.
+ *
+ * A run this short is absorbed into the one before it. Lead windows overlap, so without
+ * this the accent can change four times in ten days: in December 2030 the raw rule gives
+ * Christmas, Hanukkah, two days of Christmas again, Hanukkah, then New Year.
+ */
+export const MIN_RUN_DAYS = 4;
+
+/** Drops any run shorter than `MIN_RUN_DAYS`, extending its predecessor over those days. */
+function absorbShortRuns(
+  transitions: SeasonalTransition[],
+  endExclusive: number
+): SeasonalTransition[] {
+  const dayOf = (key: number) => ({
+    year: Math.floor(key / 10000),
+    month: Math.floor(key / 100) % 100,
+    day: key % 100,
+  });
+  const lengthOf = (list: SeasonalTransition[], at: number) =>
+    daysBetween(dayOf(list[at].from), dayOf(list[at + 1]?.from ?? endExclusive));
+
+  let kept = transitions;
+  for (let pass = 0; pass < transitions.length; pass += 1) {
+    // The first run has no predecessor to fold into, so it always stays.
+    const short = kept.findIndex((_, at) => at > 0 && lengthOf(kept, at) < MIN_RUN_DAYS);
+    if (short === -1) break;
+    kept = kept.filter((_, at) => at !== short);
+    kept = kept.filter(
+      (entry, at) => at === 0 || entry.season !== kept[at - 1].season || entry.holiday !== kept[at - 1].holiday
+    );
+  }
+  return kept;
+}
+
+/**
  * Every palette change over `years` from the start of `fromYear`, in order.
  *
  * The point is to move the calendar off the critical path: the client gets this table and
  * a date comparison instead of a copy of the holiday rules, so the arithmetic above stays
  * the only implementation. A year is about thirty entries.
+ *
+ * Short runs are absorbed, so this is deliberately not a day-by-day echo of `themeFor`.
  */
 export function seasonSchedule(fromYear: number, years = 2): SeasonalTransition[] {
   const transitions: SeasonalTransition[] = [];
@@ -228,7 +282,7 @@ export function seasonSchedule(fromYear: number, years = 2): SeasonalTransition[
     date = addDays(date, 1);
   }
 
-  return transitions;
+  return absorbShortRuns(transitions, end);
 }
 
 /** Every holiday the calendar knows, for tests and for a coverage check. */

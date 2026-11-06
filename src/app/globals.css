@@ -52,6 +52,8 @@
     --brand-ink:    #FFFFFF;
     /* Tinted wash behind "soft" panels — pink at low alpha reads on either theme. */
     --brand-wash:   rgba(239, 46, 123, 0.12);
+    /* For the few chips that stay white in either theme. */
+    --brand-on-light: #D00E5E;
 
     --shadow-color: 0deg 0% 0%;
     --shadow-strength: 0.5;
@@ -99,6 +101,7 @@
     --brand-soft:   #FF5C9B;
     --brand-ink:    #FFFFFF;
     --brand-wash:   rgba(217, 20, 102, 0.08);
+    --brand-on-light: #D00E5E;
 
     --shadow-color: 340deg 40% 40%;
     --shadow-strength: 0.12;
@@ -119,12 +122,15 @@
     over a season block on source order alone, since both are one attribute deep, and the
     light variants win over both by carrying two attributes.
 
-    Each palette names only its five accent colors. The gradients below derive from them,
-    and every other token in the page is left alone: this changes the accent, never the
-    layout, the copy or the type.
+    Each palette overrides only the accent tokens. Layout, copy and type are untouched.
 
-    Every ink colour here clears 4.6:1 against its own brand. season-palette.test.ts
-    reparses this file and fails if an edit drops one below that.
+    The colours are solved, not picked: season-palette.test.ts reparses this file and
+    checks every pair that actually gets painted together. --brand-ink sits on
+    --gradient-brand, which spans --brand to --brand-strong, so it is measured against
+    both ends; --brand is used as text and as the focus ring, so it is measured against
+    --bg and --surface; --brand-on-light is for the one chip that stays white whatever
+    the theme. Hand-editing a hex here will fail that test rather than ship an
+    unreadable button.
   */
   :root[data-season],
   :root[data-holiday] {
@@ -137,220 +143,266 @@
       ),
       radial-gradient(
         ellipse 60% 50% at 10% 80%,
-        color-mix(in srgb, var(--brand-strong) 20%, transparent) 0%,
+        color-mix(in srgb, var(--brand-strong) 18%, transparent) 0%,
+        transparent 60%
+      );
+  }
+
+  /* The light hero is deliberately softer, so it keeps its own alphas. */
+  :root[data-theme="light"][data-season],
+  :root[data-theme="light"][data-holiday] {
+    --gradient-hero:
+      radial-gradient(
+        ellipse 80% 60% at 75% 35%,
+        color-mix(in srgb, var(--brand) 14%, transparent) 0%,
+        transparent 65%
+      ),
+      radial-gradient(
+        ellipse 60% 50% at 10% 80%,
+        color-mix(in srgb, var(--brand-soft) 12%, transparent) 0%,
         transparent 60%
       );
   }
 
   :root[data-season="spring"] {
-    --brand:        #82CB4D;
-    --brand-strong: #307E30;
-    --brand-soft:   #B6DE7C;
-    --brand-ink:    #1A1216;
-    --brand-wash:   rgba(130, 203, 77, 0.12);
+    --brand:          #82CB4D;
+    --brand-strong:   #309161;
+    --brand-soft:     #BAE085;
+    --brand-ink:      #1A1216;
+    --brand-on-light: #4C8226;
+    --brand-wash:     rgba(130, 203, 77, 0.12);
   }
   :root[data-season="summer"] {
-    --brand:        #2DC5D2;
-    --brand-strong: #23688B;
-    --brand-soft:   #67E4DA;
-    --brand-ink:    #1A1216;
-    --brand-wash:   rgba(45, 197, 210, 0.12);
+    --brand:          #42CAD7;
+    --brand-strong:   #5080D3;
+    --brand-soft:     #7DE8DF;
+    --brand-ink:      #1A1216;
+    --brand-on-light: #1D7E87;
+    --brand-wash:     rgba(66, 202, 215, 0.12);
   }
   :root[data-season="fall"] {
-    --brand:        #E88630;
-    --brand-strong: #A5411D;
-    --brand-soft:   #F2B963;
-    --brand-ink:    #1A1216;
-    --brand-wash:   rgba(232, 134, 48, 0.12);
+    --brand:          #E88630;
+    --brand-strong:   #DE4F45;
+    --brand-soft:     #F4C071;
+    --brand-ink:      #1A1216;
+    --brand-on-light: #AE5C13;
+    --brand-wash:     rgba(232, 134, 48, 0.12);
   }
   :root[data-season="winter"] {
-    --brand:        #49A0DF;
-    --brand-strong: #2956A3;
-    --brand-soft:   #79CDEC;
-    --brand-ink:    #1A1216;
-    --brand-wash:   rgba(73, 160, 223, 0.12);
+    --brand:          #3C9ADD;
+    --brand-strong:   #7874DC;
+    --brand-soft:     #79CDEC;
+    --brand-ink:      #1A1216;
+    --brand-on-light: #1D6CA5;
+    --brand-wash:     rgba(60, 154, 221, 0.12);
   }
   :root[data-holiday="new-year"] {
-    --brand:        #EFC139;
-    --brand-strong: #A5731D;
-    --brand-soft:   #F7E06E;
-    --brand-ink:    #1A1216;
-    --brand-wash:   rgba(239, 193, 57, 0.12);
+    --brand:          #EEBD2B;
+    --brand-strong:   #CD5E1D;
+    --brand-soft:     #F7E06E;
+    --brand-ink:      #1A1216;
+    --brand-on-light: #92710C;
+    --brand-wash:     rgba(238, 189, 43, 0.12);
   }
   :root[data-holiday="valentines"] {
-    --brand:        #F0426E;
-    --brand-strong: #AD1F53;
-    --brand-soft:   #F8778D;
-    --brand-ink:    #1A1216;
-    --brand-wash:   rgba(240, 66, 110, 0.12);
+    --brand:          #F04C75;
+    --brand-strong:   #DC38BB;
+    --brand-soft:     #F76E85;
+    --brand-ink:      #1A1216;
+    --brand-on-light: #B30F38;
+    --brand-wash:     rgba(240, 76, 117, 0.12);
   }
   :root[data-holiday="st-patricks"] {
-    --brand:        #2EB867;
-    --brand-strong: #227754;
-    --brand-soft:   #57DB78;
-    --brand-ink:    #1A1216;
-    --brand-wash:   rgba(46, 184, 103, 0.12);
+    --brand:          #47D181;
+    --brand-strong:   #2C9693;
+    --brand-soft:     #81E49A;
+    --brand-ink:      #1A1216;
+    --brand-on-light: #218349;
+    --brand-wash:     rgba(71, 209, 129, 0.12);
   }
   :root[data-holiday="easter"] {
-    --brand:        #AF70DB;
-    --brand-strong: #6339AC;
-    --brand-soft:   #DA9AEA;
-    --brand-ink:    #1A1216;
-    --brand-wash:   rgba(175, 112, 219, 0.12);
+    --brand:          #AF70DB;
+    --brand-strong:   #7575D7;
+    --brand-soft:     #D081E4;
+    --brand-ink:      #1A1216;
+    --brand-on-light: #6B279B;
+    --brand-wash:     rgba(175, 112, 219, 0.12);
   }
   :root[data-holiday="mothers-day"] {
-    --brand:        #E467A6;
-    --brand-strong: #B82E85;
-    --brand-soft:   #F391B5;
-    --brand-ink:    #1A1216;
-    --brand-wash:   rgba(228, 103, 166, 0.12);
+    --brand:          #E1569C;
+    --brand-strong:   #CB43D0;
+    --brand-soft:     #F075A2;
+    --brand-ink:      #1A1216;
+    --brand-on-light: #A51D61;
+    --brand-wash:     rgba(225, 86, 156, 0.12);
   }
   :root[data-holiday="fathers-day"] {
-    --brand:        #4D82CB;
-    --brand-strong: #2E498A;
-    --brand-soft:   #78B3DD;
-    --brand-ink:    #1A1216;
-    --brand-wash:   rgba(77, 130, 203, 0.12);
+    --brand:          #598ACF;
+    --brand-strong:   #7E75D7;
+    --brand-soft:     #85BAE0;
+    --brand-ink:      #1A1216;
+    --brand-on-light: #2C5896;
+    --brand-wash:     rgba(89, 138, 207, 0.12);
   }
   :root[data-holiday="independence-day"] {
-    --brand:        #E5484D;
-    --brand-strong: #224CA0;
-    --brand-soft:   #F08675;
-    --brand-ink:    #1A1216;
-    --brand-wash:   rgba(229, 72, 77, 0.12);
+    --brand:          #E75A5F;
+    --brand-strong:   #4E7DDA;
+    --brand-soft:     #F08675;
+    --brand-ink:      #1A1216;
+    --brand-on-light: #AA181D;
+    --brand-wash:     rgba(231, 90, 95, 0.12);
   }
   :root[data-holiday="halloween"] {
-    --brand:        #F47125;
-    --brand-strong: #6F2C96;
-    --brand-soft:   #FBB05B;
-    --brand-ink:    #1A1216;
-    --brand-wash:   rgba(244, 113, 37, 0.12);
+    --brand:          #F47125;
+    --brand-strong:   #A861D1;
+    --brand-soft:     #FBB76A;
+    --brand-ink:      #1A1216;
+    --brand-on-light: #B84A0A;
+    --brand-wash:     rgba(244, 113, 37, 0.12);
   }
   :root[data-holiday="thanksgiving"] {
-    --brand:        #DA572F;
-    --brand-strong: #872F22;
-    --brand-soft:   #E7925A;
-    --brand-ink:    #1A1216;
-    --brand-wash:   rgba(218, 87, 47, 0.12);
+    --brand:          #DD6540;
+    --brand-strong:   #A9761E;
+    --brand-soft:     #ECA779;
+    --brand-ink:      #1A1216;
+    --brand-on-light: #A53D1D;
+    --brand-wash:     rgba(221, 101, 64, 0.12);
   }
   :root[data-holiday="hanukkah"] {
-    --brand:        #4494E4;
-    --brand-strong: #2447A8;
-    --brand-soft:   #7ECBF1;
-    --brand-ink:    #1A1216;
-    --brand-wash:   rgba(68, 148, 228, 0.12);
+    --brand:          #368CE2;
+    --brand-strong:   #7B74E2;
+    --brand-soft:     #75C7F0;
+    --brand-ink:      #1A1216;
+    --brand-on-light: #1861AA;
+    --brand-wash:     rgba(54, 140, 226, 0.12);
   }
   :root[data-holiday="christmas"] {
-    --brand:        #E02941;
-    --brand-strong: #206F41;
-    --brand-soft:   #EE6368;
-    --brand-ink:    #FFFFFF;
-    --brand-wash:   rgba(224, 41, 65, 0.12);
+    --brand:          #E75A6D;
+    --brand-strong:   #2C9658;
+    --brand-soft:     #F07579;
+    --brand-ink:      #1A1216;
+    --brand-on-light: #AA182C;
+    --brand-wash:     rgba(231, 90, 109, 0.12);
   }
   :root[data-theme="light"][data-season="spring"] {
-    --brand:        #5FA22F;
-    --brand-strong: #276827;
-    --brand-soft:   #A8D864;
-    --brand-ink:    #1A1216;
-    --brand-wash:   rgba(95, 162, 47, 0.08);
+    --brand:          #457722;
+    --brand-strong:   #28774F;
+    --brand-soft:     #A8D864;
+    --brand-ink:      #FFFFFF;
+    --brand-on-light: #4C8226;
+    --brand-wash:     rgba(69, 119, 34, 0.08);
   }
   :root[data-theme="light"][data-season="summer"] {
-    --brand:        #208E97;
-    --brand-strong: #1D5672;
-    --brand-soft:   #4DE0D3;
-    --brand-ink:    #1A1216;
-    --brand-wash:   rgba(32, 142, 151, 0.08);
+    --brand:          #1B767E;
+    --brand-strong:   #214583;
+    --brand-soft:     #5AE2D7;
+    --brand-ink:      #FFFFFF;
+    --brand-on-light: #1D7E87;
+    --brand-wash:     rgba(27, 118, 126, 0.08);
   }
   :root[data-theme="light"][data-season="fall"] {
-    --brand:        #B35E14;
-    --brand-strong: #8B3718;
-    --brand-soft:   #F0AC47;
-    --brand-ink:    #FFFFFF;
-    --brand-wash:   rgba(179, 94, 20, 0.08);
+    --brand:          #A55712;
+    --brand-strong:   #8B2018;
+    --brand-soft:     #F0AF4C;
+    --brand-ink:      #FFFFFF;
+    --brand-on-light: #B35E14;
+    --brand-wash:     rgba(165, 87, 18, 0.08);
   }
   :root[data-theme="light"][data-season="winter"] {
-    --brand:        #217ABA;
-    --brand-strong: #23498B;
-    --brand-soft:   #5EC3E8;
-    --brand-ink:    #FFFFFF;
-    --brand-wash:   rgba(33, 122, 186, 0.08);
+    --brand:          #1E6FA9;
+    --brand-strong:   #242183;
+    --brand-soft:     #55C0E7;
+    --brand-ink:      #FFFFFF;
+    --brand-on-light: #2078B6;
+    --brand-wash:     rgba(30, 111, 169, 0.08);
   }
   :root[data-theme="light"][data-holiday="new-year"] {
-    --brand:        #D0A011;
-    --brand-strong: #8B6118;
-    --brand-soft:   #F6DA51;
-    --brand-ink:    #1A1216;
-    --brand-wash:   rgba(208, 160, 17, 0.08);
+    --brand:          #84660B;
+    --brand-strong:   #8F4114;
+    --brand-soft:     #F5D847;
+    --brand-ink:      #FFFFFF;
+    --brand-on-light: #92710C;
+    --brand-wash:     rgba(132, 102, 11, 0.08);
   }
   :root[data-theme="light"][data-holiday="valentines"] {
-    --brand:        #D91243;
-    --brand-strong: #931A47;
-    --brand-soft:   #F65A74;
-    --brand-ink:    #FFFFFF;
-    --brand-wash:   rgba(217, 18, 67, 0.08);
+    --brand:          #C6103E;
+    --brand-strong:   #8B1874;
+    --brand-soft:     #F54764;
+    --brand-ink:      #FFFFFF;
+    --brand-on-light: #C6103E;
+    --brand-wash:     rgba(198, 16, 62, 0.08);
   }
   :root[data-theme="light"][data-holiday="st-patricks"] {
-    --brand:        #207E47;
-    --brand-strong: #1C5F43;
-    --brand-soft:   #3DD664;
-    --brand-ink:    #FFFFFF;
-    --brand-wash:   rgba(32, 126, 71, 0.08);
+    --brand:          #1F7A45;
+    --brand-strong:   #217370;
+    --brand-soft:     #5FDD7F;
+    --brand-ink:      #FFFFFF;
+    --brand-on-light: #218349;
+    --brand-wash:     rgba(31, 122, 69, 0.08);
   }
   :root[data-theme="light"][data-holiday="easter"] {
-    --brand:        #8F37CD;
-    --brand-strong: #563295;
-    --brand-soft:   #D081E4;
-    --brand-ink:    #FFFFFF;
-    --brand-wash:   rgba(143, 55, 205, 0.08);
+    --brand:          #762BAB;
+    --brand-strong:   #25257E;
+    --brand-soft:     #C45FDD;
+    --brand-ink:      #FFFFFF;
+    --brand-on-light: #762BAB;
+    --brand-wash:     rgba(118, 43, 171, 0.08);
   }
   :root[data-theme="light"][data-holiday="mothers-day"] {
-    --brand:        #D92680;
-    --brand-strong: #9F2873;
-    --brand-soft:   #F075A2;
-    --brand-ink:    #FFFFFF;
-    --brand-wash:   rgba(217, 38, 128, 0.08);
+    --brand:          #B6206B;
+    --brand-strong:   #7F2183;
+    --brand-soft:     #EC5189;
+    --brand-ink:      #FFFFFF;
+    --brand-on-light: #B6206B;
+    --brand-wash:     rgba(182, 32, 107, 0.08);
   }
   :root[data-theme="light"][data-holiday="fathers-day"] {
-    --brand:        #2F5FA2;
-    --brand-strong: #263D73;
-    --brand-soft:   #60A5D7;
-    --brand-ink:    #FFFFFF;
-    --brand-wash:   rgba(47, 95, 162, 0.08);
+    --brand:          #3061A6;
+    --brand-strong:   #2E257E;
+    --brand-soft:     #64A8D8;
+    --brand-ink:      #FFFFFF;
+    --brand-on-light: #3061A6;
+    --brand-wash:     rgba(48, 97, 166, 0.08);
   }
   :root[data-theme="light"][data-holiday="independence-day"] {
-    --brand:        #C41C22;
-    --brand-strong: #1D4087;
-    --brand-soft:   #ED6D5A;
-    --brand-ink:    #FFFFFF;
-    --brand-wash:   rgba(196, 28, 34, 0.08);
+    --brand:          #BB1B20;
+    --brand-strong:   #1D4087;
+    --brand-soft:     #EC6551;
+    --brand-ink:      #FFFFFF;
+    --brand-on-light: #BB1B20;
+    --brand-wash:     rgba(187, 27, 32, 0.08);
   }
   :root[data-theme="light"][data-holiday="halloween"] {
-    --brand:        #C74F0A;
-    --brand-strong: #5E257E;
-    --brand-soft:   #FAA23D;
-    --brand-ink:    #FFFFFF;
-    --brand-wash:   rgba(199, 79, 10, 0.08);
+    --brand:          #B34809;
+    --brand-strong:   #5E257E;
+    --brand-soft:     #FAA442;
+    --brand-ink:      #FFFFFF;
+    --brand-on-light: #C74F0A;
+    --brand-wash:     rgba(179, 72, 9, 0.08);
   }
   :root[data-theme="light"][data-holiday="thanksgiving"] {
-    --brand:        #9C3A1C;
-    --brand-strong: #6E271C;
-    --brand-soft:   #E4813F;
-    --brand-ink:    #FFFFFF;
-    --brand-wash:   rgba(156, 58, 28, 0.08);
+    --brand:          #B64320;
+    --brand-strong:   #865E18;
+    --brand-soft:     #E79055;
+    --brand-ink:      #FFFFFF;
+    --brand-on-light: #B64320;
+    --brand-wash:     rgba(182, 67, 32, 0.08);
   }
   :root[data-theme="light"][data-holiday="hanukkah"] {
-    --brand:        #1C70C4;
-    --brand-strong: #1E3C8F;
-    --brand-soft:   #63BFEE;
-    --brand-ink:    #FFFFFF;
-    --brand-wash:   rgba(28, 112, 196, 0.08);
+    --brand:          #1B6BBB;
+    --brand-strong:   #241D87;
+    --brand-soft:     #51B8EC;
+    --brand-ink:      #FFFFFF;
+    --brand-on-light: #1B6BBB;
+    --brand-wash:     rgba(27, 107, 187, 0.08);
   }
   :root[data-theme="light"][data-holiday="christmas"] {
-    --brand:        #AA182C;
-    --brand-strong: #195733;
-    --brand-soft:   #EB474D;
-    --brand-ink:    #FFFFFF;
-    --brand-wash:   rgba(170, 24, 44, 0.08);
+    --brand:          #BB1B30;
+    --brand-strong:   #1F6B3F;
+    --brand-soft:     #EC5156;
+    --brand-ink:      #FFFFFF;
+    --brand-on-light: #BB1B30;
+    --brand-wash:     rgba(187, 27, 48, 0.08);
   }
 
   html {
