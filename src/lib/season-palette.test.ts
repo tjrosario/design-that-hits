@@ -118,11 +118,13 @@ describe("seasonal palettes in globals.css", () => {
     Every pair that actually gets painted together, because checking only one of them is
     how the first version of this shipped a near-black label onto a near-black gradient:
 
-      --brand-ink  on .btn-cta over var(--gradient-brand), which spans --brand to
-                   --brand-strong, so BOTH ends carry the label
+      --brand-ink  over var(--gradient-brand), which spans --brand to --brand-strong, so
+                   BOTH ends carry the label: .btn-cta, .nav-pill-link[aria-current] and
+                   the copy on the closing .brand-band
       --brand      as text in .display-accent and as the focus-visible outline, over
                    --bg and over --surface
-      --brand-on-light  the collection tile count chip, which is white in either theme
+      --brand-on-light  anything on a white face: the collection tile count chip and
+                   .btn-on-brand
   */
   it("keeps every painted pair readable in every palette", () => {
     const failures: string[] = [];
@@ -130,15 +132,15 @@ describe("seasonal palettes in globals.css", () => {
       const base = baseTokens(block.light);
       const name = `${block.light ? "light" : "dark"} ${block.id}`;
       const pairs: [string, string, string][] = [
-        ["ink on the bright end of the CTA", block.tokens["--brand"], block.tokens["--brand-ink"]],
+        ["ink on the bright end of the brand gradient", block.tokens["--brand"], block.tokens["--brand-ink"]],
         [
-          "ink on the dark end of the CTA",
+          "ink on the dark end of the brand gradient",
           block.tokens["--brand-strong"],
           block.tokens["--brand-ink"],
         ],
         ["brand as text on the page", block.tokens["--brand"], base["--bg"]],
         ["brand as text on a card", block.tokens["--brand"], base["--surface"]],
-        ["the white count chip", block.tokens["--brand-on-light"], "#FFFFFF"],
+        ["brand on a white face", block.tokens["--brand-on-light"], "#FFFFFF"],
       ];
       for (const [what, a, b] of pairs) {
         const ratio = contrast(a, b);

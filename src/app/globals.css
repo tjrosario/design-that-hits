@@ -127,9 +127,10 @@
     The colours are solved, not picked: season-palette.test.ts reparses this file and
     checks every pair that actually gets painted together. --brand-ink sits on
     --gradient-brand, which spans --brand to --brand-strong, so it is measured against
-    both ends; --brand is used as text and as the focus ring, so it is measured against
-    --bg and --surface; --brand-on-light is for the one chip that stays white whatever
-    the theme. Hand-editing a hex here will fail that test rather than ship an
+    both ends, and that covers .btn-cta and the copy on .brand-band; --brand is used as
+    text and as the focus ring, so it is measured against --bg and --surface;
+    --brand-on-light is for anything on a white face, the collection count chip and
+    .btn-on-brand. Hand-editing a hex here will fail that test rather than ship an
     unreadable button.
   */
   :root[data-season],
@@ -519,6 +520,13 @@
     border-radius: 22px;
   }
 
+  /* A panel that carries the season, for the band that is about the season. */
+  .panel-seasonal {
+    background-image:
+      radial-gradient(ellipse 60% 130% at 0% 0%, var(--brand-wash) 0%, transparent 72%),
+      radial-gradient(ellipse 50% 110% at 100% 100%, var(--brand-wash) 0%, transparent 68%);
+  }
+
   .panel-wash {
     background: var(--surface-2);
     border-radius: 26px;
@@ -597,6 +605,40 @@
   .btn-outline:hover {
     border-color: var(--brand);
     color: var(--brand);
+  }
+
+  /*
+    The CTA for use on top of .brand-band, where .btn-cta would be brand-on-brand and
+    vanish. A solid white face with --brand-on-light text, the one token already solved
+    for legibility on white, so it holds up in all fifteen palettes.
+  */
+  .btn-on-brand {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: #FFFFFF;
+    color: var(--brand-on-light);
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 13px 26px;
+    border-radius: 100px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 10px 28px -10px rgba(0, 0, 0, 0.45);
+  }
+  .btn-on-brand:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 38px -12px rgba(0, 0, 0, 0.5);
+  }
+  /* The shared arrow is a white wash, which is invisible on a white face. */
+  .btn-on-brand .arrow-circle {
+    background: rgba(0, 0, 0, 0.08);
+  }
+  .btn-on-brand:hover .arrow-circle {
+    transform: rotate(45deg);
   }
 
   /* The circular arrow that trails a CTA. Kept as its own class so buttons can opt in. */
@@ -918,9 +960,38 @@
   }
 
   /* ── Brand band (full-width gradient section) ─────────────────────────────── */
+  /*
+    Lit from the top left rather than painted flat. The highlights are white at low
+    alpha, not color-mix, so nothing here depends on a feature the gradient tokens
+    cannot rely on, and background-color keeps an opaque floor under the ink if any
+    layer above it fails to parse.
+
+    Every highlight lightens the band, and the ink on it is dark, so the texture can
+    only raise contrast. The floor is measured in season-palette.test.ts.
+  */
   .brand-band {
-    background: var(--gradient-brand);
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background-color: var(--brand-strong);
+    background-image:
+      radial-gradient(ellipse 75% 95% at 10% 5%, rgba(255, 255, 255, 0.24) 0%, transparent 62%),
+      radial-gradient(ellipse 65% 85% at 92% 95%, rgba(255, 255, 255, 0.10) 0%, transparent 58%),
+      var(--gradient-brand);
     color: var(--brand-ink);
+    box-shadow:
+      0 28px 64px -28px var(--brand-strong),
+      inset 0 1px 0 rgba(255, 255, 255, 0.26);
+  }
+  /* Printed-paper dot grid. Behind the copy, above the gradient, courtesy of isolation. */
+  .brand-band::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.13) 1px, transparent 1px);
+    background-size: 22px 22px;
   }
   .brand-band .display-accent {
     color: var(--brand-ink);
