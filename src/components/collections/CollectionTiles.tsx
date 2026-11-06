@@ -52,7 +52,7 @@ export function CollectionTiles({ collections, priorityCount = 0 }: CollectionTi
             className="relative z-10 text-[11px] font-semibold tracking-wide px-2.5 py-1 rounded-full self-start"
             style={
               c.imageUrl
-                ? { background: "rgba(255,255,255,0.92)", color: "var(--brand)" }
+                ? { background: "rgba(255,255,255,0.92)", color: "var(--brand-on-light)" }
                 : { background: "var(--brand-wash)", color: "var(--brand)" }
             }
           >

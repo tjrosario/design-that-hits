@@ -420,7 +420,7 @@ export default async function HomePage({ searchParams }: HomeProps) {
       */}
       {seasonalCollections.length > 0 && (
         <section className="mx-auto max-w-screen-xl px-4 sm:px-5 pb-8 sm:pb-10">
-          <div className="panel px-6 py-8 sm:px-10 sm:py-10">
+          <div className="panel panel-seasonal px-6 py-8 sm:px-10 sm:py-10">
             <p className="eyebrow mb-3">Shop the season</p>
             <h2 className="display-title mb-4" style={{ fontSize: "clamp(1.6rem, 3.6vw, 2.4rem)" }}>
               In season <span className="display-accent">right now</span>
@@ -442,6 +442,23 @@ export default async function HomePage({ searchParams }: HomeProps) {
                   className={i === 0 ? "btn-cta" : "btn-outline"}
                 >
                   {c.label}
+                  {i === 0 && (
+                    <span className="arrow-circle" aria-hidden="true">
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2.5}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M7 17L17 7M17 7H7M17 7v10"
+                        />
+                      </svg>
+                    </span>
+                  )}
                 </Link>
               ))}
             </div>
@@ -532,7 +549,7 @@ export default async function HomePage({ searchParams }: HomeProps) {
           </h2>
           <p
             className="text-sm sm:text-base mx-auto mb-8"
-            style={{ color: "rgba(255,255,255,0.88)", maxWidth: "34rem" }}
+            style={{ color: "var(--brand-ink)", maxWidth: "34rem" }}
           >
             Birthdays, Valentine&apos;s Day, graduations, Christmas and everything in between.
           </p>
@@ -540,10 +557,14 @@ export default async function HomePage({ searchParams }: HomeProps) {
             href="https://designthathits.etsy.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-outline"
-            style={{ borderColor: "rgba(255,255,255,0.5)", color: "var(--brand-ink)" }}
+            className="btn-on-brand"
           >
             Shop all designs on Etsy
+            <span className="arrow-circle" aria-hidden="true">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H7M17 7v10" />
+              </svg>
+            </span>
           </a>
         </div>
       </section>
