@@ -16,6 +16,7 @@ import {
   deriveOccasions,
   deriveProductType,
   occasionLabel,
+  primaryOccasion,
   primaryTheme,
   productTypeLabel,
   themeLabel,
@@ -25,6 +26,7 @@ import { formatPrice, hasPrice } from "@/lib/price";
 import { relevantOccasions } from "@/lib/seasonal";
 import { currentTheme } from "@/lib/season";
 import { getAllListings } from "@/lib/shop";
+import { shopToday, toISODate } from "@/lib/shop-time";
 import { listingName, listingPath, listingSlug } from "@/lib/slug";
 import { paletteIdFor, STORY_PALETTES, type PaletteId } from "@/lib/story-palette";
 import type { Listing } from "@/types/etsy";
@@ -46,7 +48,7 @@ export type StoryFormat = keyof typeof STORY_FORMATS;
   nobody can see. So the photo either keeps its own panel or carries a band small enough
   to leave the pattern legible.
 */
-export const LAYOUTS = ["panel", "banner", "frame", "edge"] as const;
+export const LAYOUTS = ["banner", "panel", "edge", "frame"] as const;
 export type Layout = (typeof LAYOUTS)[number];
 
 /** The separately drawn layers of an animated story, matching the video's filter inputs. */
@@ -87,6 +89,16 @@ export interface StoryCard {
   title: string;
   /** Why this card is on the page, shown as a chip. */
   reason: string;
+  /**
+   * The occasion this card is presented as, or null when it has none.
+   *
+   * Carried rather than re-derived, because a card is chosen for one occasion and the
+   * chip, the eyebrow, the caption, the palette and the tags all have to agree with that
+   * choice. Deriving it again picked a different one: `deriveOccasions` returns matches
+   * in rule order, so "Pink Goth Birthday Wrapping Paper", selected for the birthday
+   * window, came back Halloween and captioned itself "Halloween sorted" in July.
+   */
+  occasion: string | null;
   /** The full-size product photo, fetched and inlined at render time. */
   photo: string;
   versions: StoryVersion[];
@@ -112,11 +124,15 @@ export function toHashtag(label: string): string {
   return body ? `#${body.toLowerCase()}` : "";
 }
 
-function tagsFor(listing: Listing, platform: Platform): string[] {
+function tagsFor(listing: Listing, platform: Platform, occasion: string | null): string[] {
+  const theme = primaryTheme(listing);
+  const type = deriveProductType(listing);
+  /* The card's own occasion only. Tagging every match put #halloween on a birthday card
+     in July, which is the same contradiction the eyebrow had. */
   const own = [
-    ...deriveOccasions(listing).map(occasionLabel),
-    primaryTheme(listing) ? themeLabel(primaryTheme(listing)!) : "",
-    deriveProductType(listing) ? productTypeLabel(deriveProductType(listing)!) : "",
+    occasion ? occasionLabel(occasion) : "",
+    theme ? themeLabel(theme) : "",
+    type ? productTypeLabel(type) : "",
   ]
     .filter(Boolean)
     .map(toHashtag)
@@ -140,11 +156,6 @@ function detailLines(listing: Listing): string[] {
   return hasPrice(listing) ? [formatPrice(listing.price, listing.currency)] : [];
 }
 
-/** Whether the design's own name already says what it is printed on. */
-function namesItsType(name: string, typeName: string): boolean {
-  return name.toLowerCase().includes(typeName.toLowerCase());
-}
-
 /*
   Three angles on the same design, so a card can be posted more than once without
   repeating itself. Each is a function of facts already in the listing: what it is, what
@@ -153,8 +164,7 @@ function namesItsType(name: string, typeName: string): boolean {
 */
 type Angle = "design" | "occasion" | "arrival";
 
-function eyebrowFor(listing: Listing, angle: Angle): string {
-  const occasion = deriveOccasions(listing)[0];
+function eyebrowFor(listing: Listing, angle: Angle, occasion: string | null): string {
   const type = deriveProductType(listing);
   if (angle === "arrival") return "New in the shop";
   if (angle === "occasion" && occasion) return occasionLabel(occasion);
@@ -162,34 +172,49 @@ function eyebrowFor(listing: Listing, angle: Angle): string {
   return "Design that hits";
 }
 
-function captionsFor(listing: Listing, angle: Angle): Record<Platform, Caption> {
+function captionsFor(
+  listing: Listing,
+  angle: Angle,
+  occasion: string | null
+): Record<Platform, Caption> {
   const name = listingName(listing);
-  const occasion = deriveOccasions(listing)[0];
   const type = deriveProductType(listing);
-  const typeName = type ? productTypeLabel(type).toLowerCase() : "design";
   const price = hasPrice(listing) ? formatPrice(listing.price, listing.currency) : null;
 
-  // "Beach Christmas Wrapping Paper, printed on wrapping paper" reads as a bug, so a name
-  // that already says what it is printed on stands on its own.
-  const described = namesItsType(name, typeName) ? `${name}.` : `${name}, printed on ${typeName}.`;
+  /*
+    The name alone, never "printed on <product type>". Those labels are plural categories
+    rather than materials, so the sentence came out as "Golf Shirt, printed on t-shirts &
+    apparel" and, worse, "printed on digital downloads". The eyebrow carries the category.
+  */
   const opener =
     angle === "arrival"
       ? `Just added: ${name}.`
       : angle === "occasion" && occasion
         ? `${occasionLabel(occasion)} sorted. ${name}.`
-        : described;
-  const closer = price ? `${price}, printed on demand and shipped from the US.` : "Printed on demand and shipped from the US.";
+        : `${name}.`;
+
+  /*
+    The fulfilment claim is scoped the way /contact scopes it: wrapping paper is the only
+    line the site states a print-and-ship story for, and everything else shows its own
+    estimate on Etsy. Unscoped, this told shoppers a digital download ships from the US.
+  */
+  const closer =
+    type === "wrapping-paper"
+      ? `${price ? `${price}. ` : ""}Printed on demand and shipped from the US.`
+      : price
+        ? `${price} on Etsy.`
+        : "Find it on Etsy.";
 
   const text = `${opener} ${closer}`;
   return {
     tiktok: {
       title: clampCaption(opener, TIKTOK_TITLE_MAX),
       text,
-      hashtags: tagsFor(listing, "tiktok"),
+      hashtags: tagsFor(listing, "tiktok", occasion),
     },
     instagram: {
       text,
-      hashtags: tagsFor(listing, "instagram"),
+      hashtags: tagsFor(listing, "instagram", occasion),
       cta: angle === "arrival" ? "🎁 See the new one" : "🎁 Shop this design",
       link: storyLink(listing, "instagram"),
     },
@@ -204,6 +229,22 @@ export function clampCaption(text: string, max: number): string {
   return `${(space > max * 0.6 ? cut.slice(0, space) : cut).trimEnd()}…`;
 }
 
+/**
+ * The instant the arrivals cutoff is measured from: the start of the shop's calendar day.
+ *
+ * `newArrivals` otherwise cuts at `now - 45 days` to the second, so a listing fell out of
+ * the set partway through an afternoon while the page's prerendered HTML still carried
+ * its image and save URLs, and every one of them 404d until the page revalidated. The
+ * occasion windows and the palette are already day-granular, so this makes the whole card
+ * set a function of the shop's date rather than of the clock.
+ *
+ * The date is read in the shop's timezone and then measured from UTC midnight. The offset
+ * between those does not matter: all that is needed is one value per shop day.
+ */
+export function shopDayStart(now: Date): number {
+  return Date.parse(`${toISODate(shopToday(now))}T00:00:00Z`);
+}
+
 /** A stable number from a string, so a card's looks are the same on every render. */
 function seed(text: string): number {
   let hash = 5381;
@@ -213,22 +254,38 @@ function seed(text: string): number {
 
 const ANGLES: Angle[] = ["design", "occasion", "arrival"];
 
-function versionsFor(listing: Listing, fresh: boolean, today: PaletteId): StoryVersion[] {
+function versionsFor(
+  listing: Listing,
+  fresh: boolean,
+  today: PaletteId,
+  occasion: string | null
+): StoryVersion[] {
   const start = seed(listingSlug(listing));
-  const occasion = deriveOccasions(listing)[0];
   // A design for a holiday the palette knows is drawn in that holiday's colours whatever
   // the calendar says, so a Christmas card never goes out wearing the fall accent.
   const palette = (occasion ? OCCASION_PALETTES[occasion] : undefined) ?? today;
-  // The arrival angle is a claim about the catalog, so it only appears when it is true.
-  const angles = ANGLES.filter((a) => a !== "arrival" || fresh);
+
+  /*
+    An angle only appears when it is true of this listing. Without the occasion guard a
+    design with none produced two byte-identical versions, because the occasion angle
+    fell through to the same eyebrow and the same caption as the design angle.
+  */
+  const angles = ANGLES.filter(
+    (a) => (a !== "arrival" || fresh) && (a !== "occasion" || Boolean(occasion))
+  );
 
   return angles.map((angle, i) => ({
-    eyebrow: eyebrowFor(listing, angle),
+    eyebrow: eyebrowFor(listing, angle, occasion),
     title: clampName(listingName(listing)),
     lines: detailLines(listing),
-    layout: LAYOUTS[(start + i) % LAYOUTS.length],
+    /*
+      `start * 2` is even, so version 0 always lands on a full-bleed layout and every
+      card offers an animated story even when it has only one version. The versions then
+      alternate full-bleed and stacked.
+    */
+    layout: LAYOUTS[(start * 2 + i) % LAYOUTS.length],
     palette,
-    captions: captionsFor(listing, angle),
+    captions: captionsFor(listing, angle, occasion),
   }));
 }
 
@@ -243,7 +300,10 @@ export const MAX_CARDS = 24;
  * still among its versions.
  */
 export async function storyCards(now: Date = new Date()): Promise<StoryCard[]> {
-  const [listings, arrivals] = await Promise.all([getAllListings(), newArrivals(now.getTime())]);
+  const [listings, arrivals] = await Promise.all([
+    getAllListings(),
+    newArrivals(shopDayStart(now)),
+  ]);
   const today = paletteIdFor(currentTheme(now));
   const fresh = new Set(arrivals.map((l) => l.id));
 
@@ -254,26 +314,29 @@ export async function storyCards(now: Date = new Date()): Promise<StoryCard[]> {
       // Newest first, so a card list refreshes as the catalog grows rather than freezing.
       .sort((a, b) => b.createdAt - a.createdAt)
       .slice(0, Math.ceil(MAX_CARDS / 2 / open.length))
-      .map((listing) => ({ listing, reason: `In season · ${occasionLabel(slug)}` }))
+      // The slug that selected it, so the chip and the copy cannot disagree.
+      .map((listing) => ({ listing, reason: `In season · ${occasionLabel(slug)}`, occasion: slug }))
   );
 
   const recent = arrivals
     .filter((l) => l.image)
-    .map((listing) => ({ listing, reason: "New arrival" }));
+    // Nothing selected these for an occasion, so the listing's own leading one is used.
+    .map((listing) => ({ listing, reason: "New arrival", occasion: primaryOccasion(listing) }));
 
-  const picked = new Map<string, { listing: Listing; reason: string }>();
+  const picked = new Map<string, { listing: Listing; reason: string; occasion: string | null }>();
   for (const entry of [...seasonal, ...recent]) {
     const id = listingSlug(entry.listing);
     if (!picked.has(id)) picked.set(id, entry);
     if (picked.size >= MAX_CARDS) break;
   }
 
-  return [...picked.values()].map(({ listing, reason }) => ({
+  return [...picked.values()].map(({ listing, reason, occasion }) => ({
     id: listingSlug(listing),
     title: listingName(listing),
     reason,
+    occasion,
     photo: listing.image!.url,
-    versions: versionsFor(listing, fresh.has(listing.id), today),
+    versions: versionsFor(listing, fresh.has(listing.id), today, occasion),
   }));
 }
 

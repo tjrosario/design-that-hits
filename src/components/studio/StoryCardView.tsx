@@ -38,6 +38,7 @@ export function StoryCardView({
   versions: VersionView[];
 }) {
   const [at, setAt] = useState(0);
+  const [stale, setStale] = useState(false);
   const version = versions[at];
 
   return (
@@ -61,9 +62,16 @@ export function StoryCardView({
         height={1080}
         loading="lazy"
         decoding="async"
+        onError={() => setStale(true)}
         className="mt-4 w-full rounded-xl"
         style={{ border: "1px solid var(--border-soft)", background: "var(--bg)" }}
       />
+
+      {stale && (
+        <p className="mt-3 text-xs font-semibold" style={{ color: "var(--brand)" }}>
+          This card changed since the page loaded. Reload to post it.
+        </p>
+      )}
 
       {versions.length > 1 && (
         <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label={`Version of ${title}`}>
@@ -73,11 +81,11 @@ export function StoryCardView({
               type="button"
               aria-pressed={i === at}
               onClick={() => setAt(i)}
-              className="min-h-11 cursor-pointer rounded-full px-4 text-xs font-semibold uppercase tracking-wider transition-colors"
+              className={`min-h-11 cursor-pointer text-xs uppercase tracking-wider ${i === at ? "inline-flex items-center rounded-full px-4 font-semibold" : "btn-outline"}`}
               style={
                 i === at
                   ? { background: "var(--gradient-brand)", color: "var(--brand-ink)" }
-                  : { border: "1px solid var(--border)", color: "var(--text-soft)" }
+                  : undefined
               }
             >
               {v.eyebrow}

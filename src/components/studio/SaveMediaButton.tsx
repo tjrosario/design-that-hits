@@ -148,6 +148,9 @@ export function SaveMediaButton({
       href={href}
       download={filename}
       role="button"
+      /* The href is a real URL and a video render is a minute of CPU, so nothing that
+         walks links should be able to queue one up per card. */
+      rel="nofollow"
       // Videos render on demand, so they wait for a real tap rather than starting on every
       // touch while scrolling. Stills are cheap enough to warm up.
       onPointerDown={() => void (sharable && !video && load().catch(() => {}))}

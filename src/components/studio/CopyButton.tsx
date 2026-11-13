@@ -27,8 +27,9 @@ export function CopyButton({
         }
         setTimeout(() => setStatus("idle"), 2500);
       }}
-      className="inline-flex min-h-11 cursor-pointer items-center rounded-full px-4 text-sm font-semibold transition-colors"
-      style={{ border: "1px solid var(--border)", color: "var(--text)" }}
+      /* btn-outline is the site's own secondary button, so this matches it rather than
+         inventing a third treatment in one corner of one page. */
+      className="btn-outline min-h-11 cursor-pointer text-sm"
     >
       <span aria-live="polite">
         {status === "copied"

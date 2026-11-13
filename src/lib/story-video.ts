@@ -247,7 +247,7 @@ export async function storyVideo(
     const cover = `scale='if(gt(a,${w}/${h}),-2,${w})':'if(gt(a,${w}/${h}),${h},-2)'`;
     await run(
       ["-hide_banner", "-loglevel", "error", "-y", "-i", source, "-vf", cover, "-q:v", "2", path.join(dir, "bg.jpg")],
-      30_000
+      12_000
     );
 
     const box = bandBox(layout, width, height);
@@ -267,8 +267,13 @@ export async function storyVideo(
         "-pix_fmt", "yuv420p", "-movflags", "+faststart",
         out,
       ],
-      // Inside the route's own limit, so a slow encode fails as an error rather than a timeout.
-      45_000
+      /*
+        12 + 35 has to stay under the route's own 60, with room for the photo fetch and
+        the four satori passes on top. Past that the platform kills the function instead,
+        which skips the `finally` below and leaves the temp directory in /tmp for the
+        life of a warm instance.
+      */
+      35_000
     );
 
     return await readFile(out);

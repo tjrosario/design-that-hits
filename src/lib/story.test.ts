@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { NEW_ARRIVALS_DAYS } from "@/lib/arrivals";
+import { deriveProductType, occasionLabel } from "@/lib/facets";
 import { getAllListings } from "@/lib/shop";
-import { listingName } from "@/lib/slug";
+import { shopToday, toISODate } from "@/lib/shop-time";
+import { listingName, listingSlug } from "@/lib/slug";
 import {
   LAYOUTS,
   MAX_CARDS,
@@ -12,10 +15,14 @@ import {
   storyVersion,
   toHashtag,
   animatable,
+  shopDayStart,
 } from "@/lib/story";
 
 /* Mid-December: Christmas is in season, so the catalog has plenty to build cards from. */
 const DECEMBER = new Date("2026-12-10T12:00:00Z");
+/* Mid-July: no dated window is open, so `relevantOccasions` falls back to birthday. That
+   fallback covers about 141 days a year and is where the occasion bugs showed up. */
+const JULY = new Date("2026-07-14T12:00:00Z");
 
 describe("toHashtag", () => {
   it("drops everything a tag cannot carry", () => {
@@ -70,30 +77,92 @@ describe("storyCards", () => {
   });
 
   /*
-    The layouts alternate stacked and full-bleed by index, and a card's versions take
-    consecutive entries, so any card with more than one version has at least one that the
-    video route can animate. Reordering LAYOUTS silently breaks that, which is why it is
-    asserted rather than assumed.
+    Full-bleed layouts sit at the even indices and a version's layout is `start*2 + i`,
+    so version 0 always lands on one and every card offers an animated story even when it
+    has a single version. Reordering LAYOUTS silently breaks that.
   */
-  it("alternates stacked and full-bleed layouts", () => {
-    expect(LAYOUTS).toEqual(["panel", "banner", "frame", "edge"]);
+  it("puts the full-bleed layouts at the even indices", () => {
+    expect(LAYOUTS).toEqual(["banner", "panel", "edge", "frame"]);
   });
 
-  it("gives every card a version that can be animated", async () => {
-    const cards = await storyCards(DECEMBER);
-    for (const card of cards) {
-      expect(card.versions.length).toBeGreaterThan(1);
-      expect(card.versions.some((_, n) => animatable(card, n))).toBe(true);
+  it("gives every card a first version that can be animated", async () => {
+    for (const when of [DECEMBER, JULY]) {
+      const cards = await storyCards(when);
+      for (const card of cards) expect(animatable(card, 0)).toBe(true);
     }
   });
 
-  it("never claims a design is printed on what its own name already says", async () => {
-    const cards = await storyCards(DECEMBER);
-    for (const card of cards) {
-      for (const version of card.versions) {
-        expect(version.captions.tiktok.text).not.toMatch(
-          /wrapping paper.*printed on wrapping paper/i
+  it("never repeats a version, since posting both would post the same caption twice", async () => {
+    for (const when of [DECEMBER, JULY]) {
+      const cards = await storyCards(when);
+      for (const card of cards) {
+        const said = card.versions.map((v) => `${v.eyebrow}|${v.captions.tiktok.text}`);
+        expect(new Set(said).size, `${card.id} repeats itself`).toBe(said.length);
+      }
+    }
+  });
+
+  /*
+    Product type labels are plural categories, not materials: "T-Shirts & Apparel",
+    "Digital Downloads". Saying a design is printed on one produced "Golf Shirt, printed
+    on t-shirts & apparel" and told shoppers a digital download ships from the US.
+  */
+  it("never says a design is printed on a product category", async () => {
+    for (const when of [DECEMBER, JULY]) {
+      const cards = await storyCards(when);
+      for (const card of cards) {
+        for (const version of card.versions) {
+          expect(version.captions.tiktok.text).not.toMatch(/printed on .*&/i);
+          expect(version.captions.tiktok.text).not.toMatch(/printed on digital/i);
+        }
+      }
+    }
+  });
+
+  it("only claims a print-and-ship story for wrapping paper, as /contact does", async () => {
+    const listings = await getAllListings();
+    for (const when of [DECEMBER, JULY]) {
+      const cards = await storyCards(when);
+      for (const card of cards) {
+        const listing = listings.find((l) => listingSlug(l) === card.id)!;
+        const wrapping = deriveProductType(listing) === "wrapping-paper";
+        for (const version of card.versions) {
+          const ships = /shipped from the US/.test(version.captions.tiktok.text);
+          expect(ships, `${card.id} (${deriveProductType(listing)})`).toBe(wrapping);
+        }
+      }
+    }
+  });
+
+  /*
+    The occasion a card is presented as has to be the one it was selected for.
+    `deriveOccasions` returns matches in rule order, so re-deriving picked Halloween for
+    birthday listings and captioned them "Halloween sorted" in July.
+  */
+  it("says the same occasion in the chip, the eyebrow and the tags", async () => {
+    for (const when of [DECEMBER, JULY]) {
+      const cards = await storyCards(when);
+      for (const card of cards.filter((c) => c.reason.startsWith("In season"))) {
+        expect(card.reason).toBe(`In season · ${occasionLabel(card.occasion!)}`);
+        const occasionVersion = card.versions.find(
+          (v) => v.eyebrow === occasionLabel(card.occasion!)
         );
+        expect(occasionVersion, `${card.id} has no version for its own occasion`).toBeTruthy();
+        expect(occasionVersion!.captions.tiktok.text).toContain(
+          `${occasionLabel(card.occasion!)} sorted.`
+        );
+        for (const version of card.versions) {
+          expect(version.captions.tiktok.hashtags).toContain(toHashtag(occasionLabel(card.occasion!)));
+        }
+      }
+    }
+  });
+
+  it("names no occasion at all rather than guessing one", async () => {
+    const cards = await storyCards(JULY);
+    for (const card of cards.filter((c) => c.occasion === null)) {
+      for (const version of card.versions) {
+        expect(version.captions.tiktok.text).not.toMatch(/sorted\./);
       }
     }
   });
@@ -134,6 +203,63 @@ describe("storyCards", () => {
       }
     }
   });
+});
+
+describe("shopDayStart", () => {
+  it("gives one value per shop day, whatever the time of day", () => {
+    // 05:00Z on Nov 13 is midnight in New York; 04:59Z on Nov 14 is 23:59 the same day.
+    const open = shopDayStart(new Date("2026-11-13T05:00:01Z"));
+    expect(shopDayStart(new Date("2026-11-13T18:30:00Z"))).toBe(open);
+    expect(shopDayStart(new Date("2026-11-14T04:59:59Z"))).toBe(open);
+    // One second later is the next shop day.
+    expect(shopDayStart(new Date("2026-11-14T05:00:01Z"))).not.toBe(open);
+  });
+});
+
+describe("storyCards across a shop day", () => {
+  /*
+    The whole card set has to be a function of the shop's date, not of the clock. The
+    arrivals cutoff used to move by the second, so a listing left the set partway through
+    an afternoon while the prerendered page still carried its image and save URLs, and
+    every one of those URLs 404d until the page revalidated.
+
+    The days tested are derived from the catalog rather than picked, because a date picked
+    by hand tests nothing on a day when no listing happens to expire. These are exactly
+    the days on which some listing crosses the 45-day line, so each one straddles a real
+    boundary. Fourteen of them move the card set when the cutoff is not quantised.
+  */
+  const expiryDays = async () => {
+    const listings = await getAllListings();
+    const days = new Set<string>();
+    for (const listing of listings) {
+      const at = (listing.createdAt + NEW_ARRIVALS_DAYS * 86400) * 1000;
+      days.add(toISODate(shopToday(new Date(at))));
+    }
+    return [...days].sort();
+  };
+
+  /** Every URL the page would hand out for a given instant. */
+  const urlsAt = async (when: Date) =>
+    (await storyCards(when))
+      .flatMap((card) =>
+        card.versions.map((_, n) => `${card.id}|${n}|${storyVersion(card, n, "story")}`)
+      )
+      .join(",");
+
+  it("has days where a listing actually expires, so the sweep below means something", async () => {
+    expect((await expiryDays()).length).toBeGreaterThan(0);
+  });
+
+  it("hands out the same URLs all day, every day one expires", async () => {
+    for (const day of await expiryDays()) {
+      // Both instants sit inside the same New York day under either UTC offset.
+      const [open, close] = await Promise.all([
+        urlsAt(new Date(`${day}T05:00:01Z`)),
+        urlsAt(new Date(`${day}T23:59:59Z`)),
+      ]);
+      expect(close, `the card set moved during ${day}`).toBe(open);
+    }
+  }, 60_000);
 });
 
 describe("storyVersion", () => {
