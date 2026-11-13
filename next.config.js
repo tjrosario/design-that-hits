@@ -17,6 +17,16 @@ const nextConfig = {
   */
   outputFileTracingIncludes: {
     "/designs/[slug]/pin-image": ["./src/assets/fonts/**"],
+    "/studio/stories/image": ["./src/assets/fonts/**"],
+    /*
+      The video route draws its four layers with the same fonts, and shells out to the
+      static ffmpeg from the optional dependency. Neither is an import, so nothing traces
+      them on its own and the route would 500 on the first request in production.
+    */
+    "/studio/stories/video": [
+      "./src/assets/fonts/**",
+      "./node_modules/@ffmpeg-installer/linux-x64/ffmpeg",
+    ],
   },
 
   images: {

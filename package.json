@@ -32,5 +32,8 @@
     "tailwindcss": "^3.4.4",
     "typescript": "^5",
     "vitest": "^5.0.5"
+  },
+  "optionalDependencies": {
+    "@ffmpeg-installer/linux-x64": "^4.1.0"
   }
 }
