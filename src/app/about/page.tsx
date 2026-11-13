@@ -108,17 +108,16 @@ export default async function AboutPage() {
       <div className="mx-auto max-w-screen-xl px-5 pb-16">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-14">
           {/*
-            These used to sit on hardcoded pastel backgrounds (#E8C547, #7DC4A8 …) with
-            themed foreground colours on top. In the dark theme that put near-white text
-            on pale yellow — 1.55:1, where WCAG AA needs 4.5:1. Using the shared panel
-            surface keeps text and background from the same palette, so contrast holds in
-            both themes.
+            The copy sits on the shared panel surface, so its contrast holds in both
+            themes whatever photo loads behind it. The accent only paints the glow, the
+            dot and the hover border, and it steps through the season's own tokens so
+            these four tiles follow the palette like everything else.
           */}
           {[
-            { label: "Wrapping Paper",  desc: "Stand-out patterns for every occasion",  accent: "#FF6BA5" },
-            { label: "Party Designs",   desc: "Banners, invites, decorations & more",   accent: "#7DC4A8" },
-            { label: "Unique Gifts",    desc: "Thoughtful designs for people you love", accent: "#E8C547" },
-            { label: "Print on Demand", desc: "Ordered and printed fresh, just for you", accent: "#8FB4F0" },
+            { label: "Wrapping Paper",  desc: "Stand-out patterns for every occasion",  accent: "var(--brand-soft)" },
+            { label: "Party Designs",   desc: "Banners, invites, decorations & more",   accent: "var(--brand)" },
+            { label: "Unique Gifts",    desc: "Thoughtful designs for people you love", accent: "var(--brand-strong)" },
+            { label: "Print on Demand", desc: "Ordered and printed fresh, just for you", accent: "var(--brand-soft)" },
           ].map((item, i) => {
             const photo = tilePhotos[i]?.image?.url ?? null;
             return (
