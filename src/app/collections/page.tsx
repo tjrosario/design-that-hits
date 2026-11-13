@@ -135,7 +135,7 @@ export default async function CollectionsPage() {
           <h2 className="display-title mb-5" style={{ fontSize: "clamp(1.4rem, 3vw, 2rem)" }}>
             By occasion
           </h2>
-          <CollectionTiles collections={occasions} priorityCount={4} />
+          <CollectionTiles collections={occasions} eagerCount={1} />
         </section>
       )}
 
@@ -144,9 +144,9 @@ export default async function CollectionsPage() {
           <h2 className="display-title mb-5" style={{ fontSize: "clamp(1.4rem, 3vw, 2rem)" }}>
             By product
           </h2>
-          {/* Two eager tiles: the occasions grid above is five tiles, so the top of this
-              one can still sit inside the fold on a desktop viewport. */}
-          <CollectionTiles collections={types} priorityCount={2} />
+          {/* Nothing eager: this sits below a five-tile grid and two headings, and an
+              eager tile here would preload against the one above that is on screen. */}
+          <CollectionTiles collections={types} eagerCount={0} />
         </section>
       )}
 

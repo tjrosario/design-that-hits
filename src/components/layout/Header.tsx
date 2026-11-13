@@ -49,7 +49,7 @@ export function Header() {
             alt=""
             width={384}
             height={354}
-            priority
+            loading="eager"
             className="h-8 sm:h-9 w-auto flex-shrink-0"
           />
           <span aria-hidden="true" className="logo-wordmark h-8 sm:h-9 flex-shrink-0" />
