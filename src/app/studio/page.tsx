@@ -67,6 +67,15 @@ export default async function StudioPage() {
         <h1 className="display-title mb-3" style={{ fontSize: "clamp(1.9rem, 5vw, 2.8rem)" }}>
           What to design next
         </h1>
+        <p className="mb-4">
+          <Link
+            href="/studio/stories"
+            className="text-sm font-semibold"
+            style={{ color: "var(--brand)" }}
+          >
+            Stories to post →
+          </Link>
+        </p>
         <p className="text-sm sm:text-base leading-relaxed max-w-2xl" style={{ color: "var(--text-soft)" }}>
           Built from the {report.totalListings} listings in the catalog and the facet rules, as of{" "}
           {dateFormat.format(report.generatedAt)}. Every figure here is first-party. There is no
