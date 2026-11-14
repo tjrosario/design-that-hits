@@ -4,7 +4,7 @@
     "etsyShopName": "designthathits",
     "url": "https://www.etsy.com/shop/designthathits"
   },
-  "syncedAt": "2026-11-13T19:27:30.683Z",
+  "syncedAt": "2026-11-14T05:50:56.176Z",
   "sections": [],
   "listings": [
     {
@@ -1278,7 +1278,7 @@
       "price": 21.83,
       "currency": "USD",
       "createdAt": 1785985987,
-      "updatedAt": 1785985987,
+      "updatedAt": 1794616584,
       "sectionId": null,
       "tags": [
         "goth_xmas_wrap",
@@ -1298,7 +1298,7 @@
       "favorites": 0,
       "views": 0,
       "image": {
-        "url": "https://i.etsystatic.com/60870456/r/il/56f22a/7484720562/il_fullxfull.7484720562_54ab.jpg",
+        "url": "https://i.etsystatic.com/60870456/r/il/56f22a/7484720562/il_570xN.7484720562_54ab.jpg",
         "altText": "Gothic Christmas Wrapping Paper | Skull & Black Ornament Gift Wrap | Dark Holiday Decor | Macabre Christmas Wrapping Paper"
       },
       "sku": "23516410751589527182,32192662138026751376,32687760234680878838,12482969115146381331,24717680783222545348,29480754470735174583"
@@ -3507,7 +3507,7 @@
       "price": 21.83,
       "currency": "USD",
       "createdAt": 1785985987,
-      "updatedAt": 1785985987,
+      "updatedAt": 1794634100,
       "sectionId": null,
       "tags": [
         "sleigh_the_day",
@@ -3527,7 +3527,7 @@
       "favorites": 0,
       "views": 0,
       "image": {
-        "url": "https://i.etsystatic.com/60870456/r/il/b648ae/7525867609/il_fullxfull.7525867609_qf3t.jpg",
+        "url": "https://i.etsystatic.com/60870456/r/il/b648ae/7525867609/il_570xN.7525867609_qf3t.jpg",
         "altText": "Sleigh the Day Wrapping Paper | Fitness Christmas Gift Wrap | Reindeer Weightlifting Design | Funny Gym Holiday Paper"
       },
       "sku": "28198146671573427153,25410337696564637426,45041483439345970513,33612991839042294741,28756170712968632613,11723578990032667366"
@@ -3540,7 +3540,7 @@
       "price": 21.83,
       "currency": "USD",
       "createdAt": 1785985987,
-      "updatedAt": 1785985987,
+      "updatedAt": 1794634099,
       "sectionId": null,
       "tags": [
         "merry_liftmas",
@@ -3560,7 +3560,7 @@
       "favorites": 0,
       "views": 0,
       "image": {
-        "url": "https://i.etsystatic.com/60870456/r/il/6302ca/7525813185/il_fullxfull.7525813185_6vl8.jpg",
+        "url": "https://i.etsystatic.com/60870456/r/il/6302ca/7525813185/il_570xN.7525813185_6vl8.jpg",
         "altText": "Merry Liftmas Wrapping Paper | Fitness Christmas Gift Wrap | Gym Dumbbell & Kettlebell Holiday Paper | Funny Fitmas Gift Wrap"
       },
       "sku": "43594199827986320425,28602818116074725266,17548730565840843278,29824017858951604367,23314593239217160375,28948604429357563234"
@@ -3573,7 +3573,7 @@
       "price": 22.5,
       "currency": "USD",
       "createdAt": 1785985987,
-      "updatedAt": 1785985987,
+      "updatedAt": 1794627866,
       "sectionId": null,
       "tags": [
         "reindeer_wrap",
@@ -3593,7 +3593,7 @@
       "favorites": 0,
       "views": 0,
       "image": {
-        "url": "https://i.etsystatic.com/60870456/r/il/81bea0/7429848111/il_fullxfull.7429848111_p150.jpg",
+        "url": "https://i.etsystatic.com/60870456/r/il/81bea0/7429848111/il_570xN.7429848111_p150.jpg",
         "altText": "Nordic Reindeer Christmas Wrapping Paper | Red & Gray Knit Pattern Gift Wrap | Scandinavian Holiday Packaging | Cozy Winter Decor"
       },
       "sku": "51956391095925430152,33437573057390670688"
@@ -3606,7 +3606,7 @@
       "price": 21.83,
       "currency": "USD",
       "createdAt": 1785985987,
-      "updatedAt": 1785985987,
+      "updatedAt": 1794627866,
       "sectionId": null,
       "tags": [
         "santa_wrap",
@@ -3626,7 +3626,7 @@
       "favorites": 0,
       "views": 0,
       "image": {
-        "url": "https://i.etsystatic.com/60870456/r/il/7249b2/7525841699/il_fullxfull.7525841699_f5zc.jpg",
+        "url": "https://i.etsystatic.com/60870456/r/il/7249b2/7525841699/il_570xN.7525841699_f5zc.jpg",
         "altText": "Vintage Santa Christmas Wrapping Paper | Retro Merry Christmas Gift Wrap | Classic Holiday Train & Santa Design | Cozy Xmas Decor"
       },
       "sku": "11231183844178304383,32237448219797523205,15275371625311649270,35212921596304954388,10017365341580842621,33191458498163316194"
@@ -5652,7 +5652,7 @@
       "price": 21.83,
       "currency": "USD",
       "createdAt": 1785985987,
-      "updatedAt": 1793751154,
+      "updatedAt": 1794617768,
       "sectionId": null,
       "tags": [
         "border_collie",
