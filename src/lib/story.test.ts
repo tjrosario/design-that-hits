@@ -191,6 +191,18 @@ describe("storyCards", () => {
     }
   });
 
+  it("quotes no price anywhere, since a post outlives the one it was made from", async () => {
+    const cards = await storyCards(DECEMBER);
+    for (const card of cards) {
+      for (const version of card.versions) {
+        for (const platform of platforms) {
+          const { title, text } = version.captions[platform];
+          expect(`${title ?? ""} ${text}`).not.toMatch(/[$£€]\s?\d|\d+\.\d\d/);
+        }
+      }
+    }
+  });
+
   it("names the design, with no product type doubled into the panel", async () => {
     const listings = await getAllListings();
     const cards = await storyCards(DECEMBER);
@@ -198,8 +210,10 @@ describe("storyCards", () => {
       const listing = listings.find((l) => listingName(l) === card.title);
       expect(listing, `no listing behind ${card.id}`).toBeTruthy();
       for (const version of card.versions) {
-        expect(version.lines.length).toBeLessThanOrEqual(1);
+        // One line on how it is made, never a price and never the eyebrow's words again.
+        expect(version.lines).toHaveLength(1);
         expect(version.lines).not.toContain(version.eyebrow);
+        expect(version.lines[0]).not.toMatch(/\d|[$£€]/);
       }
     }
   });

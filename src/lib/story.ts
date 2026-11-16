@@ -3,7 +3,7 @@
  *
  * Unlike a hand-written social calendar, every card here is a real listing, so the copy
  * can only say what the catalog already knows: the design's name, its occasion, its type,
- * its price and its link. Nothing is invented about a design this module has not read.
+ * how it is made and its link. Nothing is invented about a design this module has not read.
  *
  * What goes on the page is what is worth posting now: the occasions whose shopping window
  * is open, then whatever has been published recently. Both lists come from the modules the
@@ -22,8 +22,8 @@ import {
   themeLabel,
 } from "@/lib/facets";
 import { clampName } from "@/lib/pinterest";
-import { formatPrice, hasPrice } from "@/lib/price";
 import { relevantOccasions } from "@/lib/seasonal";
+import { SHIPPING_ESTIMATE_PRODUCT_TYPE } from "@/lib/shipping";
 import { currentTheme } from "@/lib/season";
 import { getAllListings } from "@/lib/shop";
 import { shopToday, toISODate } from "@/lib/shop-time";
@@ -75,7 +75,7 @@ export interface StoryVersion {
   eyebrow: string;
   /** The design's name, already cut to what the panel holds. */
   title: string;
-  /** Price and format, the two facts a scroller wants before tapping. */
+  /** How the design is made, the one fact under the name that cannot go stale. */
   lines: string[];
   layout: Layout;
   palette: PaletteId;
@@ -146,14 +146,30 @@ export function storyLink(listing: Listing, platform: Platform): string {
 }
 
 /**
- * The price, alone.
+ * How each kind of listing is made, as the card's line and as the caption's sentence.
  *
- * The product type belongs to the eyebrow, and carrying it here as well printed
- * "Wrapping Paper" twice on the same card. Empty when the feed has no price, which
- * `hasPrice` treats as the signal to send people to Etsy for it instead.
+ * Both read from one entry so a card and the copy posted beside it cannot claim different
+ * things. Scoped the way /contact scopes its claims: a file is not printed, and the US
+ * origin is only verified for the wrapping paper blueprint.
  */
+const MADE = {
+  paper: {
+    line: "Printed on demand in the US",
+    sentence: "Printed on demand and shipped from the US.",
+  },
+  digital: { line: "Instant digital download", sentence: "An instant digital download on Etsy." },
+  other: { line: "Printed on demand", sentence: "Printed on demand. Find it on Etsy." },
+} as const;
+
+function madeKind(listing: Listing): keyof typeof MADE {
+  const type = deriveProductType(listing);
+  if (type === SHIPPING_ESTIMATE_PRODUCT_TYPE) return "paper";
+  return type === "digital" ? "digital" : "other";
+}
+
+/** The one line under the design's name. */
 function detailLines(listing: Listing): string[] {
-  return hasPrice(listing) ? [formatPrice(listing.price, listing.currency)] : [];
+  return [MADE[madeKind(listing)].line];
 }
 
 /*
@@ -178,8 +194,6 @@ function captionsFor(
   occasion: string | null
 ): Record<Platform, Caption> {
   const name = listingName(listing);
-  const type = deriveProductType(listing);
-  const price = hasPrice(listing) ? formatPrice(listing.price, listing.currency) : null;
 
   /*
     The name alone, never "printed on <product type>". Those labels are plural categories
@@ -193,19 +207,8 @@ function captionsFor(
         ? `${occasionLabel(occasion)} sorted. ${name}.`
         : `${name}.`;
 
-  /*
-    The fulfilment claim is scoped the way /contact scopes it: wrapping paper is the only
-    line the site states a print-and-ship story for, and everything else shows its own
-    estimate on Etsy. Unscoped, this told shoppers a digital download ships from the US.
-  */
-  const closer =
-    type === "wrapping-paper"
-      ? `${price ? `${price}. ` : ""}Printed on demand and shipped from the US.`
-      : price
-        ? `${price} on Etsy.`
-        : "Find it on Etsy.";
-
-  const text = `${opener} ${closer}`;
+  // The same fulfilment claim the card prints, so the two cannot disagree.
+  const text = `${opener} ${MADE[madeKind(listing)].sentence}`;
   return {
     tiktok: {
       title: clampCaption(opener, TIKTOK_TITLE_MAX),
