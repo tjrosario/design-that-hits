@@ -55,7 +55,7 @@ export type Layout = (typeof LAYOUTS)[number];
 export type Part = "wash" | "eyebrow" | "title" | "details";
 
 /** Part of every image's version hash. Bump it whenever the drawing changes, so caches refresh. */
-export const STORY_DESIGN = "s1";
+export const STORY_DESIGN = "s2";
 
 export const platforms = ["tiktok", "instagram"] as const;
 export type Platform = (typeof platforms)[number];

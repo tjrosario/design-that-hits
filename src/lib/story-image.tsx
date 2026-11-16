@@ -174,7 +174,9 @@ export async function storyImage(
               padding: `${px(11)}px ${px(14)}px ${px(11)}px ${px(22)}px`,
               borderRadius: px(100),
             }
-          : { color: colors.brand }),
+          // Pays back the letter spacing that trails the last character, so the glyphs
+          // sit on the centre line rather than half a letter-space to the left of it.
+          : { color: colors.brand, paddingLeft: px(6) }),
       }}
     >
       {eyebrow}
@@ -190,6 +192,7 @@ export async function storyImage(
         fontSize: px(layout === "frame" ? 62 : 70),
         lineHeight: 1.1,
         letterSpacing: "-0.015em",
+        textAlign: "center",
         color: STORY_TEXT,
         maxWidth: width - side * 2,
         opacity: shown("title"),
@@ -204,12 +207,21 @@ export async function storyImage(
       style={{
         display: "flex",
         flexDirection: "column",
+        alignItems: "center",
         marginTop: px(26),
         opacity: shown("details"),
       }}
     >
       {lines.length > 0 && (
-        <div style={{ display: "flex", fontFamily: "Poppins", fontSize: px(32), color: colors.soft }}>
+        <div
+          style={{
+            display: "flex",
+            fontFamily: "Poppins",
+            fontSize: px(32),
+            textAlign: "center",
+            color: colors.soft,
+          }}
+        >
           {lines.join("  ·  ")}
         </div>
       )}
@@ -220,7 +232,10 @@ export async function storyImage(
           fontFamily: "Poppins",
           fontSize: px(24),
           letterSpacing: px(5),
+          // Pays back the trailing letter space, the same way the eyebrow does.
+          paddingLeft: px(5),
           textTransform: "uppercase",
+          textAlign: "center",
           color: STORY_TEXT,
           opacity: 0.75,
         }}
@@ -231,7 +246,7 @@ export async function storyImage(
   );
 
   const text = (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
       {accent}
       {label}
       {heading}
