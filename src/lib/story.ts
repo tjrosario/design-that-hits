@@ -170,6 +170,75 @@ const MADE = {
   other: { sentence: "Printed on demand. Find it on Etsy." },
 } as const;
 
+/**
+ * The Instagram call to action, in the words of the design's own subject.
+ *
+ * "Shop this design" reads the same under a pug as under a skull, and asks for nothing in
+ * particular. A CTA built from what the design is about gives a scrolling viewer a reason
+ * the picture alone has not already made.
+ *
+ * Two halves, composed. The theme says who the design is for, and the product type says
+ * what the thing is, so every pair comes out grammatical: a theme is never asked to know
+ * about ornaments, and a product is never asked to know about cats.
+ */
+const THEME_CTA: Record<string, { emoji: string; who: string }> = {
+  dogs: { emoji: "\u{1F436}", who: "the dog person" },
+  cats: { emoji: "\u{1F431}", who: "the cat person" },
+  gothic: { emoji: "\u{1F5A4}", who: "the goth at heart" },
+  retro: { emoji: "\u{1F4FB}", who: "the nostalgic one" },
+  floral: { emoji: "\u{1F338}", who: "the flower lover" },
+  minimalist: { emoji: "\u{1F90D}", who: "the minimalist" },
+  cottagecore: { emoji: "\u{1F9FA}", who: "the cottagecore soul" },
+  pride: { emoji: "\u{1F308}", who: "the proudest person you know" },
+  coastal: { emoji: "\u{1F30A}", who: "the beach lover" },
+  music: { emoji: "\u{1F3B8}", who: "the music lover" },
+  food: { emoji: "\u{1F36A}", who: "the foodie" },
+  wildlife: { emoji: "\u{1F98C}", who: "the nature lover" },
+  glam: { emoji: "\u{2728}", who: "the one who loves a bit of sparkle" },
+  family: { emoji: "\u{1F46A}", who: "the whole family" },
+};
+
+/* Carries the emoji when a design has no theme but does have a season. */
+const OCCASION_EMOJI: Record<string, string> = {
+  christmas: "\u{1F384}",
+  halloween: "\u{1F383}",
+  birthday: "\u{1F382}",
+  valentines: "\u{1F498}",
+  graduation: "\u{1F393}",
+};
+
+/*
+  What the thing is, phrased to take "for <who>" after it. `buy` is the themed half's
+  object and `alone` is the whole CTA for a design with no theme to name.
+*/
+const PRODUCT_CTA: Record<string, { buy: string; alone: string }> = {
+  "wrapping-paper": { buy: "Wrap a gift", alone: "Wrap something in it" },
+  apparel: { buy: "Grab a tee", alone: "Wear the design" },
+  hat: { buy: "Grab a cap", alone: "Wear it out" },
+  ornament: { buy: "Grab an ornament", alone: "Hang it on the tree" },
+  drinkware: { buy: "Grab a mug", alone: "Fill it up" },
+  sticker: { buy: "Grab a sticker", alone: "Stick it somewhere good" },
+  tote: { buy: "Grab a tote", alone: "Take it everywhere" },
+  stationery: { buy: "Grab a card", alone: "Send it to someone" },
+  "wall-art": { buy: "Grab a print", alone: "Put it on the wall" },
+  "phone-case": { buy: "Grab a case", alone: "Dress your phone" },
+  digital: { buy: "Download it", alone: "Download it today" },
+};
+
+const CTA_FALLBACK = { buy: "Grab this design", alone: "Shop this design" };
+
+/**
+ * A design with no theme keeps the season's emoji and the plain product line, and one
+ * with neither falls back to the gift the shop sells either way.
+ */
+export function ctaFor(listing: Listing, occasion: string | null): string {
+  const product = PRODUCT_CTA[deriveProductType(listing) ?? ""] ?? CTA_FALLBACK;
+  const theme = THEME_CTA[primaryTheme(listing) ?? ""];
+  if (theme) return `${theme.emoji} ${product.buy} for ${theme.who}`;
+  const emoji = OCCASION_EMOJI[occasion ?? ""] ?? "\u{1F381}";
+  return `${emoji} ${product.alone}`;
+}
+
 function madeKind(listing: Listing): keyof typeof MADE {
   const type = deriveProductType(listing);
   if (type === SHIPPING_ESTIMATE_PRODUCT_TYPE) return "paper";
@@ -233,7 +302,7 @@ function captionsFor(
     instagram: {
       text,
       hashtags: tagsFor(listing, "instagram", occasion),
-      cta: angle === "arrival" ? "🎁 See the new one" : "🎁 Shop this design",
+      cta: ctaFor(listing, occasion),
       link: storyLink(listing, "instagram"),
     },
   };
