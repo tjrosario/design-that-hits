@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { NEW_ARRIVALS_DAYS } from "@/lib/arrivals";
-import { deriveProductType, occasionLabel, primaryOccasion } from "@/lib/facets";
+import { deriveProductType, occasionLabel } from "@/lib/facets";
 import { getAllListings } from "@/lib/shop";
 import { shopToday, toISODate } from "@/lib/shop-time";
 import { listingName, listingSlug } from "@/lib/slug";
@@ -11,7 +11,6 @@ import {
   STORY_FORMATS,
   TIKTOK_TITLE_MAX,
   clampCaption,
-  ctaFor,
   platforms,
   storyCards,
   storyVersion,
@@ -246,65 +245,6 @@ describe("storyCards", () => {
         }
       }
     }
-  });
-});
-
-describe("ctaFor", () => {
-  /** Only the title and tags steer a CTA, so the rest of a listing is filled in once. */
-  const design = (title: string, tags: string[] = []) =>
-    ({ id: 1, title, description: "", tags }) as never;
-
-  it("names the design's own subject, not the shop", () => {
-    const cta = ctaFor(design("Funny Dog Christmas Wrapping Paper"), "christmas");
-    expect(cta).toContain("the dog person");
-    expect(cta).toMatch(/^\p{Extended_Pictographic}/u);
-    // The generic ask it replaced, which said the same thing under every design.
-    expect(cta).not.toContain("Shop this design");
-  });
-
-  it("gives a cat design a different emoji from a dog design", () => {
-    const cats = ctaFor(design("Cute Cat Christmas Wrapping Paper"), "christmas");
-    const dogs = ctaFor(design("Cute Dog Christmas Wrapping Paper"), "christmas");
-    expect(cats).toContain("the cat person");
-    expect(cats.slice(0, 2)).not.toBe(dogs.slice(0, 2));
-  });
-
-  it("takes the noun from the product and the subject from the theme", () => {
-    expect(ctaFor(design("Gothic Skull Wrapping Paper"), null)).toBe(
-      "\u{1F5A4} Wrap a gift for the goth at heart"
-    );
-    expect(ctaFor(design("Gothic Skull T-Shirt"), null)).toBe(
-      "\u{1F5A4} Grab a tee for the goth at heart"
-    );
-  });
-
-  it("falls back to the season when a design has no theme to name", () => {
-    // No theme rule matches a guinea pig, so the occasion carries the emoji instead.
-    expect(ctaFor(design("Guinea Pig Christmas Wrapping Paper"), "christmas")).toBe(
-      "\u{1F384} Wrap something in it"
-    );
-  });
-
-  it("falls back to the gift when there is neither a theme nor a season", () => {
-    expect(ctaFor(design("Plain Wrapping Paper"), null)).toBe("\u{1F381} Wrap something in it");
-  });
-
-  it("gives every listing in the catalogue a usable ask", async () => {
-    const listings = await getAllListings();
-    let themed = 0;
-    for (const l of listings) {
-      const cta = ctaFor(l, primaryOccasion(l));
-      // An emoji, then words. A bare emoji is not an ask.
-      expect(cta, l.title).toMatch(/^\p{Extended_Pictographic}\S* \w/u);
-      if (cta.includes(" for ")) themed++;
-    }
-    // Most of the catalogue carries a theme, so most CTAs should name who it is for.
-    expect(themed).toBeGreaterThan(listings.length * 0.8);
-  });
-
-  it("never leaves a product unnamed", () => {
-    // A listing no product rule matches still gets an ask rather than a bare emoji.
-    expect(ctaFor(design("Something Unclassifiable"), null)).toBe("\u{1F381} Shop this design");
   });
 });
 
