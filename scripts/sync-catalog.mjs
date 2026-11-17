@@ -53,10 +53,18 @@ const CURATED_FIELDS = ["sectionId", "tags", "favorites", "views", "featured"];
 // ─── CLI ──────────────────────────────────────────────────────────────────────
 
 function parseArgs(argv) {
-  const args = { csv: null, json: null, summary: null, dryRun: false, help: false };
+  const args = {
+    csv: null,
+    json: null,
+    summary: null,
+    dryRun: false,
+    existingOnly: false,
+    help: false,
+  };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--dry-run") args.dryRun = true;
+    else if (arg === "--existing-only") args.existingOnly = true;
     else if (arg === "--help" || arg === "-h") args.help = true;
     else if (arg === "--csv") {
       args.csv = argv[++i];
@@ -96,6 +104,8 @@ const HELP = `
   npm run sync:catalog -- --json <path>  Import collected listing IDs + URLs (real links)
   npm run sync:catalog -- --summary <path>  Write a machine-readable JSON report
   npm run sync:catalog -- --dry-run      Show what would change without writing
+  npm run sync:catalog -- --existing-only   Refresh listings already in the catalog,
+                                            adding none
 
   For a complete, properly linked catalog, run both imports:
 
@@ -262,9 +272,14 @@ function csvToListings(text) {
     const priceRaw = pick(record, "PRICE");
     const price = Number(priceRaw.replace(/[^0-9.]/g, ""));
 
-    // Etsy exports images as IMAGE1..IMAGE10; the first is the listing thumbnail.
-    let imageUrl = "";
-    for (let i = 1; i <= 10 && !imageUrl; i++) imageUrl = pick(record, `IMAGE${i}`);
+    // Etsy exports images as IMAGE1..IMAGE10; the first is the listing thumbnail and
+    // the rest are the listing's other mockups, which the story video animates.
+    const images = [];
+    for (let i = 1; i <= 10; i++) {
+      const url = pick(record, `IMAGE${i}`);
+      if (url) images.push(url);
+    }
+    const imageUrl = images[0] ?? "";
 
     const tags = pick(record, "TAGS")
       .split(",")
@@ -285,6 +300,7 @@ function csvToListings(text) {
       tags,
       sku: pick(record, "SKU"),
       image: imageUrl ? { url: imageUrl, altText: title } : null,
+      images,
     });
   }
 
@@ -386,7 +402,7 @@ function normaliseTitle(title) {
  * normalised title match (CSV, which carries no IDs). Curated fields on an existing
  * entry always survive.
  */
-function mergeListings(catalog, incoming, { source }) {
+function mergeListings(catalog, incoming, { source, existingOnly = false }) {
   const byId = new Map();
   // Keyed by normalised title, but holding a LIST: Etsy shops routinely have several
   // listings whose titles are identical or prefixes of one another (size or colour
@@ -413,7 +429,7 @@ function mergeListings(catalog, incoming, { source }) {
   // two near-identical rows can never collapse onto the same product.
   const claimed = new Set();
 
-  const summary = { added: 0, updated: 0, unchanged: 0, searchLinked: 0, upgraded: 0 };
+  const summary = { added: 0, updated: 0, unchanged: 0, searchLinked: 0, upgraded: 0, skipped: 0 };
 
   /**
    * Finds the catalog entry an incoming item refers to.
@@ -475,6 +491,11 @@ function mergeListings(catalog, incoming, { source }) {
     const existing = findExisting(item);
     if (existing) claimed.add(existing);
 
+    if (!existing && existingOnly) {
+      summary.skipped++;
+      continue;
+    }
+
     if (!existing) {
       const entry = {
         id: item.id || 0,
@@ -491,6 +512,8 @@ function mergeListings(catalog, incoming, { source }) {
         views: 0,
         image: item.image,
       };
+
+      if (item.images?.length) entry.images = item.images;
 
       if (item.sku) entry.sku = item.sku;
 
@@ -519,6 +542,10 @@ function mergeListings(catalog, incoming, { source }) {
 
     if (item.title && (!fillOnly || !existing.title)) existing.title = item.title;
     if (item.image && (!fillOnly || !existing.image)) existing.image = item.image;
+
+    // Only the CSV carries the other mockups, so RSS and the collector leave them alone
+    // rather than reducing a listing back to its thumbnail.
+    if (item.images?.length) existing.images = item.images;
 
     if (Number.isFinite(item.price) && item.price > 0) existing.price = item.price;
     if (item.currency) existing.currency = item.currency;
@@ -618,7 +645,7 @@ async function main() {
     );
   }
 
-  const summary = mergeListings(catalog, incoming, { source });
+  const summary = mergeListings(catalog, incoming, { source, existingOnly: args.existingOnly });
 
   // Newest first — matches the storefront's default sort and keeps diffs readable.
   catalog.listings.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
@@ -629,6 +656,10 @@ async function main() {
     `\n  ${summary.added} added · ${summary.updated} updated · ${summary.unchanged} unchanged`
   );
   console.log(`  Catalog: ${before} → ${catalog.listings.length} listing(s)`);
+
+  if (summary.skipped > 0) {
+    console.log(`  ${summary.skipped} listing(s) in the file are not in the catalog and were skipped (--existing-only).`);
+  }
 
   if (summary.upgraded > 0) {
     console.log(

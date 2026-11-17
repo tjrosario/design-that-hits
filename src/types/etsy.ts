@@ -84,6 +84,13 @@ export interface Listing {
     url: string;
     altText: string;
   } | null;
+  /**
+   * Every mockup Etsy holds for the listing, newest export first, `image` included.
+   *
+   * Only the CSV export carries these, so a listing the export missed has just the one.
+   * Anything reading them has to work with a single photo.
+   */
+  images?: string[];
   score?: number;
   /** Derived in lib/catalog.ts from lib/facets.ts rules — not stored in catalog.json. */
   productType?: string | null;
