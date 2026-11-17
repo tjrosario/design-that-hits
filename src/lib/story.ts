@@ -12,6 +12,7 @@
  */
 
 import { newArrivals } from "@/lib/arrivals";
+import { designLine } from "@/lib/design-line";
 import {
   deriveOccasions,
   deriveProductType,
@@ -55,7 +56,7 @@ export type Layout = (typeof LAYOUTS)[number];
 export type Part = "wash" | "eyebrow" | "title" | "details";
 
 /** Part of every image's version hash. Bump it whenever the drawing changes, so caches refresh. */
-export const STORY_DESIGN = "s2";
+export const STORY_DESIGN = "s3";
 
 export const platforms = ["tiktok", "instagram"] as const;
 export type Platform = (typeof platforms)[number];
@@ -75,7 +76,7 @@ export interface StoryVersion {
   eyebrow: string;
   /** The design's name, already cut to what the panel holds. */
   title: string;
-  /** How the design is made, the one fact under the name that cannot go stale. */
+  /** One sentence about the design, empty when the description holds none worth printing. */
   lines: string[];
   layout: Layout;
   palette: PaletteId;
@@ -155,19 +156,18 @@ export function storyLink(listing: Listing, platform: Platform): string {
 }
 
 /**
- * How each kind of listing is made, as the card's line and as the caption's sentence.
+ * How each kind of listing is made, as the caption's closing sentence.
  *
- * Both read from one entry so a card and the copy posted beside it cannot claim different
- * things. Scoped the way /contact scopes its claims: a file is not printed, and the US
- * origin is only verified for the wrapping paper blueprint.
+ * Scoped the way /contact scopes its claims: a file is not printed, and the US origin is
+ * only verified for the wrapping paper blueprint. The card itself no longer prints this.
+ * A caption is read once beside a post, where a fulfilment claim answers the first
+ * question a buyer has; the card is pixels that stay on the design for seven seconds, and
+ * they are better spent on what the design actually looks like.
  */
 const MADE = {
-  paper: {
-    line: "Printed on demand in the US",
-    sentence: "Printed on demand and shipped from the US.",
-  },
-  digital: { line: "Instant digital download", sentence: "An instant digital download on Etsy." },
-  other: { line: "Printed on demand", sentence: "Printed on demand. Find it on Etsy." },
+  paper: { sentence: "Printed on demand and shipped from the US." },
+  digital: { sentence: "An instant digital download on Etsy." },
+  other: { sentence: "Printed on demand. Find it on Etsy." },
 } as const;
 
 function madeKind(listing: Listing): keyof typeof MADE {
@@ -176,9 +176,15 @@ function madeKind(listing: Listing): keyof typeof MADE {
   return type === "digital" ? "digital" : "other";
 }
 
-/** The one line under the design's name. */
+/**
+ * The one line under the design's name.
+ *
+ * Empty for a listing whose description holds no sentence that stands alone on a card.
+ * The card then prints its name and its domain, which is still a complete card.
+ */
 function detailLines(listing: Listing): string[] {
-  return [MADE[madeKind(listing)].line];
+  const line = designLine(listing);
+  return line ? [line] : [];
 }
 
 /*
@@ -216,7 +222,7 @@ function captionsFor(
         ? `${occasionLabel(occasion)} sorted. ${name}.`
         : `${name}.`;
 
-  // The same fulfilment claim the card prints, so the two cannot disagree.
+  // Only the caption carries this; the card gives the space to the design instead.
   const text = `${opener} ${MADE[madeKind(listing)].sentence}`;
   return {
     tiktok: {

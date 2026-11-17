@@ -233,10 +233,16 @@ describe("storyCards", () => {
       const listing = listings.find((l) => listingName(l) === card.title);
       expect(listing, `no listing behind ${card.id}`).toBeTruthy();
       for (const version of card.versions) {
-        // One line on how it is made, never a price and never the eyebrow's words again.
-        expect(version.lines).toHaveLength(1);
+        /*
+          At most one line, and a listing whose description holds no usable sentence gets
+          none. Never a price, because the pixels outlive it, and never the eyebrow's own
+          words, which sit two lines above it.
+        */
+        expect(version.lines.length).toBeLessThanOrEqual(1);
         expect(version.lines).not.toContain(version.eyebrow);
-        expect(version.lines[0]).not.toMatch(/\d|[$£€]/);
+        if (version.lines[0]) {
+          expect(version.lines[0]).not.toMatch(/[$£€]\s?\d|\d+\.\d\d/);
+        }
       }
     }
   });
