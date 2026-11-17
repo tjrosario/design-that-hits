@@ -110,6 +110,8 @@ function normaliseListing(entry: CatalogListing): Listing | null {
     image: entry.image?.url
       ? { url: entry.image.url, altText: entry.image.altText ?? title }
       : null,
+    // Falls back to the thumbnail alone, so every listing has at least one photo here.
+    images: entry.images?.length ? entry.images : entry.image?.url ? [entry.image.url] : [],
   };
 
   // Facets are derived from the finished Listing so the rules see the same title and

@@ -7,6 +7,7 @@ import { listingName, listingSlug } from "@/lib/slug";
 import {
   LAYOUTS,
   MAX_CARDS,
+  MAX_SHOTS,
   STORY_FORMATS,
   TIKTOK_TITLE_MAX,
   clampCaption,
@@ -16,6 +17,7 @@ import {
   toHashtag,
   animatable,
   shopDayStart,
+  videoVersion,
 } from "@/lib/story";
 
 /* Mid-December: Christmas is in season, so the catalog has plenty to build cards from. */
@@ -189,6 +191,27 @@ describe("storyCards", () => {
         expect(version.captions.instagram.link).toContain(card.id);
       }
     }
+  });
+
+  it("gives every card shots to animate, led by the photo the still uses", async () => {
+    const cards = await storyCards(DECEMBER);
+    for (const card of cards) {
+      expect(card.photos.length, card.id).toBeGreaterThan(0);
+      expect(card.photos.length, card.id).toBeLessThanOrEqual(MAX_SHOTS);
+      // The video's first shot has to be the image the card already shows.
+      expect(card.photos[0]).toBe(card.photo);
+      // A repeated URL would read as a stall in the middle of the clip.
+      expect(new Set(card.photos).size).toBe(card.photos.length);
+    }
+  });
+
+  it("re-renders a cached video when a card's mockups change", async () => {
+    const [card] = await storyCards(DECEMBER);
+    const before = videoVersion(card, 0);
+    const swapped = { ...card, photos: [...card.photos].reverse() };
+    expect(videoVersion(swapped, 0)).not.toBe(before);
+    // The still draws only `photo`, so its own hash must not churn for the extra shots.
+    expect(storyVersion(swapped, 0, "story")).toBe(storyVersion(card, 0, "story"));
   });
 
   it("quotes no price anywhere, since a post outlives the one it was made from", async () => {

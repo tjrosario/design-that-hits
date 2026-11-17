@@ -106,14 +106,86 @@ const crawl = (x: string, y: string) => (w: number, h: number) => [
   `${PHOTO_IN},crop=${w}:${h}:x='${x}':y='${y}',setsar=1,format=yuv420p[bg]`,
 ];
 
-/** Zooms evenly between two scales over the clip. `perspective` keeps the motion sub-pixel smooth. */
-const zoom = (from: number, to: number) => (w: number, h: number) => {
-  const z = `(${(1 - 1 / from).toFixed(4)}+${(1 / from - 1 / to).toFixed(4)}*in/${STORY_SECONDS * FPS})/2`;
+/**
+ * Zooms evenly between two scales across `frames`.
+ *
+ * `perspective` rather than `zoompan`, which steps in whole source pixels and visibly
+ * judders on a move this slow. Driven by `in`, the filter's own frame counter, because
+ * `perspective` has no `t`.
+ */
+const pushPull = (from: number, to: number, frames: number) => {
+  const z = `(${(1 - 1 / from).toFixed(4)}+${(1 / from - 1 / to).toFixed(4)}*in/${frames})/2`;
   const [l, t, r, b] = [`W*${z}`, `H*${z}`, `W-W*${z}`, `H-H*${z}`];
-  return [
-    `${PHOTO_IN},crop=${w}:${h},perspective=x0='${l}':y0='${t}':x1='${r}':y1='${t}':x2='${l}':y2='${b}':x3='${r}':y3='${b}':eval=frame,setsar=1,format=yuv420p[bg]`,
-  ];
+  return `perspective=x0='${l}':y0='${t}':x1='${r}':y1='${t}':x2='${l}':y2='${b}':x3='${r}':y3='${b}':eval=frame`;
 };
+
+/** Zooms evenly between two scales over the whole clip. */
+const zoom = (from: number, to: number) => (w: number, h: number) => [
+  `${PHOTO_IN},crop=${w}:${h},${pushPull(from, to, STORY_SECONDS * FPS)},setsar=1,format=yuv420p[bg]`,
+];
+
+/**
+ * How long one shot hands over to the next.
+ *
+ * Long enough to read as a dissolve rather than a cut, short enough that the two designs
+ * are only mixed for a fraction of the time either is on its own.
+ */
+const CROSSFADE = 0.6;
+
+/** A shot's time on screen, and how far apart two shots start, so the clip fills exactly. */
+function shotTiming(count: number) {
+  const hold = (STORY_SECONDS + (count - 1) * CROSSFADE) / count;
+  return { hold, step: hold - CROSSFADE };
+}
+
+/**
+ * The photo track: every mockup in turn, each dissolving into the next.
+ *
+ * This ffmpeg build predates `xfade`, so a crossfade is assembled by hand: each shot is
+ * trimmed to its own window, moved to its start time and faded up on its alpha over the
+ * shots before it. A shot's natural end lands exactly where the next has finished fading
+ * in, so nothing is held open past its window and no frame is composited twice.
+ */
+function sequence(shots: number, style: number, w: number, h: number): string[] {
+  const { hold, step } = shotTiming(shots);
+  const frames = Math.round(hold * FPS);
+  const at = (n: number) => (n * step).toFixed(3);
+
+  const cuts = Array.from({ length: shots }, (_, i) => {
+    // Alternating direction, so no two neighbouring shots drift the same way. The style
+    // picks which way the first one goes, so two versions of a card differ from the off.
+    const [from, to] = (i + style) % 2 === 0 ? [1, 1.09] : [1.09, 1];
+    /*
+      A shot is moved into its slot by shifting timestamps, not by padding the front with
+      transparent frames. Padding materialises a full 1080x1920 frame for every second
+      the shot has not started yet, and the last of four would spend almost five seconds
+      generating frames that are discarded.
+    */
+    const head =
+      `[${i}:v]loop=loop=-1:size=1:start=0,fps=${FPS},trim=duration=${hold.toFixed(3)},` +
+      `setpts=PTS-STARTPTS${i === 0 ? "" : `+${at(i)}/TB`},` +
+      `crop=${w}:${h},${pushPull(from, to, frames)},setsar=1`;
+    /*
+      The first shot carries the track. Holding its last frame to the end makes it the
+      canvas the rest land on, which is one whole overlay pass cheaper than compositing
+      every shot onto a separate full-length source. Those held frames are never seen:
+      the second shot is opaque over them from the moment they begin.
+    */
+    return i === 0
+      ? `${head},tpad=stop_duration=${(STORY_SECONDS - hold).toFixed(3)}:stop_mode=clone,format=yuv420p[s0]`
+      : `${head},format=yuva420p,fade=t=in:st=${at(i)}:d=${CROSSFADE}:alpha=1[s${i}]`;
+  });
+
+  const joins = [];
+  for (let i = 1; i < shots; i++) {
+    const into = i === 1 ? "s0" : `b${i - 1}`;
+    const out = i === shots - 1 ? "bg" : `b${i}`;
+    // `eof_action=pass` drops a finished shot out of the chain rather than repeating its
+    // last frame underneath everything that follows.
+    joins.push(`[${into}][s${i}]overlay=eof_action=pass:format=yuv420[${out}]`);
+  }
+  return [...cuts, ...joins];
+}
 
 const STYLES: Style[] = [
   // Drift: the photo crawls left to right and the lines rise in one after another.
@@ -181,20 +253,30 @@ const STYLES: Style[] = [
 ];
 
 /** The whole graph: the photo, the wash, then the three text layers in turn. */
-function graph(style: Style, width: number, height: number, box: { height: number; top: number }): string {
+function graph(
+  style: Style,
+  styleIndex: number,
+  shots: number,
+  width: number,
+  height: number,
+  box: { height: number; top: number }
+): string {
   /* Every overlay is offset by the band's own top, because each layer was cropped to it. */
   const place = (x: string, y: string, ease: number, at: number) =>
     `x='${x}*${settle(ease, at)}':y='${box.top}+${y}*${settle(ease, at)}':format=yuv420`;
 
+  // The photos occupy inputs [0] to [shots-1], so the text layers start after them.
+  const wash = shots;
   const layers = style.text.flatMap(({ at, fade, x = "0", y = "0", ease = 1.4 }, i) => [
-    layerIn(i + 2, box, at, fade),
-    `[l${i}][x${i + 2}]overlay=${place(x, y, ease, at)}[l${i + 1}]`,
+    layerIn(wash + 1 + i, box, at, fade),
+    `[l${i}][x${wash + 1 + i}]overlay=${place(x, y, ease, at)}[l${i + 1}]`,
   ]);
 
   return [
-    ...style.photo(width, height),
-    layerIn(1, box, style.wash, 0.8),
-    `[bg][x1]overlay=y=${box.top}:format=yuv420[l0]`,
+    // One mockup keeps the style's own camera move; several cut between them instead.
+    ...(shots === 1 ? style.photo(width, height) : sequence(shots, styleIndex, width, height)),
+    layerIn(wash, box, style.wash, 0.8),
+    `[bg][x${wash}]overlay=y=${box.top}:format=yuv420[l0]`,
     ...layers.slice(0, -1),
     // The last overlay names no output, which is what ffmpeg maps to the encoder.
     layers[layers.length - 1].replace(/\[l3\]$/, ""),
@@ -218,8 +300,9 @@ export function storyStyle(card: StoryCard, version: number): number {
 export async function storyVideo(
   card: StoryCard,
   version: number,
-  photo: PinPhoto
+  photos: PinPhoto[]
 ): Promise<Buffer> {
+  if (photos.length === 0) throw new StoryVideoError(`${card.id}: no photo to animate`);
   if (!animatable(card, version)) {
     throw new StoryVideoError(`${card.id} v${version + 1} has no full-bleed layout to animate`);
   }
@@ -239,14 +322,29 @@ export async function storyVideo(
       )
     );
 
-    // The product photo comes in as bytes, so it is written out before ffmpeg reads it.
-    const source = path.join(dir, "source");
-    await writeFile(source, Buffer.from(photo.dataUrl.split(",")[1], "base64"));
+    // The product photos come in as bytes, so they are written out before ffmpeg reads them.
+    const sources = await Promise.all(
+      photos.map(async (p, i) => {
+        const file = path.join(dir, `source${i}`);
+        await writeFile(file, Buffer.from(p.dataUrl.split(",")[1], "base64"));
+        return file;
+      })
+    );
 
+    /*
+      All of them scaled in one pass. Each shot is cropped and zoomed per frame later, so
+      scaling past the frame here keeps that work a crop rather than a resize, and one
+      invocation costs a single process start instead of one per mockup.
+    */
     const [w, h] = [Math.round(width * 1.1), Math.round(height * 1.1)];
     const cover = `scale='if(gt(a,${w}/${h}),-2,${w})':'if(gt(a,${w}/${h}),${h},-2)'`;
     await run(
-      ["-hide_banner", "-loglevel", "error", "-y", "-i", source, "-vf", cover, "-q:v", "2", path.join(dir, "bg.jpg")],
+      [
+        "-hide_banner", "-loglevel", "error", "-y",
+        ...sources.flatMap((file) => ["-i", file]),
+        "-filter_complex", sources.map((_, i) => `[${i}:v]${cover}[o${i}]`).join(";"),
+        ...sources.flatMap((_, i) => ["-map", `[o${i}]`, "-q:v", "2", path.join(dir, `bg${i}.jpg`)]),
+      ],
       12_000
     );
 
@@ -255,12 +353,13 @@ export async function storyVideo(
 
     // Each input is read once; the graph repeats the frame and sets the output's length.
     const out = path.join(dir, "story.mp4");
+    const styleIndex = storyStyle(card, version);
     await run(
       [
         "-hide_banner", "-loglevel", "error", "-y",
-        "-i", path.join(dir, "bg.jpg"),
+        ...sources.flatMap((_, i) => ["-i", path.join(dir, `bg${i}.jpg`)]),
         ...layers.flatMap((_, i) => ["-i", path.join(dir, `${i}.png`)]),
-        "-filter_complex", graph(STYLES[storyStyle(card, version)], width, height, box),
+        "-filter_complex", graph(STYLES[styleIndex], styleIndex, sources.length, width, height, box),
         "-r", String(FPS),
         "-t", String(STORY_SECONDS),
         "-c:v", "libx264", "-preset", "superfast", "-crf", "21", "-maxrate", "3M", "-bufsize", "6M",

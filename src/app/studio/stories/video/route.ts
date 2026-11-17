@@ -49,19 +49,31 @@ export async function GET(request: Request) {
   if (params.get("v") !== v) return fail("This card has changed; reload the page", 404);
   if (url.search !== `?id=${card.id}&n=${n + 1}&v=${v}`) return fail("Not found", 404);
 
-  let photo;
-  try {
-    photo = await fetchPinPhoto(fullSizeImageUrl(card.photo));
-  } catch (error) {
-    if (!(error instanceof PinPhotoError)) throw error;
-    console.error(`[story-video] ${card.id}: ${error.message}`);
-    return fail("Product photo unavailable", 502);
-  }
+  /*
+    Every mockup at once, and a shot that cannot be fetched is dropped rather than
+    failing the render: a story with three of its four designs is worth far more than a
+    502. The first photo is the one the still uses, so losing it means there is nothing
+    to animate and the request fails the way it always has.
+  */
+  const fetched = await Promise.all(
+    card.photos.map(async (src) => {
+      try {
+        return await fetchPinPhoto(fullSizeImageUrl(src));
+      } catch (error) {
+        if (!(error instanceof PinPhotoError)) throw error;
+        console.error(`[story-video] ${card.id}: ${error.message}`);
+        return null;
+      }
+    })
+  );
+
+  const photos = fetched.filter((p) => p !== null);
+  if (!fetched[0]) return fail("Product photo unavailable", 502);
 
   const key = url.search;
   let render = rendering.get(key);
   if (!render) {
-    render = storyVideo(card, n, photo).finally(() => rendering.delete(key));
+    render = storyVideo(card, n, photos).finally(() => rendering.delete(key));
     rendering.set(key, render);
   }
 

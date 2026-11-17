@@ -101,6 +101,15 @@ export interface StoryCard {
   occasion: string | null;
   /** The full-size product photo, fetched and inlined at render time. */
   photo: string;
+  /**
+   * The mockups the animated story cuts between, `photo` first.
+   *
+   * Etsy holds up to ten per listing and the catalog keeps them all, but each one here
+   * is a remote fetch and a shot to encode inside the route's time budget, so the card
+   * takes only the first few. A listing the CSV export missed has just `photo`, and the
+   * video falls back to the single-shot animation it has always had.
+   */
+  photos: string[];
   versions: StoryVersion[];
 }
 
@@ -296,6 +305,16 @@ function versionsFor(
 export const MAX_CARDS = 24;
 
 /**
+ * How many mockups an animated story cuts between.
+ *
+ * Sellers put their strongest photo first, and the pure-white pattern swatches sit at
+ * the end of the set, so taking the first few needs no judgement about what a shot
+ * contains. Four holds each one on screen for about two seconds in a seven-second clip,
+ * which is long enough to read a design and short enough to keep moving.
+ */
+export const MAX_SHOTS = 4;
+
+/**
  * The cards worth posting now: in-season occasions first, then recent arrivals.
  *
  * Occasion cards lead because their window closes; arrivals keep until they stop being
@@ -339,8 +358,20 @@ export async function storyCards(now: Date = new Date()): Promise<StoryCard[]> {
     reason,
     occasion,
     photo: listing.image!.url,
+    photos: shotsFor(listing),
     versions: versionsFor(listing, fresh.has(listing.id), today, occasion),
   }));
+}
+
+/**
+ * The mockups this card animates, always starting with the one the still uses.
+ *
+ * De-duplicated because a listing whose export row repeats a URL would otherwise hold
+ * the same shot twice and read as a stall in the middle of the clip.
+ */
+function shotsFor(listing: Listing): string[] {
+  const first = listing.image!.url;
+  return [...new Set([first, ...(listing.images ?? [])])].slice(0, MAX_SHOTS);
 }
 
 /**
@@ -383,9 +414,15 @@ export function animatable(card: StoryCard, version: number): boolean {
 }
 
 /** Bumped whenever the motion changes, so a cached video re-renders. */
-export const ANIMATION = "a1";
+export const ANIMATION = "a2";
 
-/** The video's version: the still story's hash plus the animation's own. */
+/**
+ * The video's version: the still story's hash, the animation's own, and the shots.
+ *
+ * The still draws only `photo`, so the extra mockups are hashed here rather than in
+ * `storyVersion`, which would churn every cached PNG for a change they cannot show.
+ */
 export function videoVersion(card: StoryCard, version: number): string {
-  return `${storyVersion(card, version, "story")}${ANIMATION}`;
+  const shots = seed(card.photos.join("|")).toString(36);
+  return `${storyVersion(card, version, "story")}${ANIMATION}${shots}`;
 }

@@ -49,6 +49,11 @@ export interface CatalogListing {
   favorites?: number;
   views?: number;
   image?: CatalogImage | null;
+  /**
+   * Every mockup URL Etsy holds for the listing, in the order the export lists them,
+   * starting with the one `image` points at. Only the CSV export carries these.
+   */
+  images?: string[];
   /** From the CSV export. Not displayed; kept so re-imports can match reliably. */
   sku?: string;
 }
