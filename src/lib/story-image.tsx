@@ -217,9 +217,15 @@ export async function storyImage(
           style={{
             display: "flex",
             fontFamily: "Poppins",
-            fontSize: px(32),
+            // A sentence, not a label: smaller and lighter than the name so the two read
+            // in order, and in the body colour, which holds up over a photo on `edge`
+            // where the soft palette tone measured close to its background.
+            fontSize: px(28),
+            lineHeight: 1.35,
             textAlign: "center",
-            color: colors.soft,
+            color: STORY_TEXT,
+            opacity: 0.88,
+            maxWidth: width - side * 2,
           }}
         >
           {lines.join("  ·  ")}
