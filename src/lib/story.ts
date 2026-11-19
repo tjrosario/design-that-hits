@@ -14,6 +14,7 @@
 import { newArrivals } from "@/lib/arrivals";
 import { ctaFor } from "@/lib/cta";
 import { designLine } from "@/lib/design-line";
+import { musicFor } from "@/lib/music";
 import {
   deriveOccasions,
   deriveProductType,
@@ -103,6 +104,13 @@ export interface StoryCard {
   occasion: string | null;
   /** The full-size product photo, fetched and inlined at render time. */
   photo: string;
+  /**
+   * Terms to paste into a sound search, so a post can carry audio that fits the design.
+   *
+   * On the card rather than on a version, because the audio follows the design and the
+   * versions are only the same design said a different way.
+   */
+  music: string[];
   /**
    * The mockups the animated story cuts between, `photo` first.
    *
@@ -366,6 +374,7 @@ export async function storyCards(now: Date = new Date()): Promise<StoryCard[]> {
     occasion,
     photo: listing.image!.url,
     photos: shotsFor(listing),
+    music: musicFor(listing, occasion),
     versions: versionsFor(listing, fresh.has(listing.id), today, occasion),
   }));
 }

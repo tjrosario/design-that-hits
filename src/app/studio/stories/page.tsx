@@ -108,7 +108,12 @@ export default async function StoriesPage() {
               className="flex flex-col rounded-2xl p-5"
               style={{ background: "var(--surface)", border: "1px solid var(--border-soft)" }}
             >
-              <StoryCardView title={card.title} reason={card.reason} versions={viewsFor(card)} />
+              <StoryCardView
+                title={card.title}
+                reason={card.reason}
+                music={card.music}
+                versions={viewsFor(card)}
+              />
               <Link
                 href={`/designs/${card.id}`}
                 className="mt-5 text-xs font-semibold uppercase tracking-wider"

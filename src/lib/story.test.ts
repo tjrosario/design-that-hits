@@ -206,7 +206,15 @@ describe("storyCards", () => {
   });
 
   it("re-renders a cached video when a card's mockups change", async () => {
-    const [card] = await storyCards(DECEMBER);
+    const cards = await storyCards(DECEMBER);
+    /*
+      A card the catalogue holds more than one mockup for. Taking the first card instead
+      made this pass by luck: a listing published since the last mockup export carries
+      only its primary photo, and reversing a list of one changes nothing. The catalogue
+      gained exactly such a listing, and it sorts to the front in December.
+    */
+    const card = cards.find((c) => c.photos.length > 1);
+    if (!card) throw new Error("no card on the page has more than one mockup");
     const before = videoVersion(card, 0);
     const swapped = { ...card, photos: [...card.photos].reverse() };
     expect(videoVersion(swapped, 0)).not.toBe(before);

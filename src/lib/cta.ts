@@ -18,6 +18,7 @@
  */
 
 import { deriveProductType } from "@/lib/facets";
+import { matchSubject, subjectFor } from "@/lib/subject";
 import type { Listing } from "@/types/etsy";
 
 const EMOJI = /[\p{Extended_Pictographic}\p{Default_Ignorable_Code_Point}\p{Me}]/gu;
@@ -49,39 +50,6 @@ const PEOPLE =
 
 /** Longest audience that still leaves the CTA an ask rather than a sentence. */
 const MAX_AUDIENCE = 44;
-
-/**
- * What a design is about, matched against its description.
- *
- * Order is specificity, not alphabet. `golf` sits above `bird` because a birdie is a golf
- * score, and the shop's golf shirts say "Birdies & Bourbon" on them. `guinea pig` sits
- * above `dog` and `cat` because a guinea pig design mentions the family dog in passing.
- */
-const SUBJECTS: { pattern: RegExp; emoji: string; who: string }[] = [
-  { pattern: /\bgolf|\bgolfer|clubhouse|\bbirdie|\bbogey|\bputting green/i, emoji: "\u{26F3}", who: "golf lovers" },
-  { pattern: /casino|\bpoker\b|slot machine|\bvegas\b|blackjack|roulette|\bdice\b/i, emoji: "\u{1F3B0}", who: "casino lovers" },
-  { pattern: /guinea pig|hamster|gerbil|\bferret\b/i, emoji: "\u{1F439}", who: "small pet owners" },
-  { pattern: /hedgehog/i, emoji: "\u{1F994}", who: "hedgehog lovers" },
-  { pattern: /dinosaur|\bt-rex\b|\bdino\b/i, emoji: "\u{1F995}", who: "dinosaur fans" },
-  { pattern: /\bhorses?\b|\bpony\b|equestrian/i, emoji: "\u{1F434}", who: "horse lovers" },
-  { pattern: /\bdogs?\b|puppy|puppies|retriever|dachshund|\bpug\b|corgi|husky|collie|terrier|poodle|rottweiler|shih tzu|\bbeagle\b/i, emoji: "\u{1F436}", who: "dog lovers" },
-  { pattern: /\bcats?\b|kitten|ragdoll|tabby|\bfeline\b/i, emoji: "\u{1F431}", who: "cat people" },
-  { pattern: /woodland|\bdeer\b|reindeer|\bfox\b|squirrel|\bmoose\b|\bbunny\b|\brabbit\b/i, emoji: "\u{1F98C}", who: "nature lovers" },
-  { pattern: /mushroom|toadstool/i, emoji: "\u{1F344}", who: "cottagecore souls" },
-  { pattern: /\bbirds?\b|cardinal|\bduck|mallard|penguin/i, emoji: "\u{1F426}", who: "bird lovers" },
-  { pattern: /\bwitch|tarot|crystal ball|\boccult\b|celestial|\bmystic/i, emoji: "\u{1F52E}", who: "witchy souls" },
-  { pattern: /skull|skeleton|gothic|\bgoth\b|vampire|horror|haunted|\braven\b/i, emoji: "\u{1F5A4}", who: "the goth at heart" },
-  { pattern: /\bdisco\b|disco ball|glitter ball/i, emoji: "\u{1FAA9}", who: "disco lovers" },
-  { pattern: /cowgirl|cowboy|western|rodeo/i, emoji: "\u{1F920}", who: "cowgirls and cowboys" },
-  { pattern: /\bbeach\b|coastal|tropical|\bsurf(ing|er|board)?\b|nautical|\bocean\b|seaside|flamingo/i, emoji: "\u{1F30A}", who: "beach lovers" },
-  { pattern: /techno|\brave\b|\bdj\b|guitar|vinyl|\bconcert\b|headphone|\bmusic\b/i, emoji: "\u{1F3B8}", who: "music lovers" },
-  { pattern: /cocktail|martini|champagne|prosecco|sangria|bourbon|whiskey|\bbeer\b|\bwine\b|\bpint\b/i, emoji: "\u{1F378}", who: "cocktail hour" },
-  { pattern: /\bcoffee\b|espresso|\blatte\b|hot cocoa|hot chocolate/i, emoji: "\u{2615}", who: "coffee lovers" },
-  { pattern: /gingerbread|\bcookie|\bdonut|cupcake|\bcandy\b|bakery|macaron/i, emoji: "\u{1F36A}", who: "the sweet-toothed" },
-  { pattern: /\bbaby\b|nursery|newborn|pacifier|teddy bear/i, emoji: "\u{1F476}", who: "new parents" },
-  { pattern: /\bwedding\b|bridal|\bbride\b|anniversary/i, emoji: "\u{1F48D}", who: "the happy couple" },
-  { pattern: /\bfloral\b|\bflower|\brose\b|\broses\b|peony|botanical/i, emoji: "\u{1F338}", who: "flower lovers" },
-];
 
 /** Carries the emoji for a design whose subject no rule names, but which has a season. */
 const OCCASION_EMOJI: Record<string, string> = {
@@ -168,16 +136,6 @@ export function audienceFor(listing: Listing): string {
   return picks[0]?.item ?? "";
 }
 
-/** The first subject rule any text matches, in the order declared above. */
-function match(text: string): (typeof SUBJECTS)[number] | null {
-  return SUBJECTS.find((s) => s.pattern.test(text)) ?? null;
-}
-
-/** What the design is about, or null when no rule names it. */
-function subjectFor(listing: Listing): (typeof SUBJECTS)[number] | null {
-  return match(`${listing.title} ${listing.description ?? ""}`);
-}
-
 export function ctaFor(listing: Listing, occasion: string | null): string {
   const product = PRODUCT_CTA[deriveProductType(listing) ?? ""] ?? PRODUCT_FALLBACK;
   const subject = subjectFor(listing);
@@ -190,7 +148,7 @@ export function ctaFor(listing: Listing, occasion: string | null): string {
     it names a subject of its own. Without this a card captioned "for someone who loves
     disco" went out under a crystal ball, because the description also mentions a witch.
   */
-  const named = audience ? match(audience) : null;
+  const named = audience ? matchSubject(audience) : null;
   const emoji = (named ?? subject)?.emoji ?? OCCASION_EMOJI[occasion ?? ""] ?? GIFT;
 
   return audience ? `${emoji} ${product.buy} for ${audience}` : `${emoji} ${product.alone}`;
