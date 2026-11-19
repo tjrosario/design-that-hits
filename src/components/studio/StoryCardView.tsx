@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CaptionTabs } from "@/components/studio/CaptionTabs";
+import { CopyButton } from "@/components/studio/CopyButton";
 import { SaveMediaButton } from "@/components/studio/SaveMediaButton";
 import type { Caption, Platform } from "@/lib/story";
 
@@ -31,10 +32,13 @@ export interface VersionView {
 export function StoryCardView({
   title,
   reason,
+  music,
   versions,
 }: {
   title: string;
   reason: string;
+  /** Sound-search terms for this design, most apt first. */
+  music: string[];
   versions: VersionView[];
 }) {
   const [at, setAt] = useState(0);
@@ -105,6 +109,32 @@ export function StoryCardView({
           />
         ))}
       </div>
+
+      {music.length > 0 && (
+        <div className="mt-5">
+          <p
+            className="text-[0.65rem] font-bold uppercase tracking-[0.18em]"
+            style={{ color: "var(--text-muted)" }}
+          >
+            Audio to search
+          </p>
+          <p className="mt-1 text-sm leading-relaxed" style={{ color: "var(--text-soft)" }}>
+            Paste one into the sound picker. They are search terms, not tracks, because
+            which sounds a post may use changes week to week.
+          </p>
+          {/* One button per term: the point is to copy a single query, then go and paste it. */}
+          <div className="mt-2 flex flex-wrap gap-2">
+            {music.map((term) => (
+              <CopyButton
+                key={term}
+                text={term}
+                label={term}
+                accessibleName={`Copy audio search ${term} for ${title}`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       <CaptionTabs captions={version.captions} title={title} />
     </div>
