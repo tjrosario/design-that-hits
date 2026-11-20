@@ -451,7 +451,7 @@ export function animatable(card: StoryCard, version: number): boolean {
 }
 
 /** Bumped whenever the motion changes, so a cached video re-renders. */
-export const ANIMATION = "a3";
+export const ANIMATION = "a4";
 
 /**
  * The video's version: the still story's hash, the animation's own, and the shots.
