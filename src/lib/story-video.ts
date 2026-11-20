@@ -19,6 +19,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { STORY_FORMATS, animatable, type Part, type StoryCard } from "@/lib/story";
 import { bandBox, storyImage } from "@/lib/story-image";
+import { shotTiming, STORY_SECONDS } from "@/lib/story-timing";
 import type { PinPhoto } from "@/lib/pin-photo";
 
 export class StoryVideoError extends Error {}
@@ -44,7 +45,6 @@ async function run(args: string[], timeout: number): Promise<void> {
    the video route's bundle; nothing else in the app shells out to it. */
 const FFMPEG = path.join(process.cwd(), "node_modules/@ffmpeg-installer/linux-x64/ffmpeg");
 
-export const STORY_SECONDS = 7;
 
 /*
   24 rather than 30. The motion here is slow pans and fades, which read the same at
@@ -125,20 +125,6 @@ const zoom = (from: number, to: number) => (w: number, h: number) => [
 ];
 
 /**
- * How long one shot hands over to the next.
- *
- * Long enough to read as a dissolve rather than a cut, short enough that the two designs
- * are only mixed for a fraction of the time either is on its own.
- */
-const CROSSFADE = 0.6;
-
-/** A shot's time on screen, and how far apart two shots start, so the clip fills exactly. */
-function shotTiming(count: number) {
-  const hold = (STORY_SECONDS + (count - 1) * CROSSFADE) / count;
-  return { hold, step: hold - CROSSFADE };
-}
-
-/**
  * The photo track: every mockup in turn, each dissolving into the next.
  *
  * This ffmpeg build predates `xfade`, so a crossfade is assembled by hand: each shot is
@@ -147,7 +133,7 @@ function shotTiming(count: number) {
  * in, so nothing is held open past its window and no frame is composited twice.
  */
 function sequence(shots: number, style: number, w: number, h: number): string[] {
-  const { hold, step } = shotTiming(shots);
+  const { hold, step, crossfade } = shotTiming(shots);
   const frames = Math.round(hold * FPS);
   const at = (n: number) => (n * step).toFixed(3);
 
@@ -173,7 +159,7 @@ function sequence(shots: number, style: number, w: number, h: number): string[] 
     */
     return i === 0
       ? `${head},tpad=stop_duration=${(STORY_SECONDS - hold).toFixed(3)}:stop_mode=clone,format=yuv420p[s0]`
-      : `${head},format=yuva420p,fade=t=in:st=${at(i)}:d=${CROSSFADE}:alpha=1[s${i}]`;
+      : `${head},format=yuva420p,fade=t=in:st=${at(i)}:d=${crossfade.toFixed(3)}:alpha=1[s${i}]`;
   });
 
   const joins = [];

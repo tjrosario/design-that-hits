@@ -322,12 +322,11 @@ export const MAX_CARDS = 24;
 /**
  * How many mockups an animated story cuts between.
  *
- * Sellers put their strongest photo first, and the pure-white pattern swatches sit at
- * the end of the set, so taking the first few needs no judgement about what a shot
- * contains. Four holds each one on screen for about two seconds in a seven-second clip,
- * which is long enough to read a design and short enough to keep moving.
+ * Every mockup the listing has, which is at most ten because that is Etsy's own limit on
+ * a listing's photos. The number is kept as a bound rather than a choice: it caps the
+ * inputs one ffmpeg call is handed, and the tests read it.
  */
-export const MAX_SHOTS = 4;
+export const MAX_SHOTS = 10;
 
 /**
  * The cards worth posting now: in-season occasions first, then recent arrivals.
@@ -367,27 +366,49 @@ export async function storyCards(now: Date = new Date()): Promise<StoryCard[]> {
     if (picked.size >= MAX_CARDS) break;
   }
 
-  return [...picked.values()].map(({ listing, reason, occasion }) => ({
-    id: listingSlug(listing),
-    title: listingName(listing),
-    reason,
-    occasion,
-    photo: listing.image!.url,
-    photos: shotsFor(listing),
-    music: musicFor(listing, occasion),
-    versions: versionsFor(listing, fresh.has(listing.id), today, occasion),
-  }));
+  return [...picked.values()].map(({ listing, reason, occasion }) => {
+    // The still draws the first shot, so the two cannot disagree about which photo it is.
+    const photos = shotsFor(listing);
+    return {
+      id: listingSlug(listing),
+      title: listingName(listing),
+      reason,
+      occasion,
+      photo: photos[0],
+      photos,
+      music: musicFor(listing, occasion),
+      versions: versionsFor(listing, fresh.has(listing.id), today, occasion),
+    };
+  });
 }
 
 /**
- * The mockups this card animates, always starting with the one the still uses.
+ * The mockups this card animates, led by the one the still uses.
  *
- * De-duplicated because a listing whose export row repeats a URL would otherwise hold
- * the same shot twice and read as a stall in the middle of the clip.
+ * De-duplicated by Etsy's own image id rather than by URL, because the same photo
+ * reaches the catalogue by two routes at two sizes: the feed gives the primary photo as
+ * `il_570xN` and the mockup export gives it as `il_fullxfull`. Comparing strings let
+ * that pair through, which showed one photo twice in a clip and spent a slot that a real
+ * mockup wanted. Where both sizes arrive, the larger one wins: these render at 1080 wide.
  */
 function shotsFor(listing: Listing): string[] {
-  const first = listing.image!.url;
-  return [...new Set([first, ...(listing.images ?? [])])].slice(0, MAX_SHOTS);
+  const shots = new Map<string, string>();
+  for (const url of [listing.image!.url, ...(listing.images ?? [])]) {
+    const key = etsyImageId(url) ?? url;
+    const held = shots.get(key);
+    if (!held || (isThumbnail(held) && !isThumbnail(url))) shots.set(key, url);
+  }
+  return [...shots.values()].slice(0, MAX_SHOTS);
+}
+
+/** The photo's own id in an Etsy image URL, which is the same across its sizes. */
+function etsyImageId(url: string): string | null {
+  return /il_[a-z0-9]+x[a-z0-9]+\.(\d+)/i.exec(url)?.[1] ?? null;
+}
+
+/** Etsy's listing-card size, far too small to fill a 1080-wide frame. */
+function isThumbnail(url: string): boolean {
+  return url.includes("il_570xN");
 }
 
 /**
@@ -430,7 +451,7 @@ export function animatable(card: StoryCard, version: number): boolean {
 }
 
 /** Bumped whenever the motion changes, so a cached video re-renders. */
-export const ANIMATION = "a2";
+export const ANIMATION = "a3";
 
 /**
  * The video's version: the still story's hash, the animation's own, and the shots.
