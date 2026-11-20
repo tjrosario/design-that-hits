@@ -205,6 +205,58 @@ describe("storyCards", () => {
     }
   });
 
+  /** A photo's own id in an Etsy URL, which is the same across its sizes. */
+  const photoId = (url: string) => /il_[a-z0-9]+x[a-z0-9]+\.(\d+)/i.exec(url)?.[1] ?? url;
+
+  it("animates every mockup the listing has, not a slice of them", async () => {
+    const listings = await getAllListings();
+    const cards = await storyCards(DECEMBER);
+    let fullSets = 0;
+    for (const card of cards) {
+      const listing = listings.find((l) => listingSlug(l) === card.id);
+      expect(listing, `no listing behind ${card.id}`).toBeTruthy();
+      // Every distinct photo the listing holds, counted by id so two sizes count once.
+      const available = new Set(
+        [listing!.image!.url, ...(listing!.images ?? [])].map(photoId)
+      );
+      expect(new Set(card.photos.map(photoId)), card.id).toEqual(available);
+      if (card.photos.length >= 8) fullSets++;
+    }
+    // Most of the catalogue carries a full set, so a capped slice would show up here.
+    expect(fullSets).toBeGreaterThan(cards.length / 2);
+  });
+
+  it("never animates one photo twice, even when two sizes of it arrive", async () => {
+    /*
+      The feed gives the primary photo as `il_570xN` and the mockup export gives the same
+      photo as `il_fullxfull`. Compared as strings they look like two mockups.
+    */
+    const cards = await storyCards(DECEMBER);
+    for (const card of cards) {
+      const ids = card.photos.map(photoId);
+      expect(new Set(ids).size, `${card.id}: ${card.photos.join(" ")}`).toBe(ids.length);
+    }
+  });
+
+  it("leads with the largest copy the catalogue holds, not a listing-card thumbnail", async () => {
+    /*
+      570px cannot fill a 1080-wide frame without being upscaled. The feed hands over the
+      primary photo at that size, and the mockup export hands over the same photo whole,
+      so wherever both have arrived the card has to take the whole one. A listing synced
+      before its next mockup export has only the small copy, and keeps it.
+    */
+    const listings = await getAllListings();
+    const cards = await storyCards(DECEMBER);
+    for (const card of cards) {
+      if (!card.photo.includes("il_570xN")) continue;
+      const listing = listings.find((l) => listingSlug(l) === card.id);
+      const larger = (listing!.images ?? []).filter(
+        (url) => photoId(url) === photoId(card.photo) && !url.includes("il_570xN")
+      );
+      expect(larger, `${card.id} kept a thumbnail it could replace`).toHaveLength(0);
+    }
+  });
+
   it("re-renders a cached video when a card's mockups change", async () => {
     const cards = await storyCards(DECEMBER);
     /*
