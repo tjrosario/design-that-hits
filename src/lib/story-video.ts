@@ -19,7 +19,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { STORY_FORMATS, animatable, type Part, type StoryCard } from "@/lib/story";
 import { bandBox, storyImage } from "@/lib/story-image";
-import { shotTiming, STORY_SECONDS } from "@/lib/story-timing";
+import { shotTiming, storySeconds } from "@/lib/story-timing";
 import type { PinPhoto } from "@/lib/pin-photo";
 
 export class StoryVideoError extends Error {}
@@ -75,9 +75,15 @@ function layerIn(index: number, box: { height: number; top: number }, at: number
 /** Eases from 1 to 0 over `d` seconds from `s`, fast then settling. */
 const settle = (d: number, s = 0) => `pow(1-min(1,max(0,t-${s})/${d}),3)`;
 
-/** Crawls across the middle 30% of the photo's spare width or height, forward or back. */
+/*
+  Crawls across the middle 30% of the photo's spare width or height, forward or back.
+  These camera moves run only on a card with a single mockup, which is always the
+  shortest clip, so they are written against that length rather than a variable one.
+*/
+const SOLO_SECONDS = storySeconds(1);
+
 const pan = (dir: "t" | "-t") =>
-  dir === "t" ? `(0.35+0.3*t/${STORY_SECONDS})` : `(0.65-0.3*t/${STORY_SECONDS})`;
+  dir === "t" ? `(0.35+0.3*t/${SOLO_SECONDS})` : `(0.65-0.3*t/${SOLO_SECONDS})`;
 
 const fadeIn = (st: number, d = 1) => `format=yuva420p,fade=t=in:st=${st}:d=${d}:alpha=1`;
 
@@ -121,7 +127,7 @@ const pushPull = (from: number, to: number, frames: number) => {
 
 /** Zooms evenly between two scales over the whole clip. */
 const zoom = (from: number, to: number) => (w: number, h: number) => [
-  `${PHOTO_IN},crop=${w}:${h},${pushPull(from, to, STORY_SECONDS * FPS)},setsar=1,format=yuv420p[bg]`,
+  `${PHOTO_IN},crop=${w}:${h},${pushPull(from, to, SOLO_SECONDS * FPS)},setsar=1,format=yuv420p[bg]`,
 ];
 
 /**
@@ -133,7 +139,7 @@ const zoom = (from: number, to: number) => (w: number, h: number) => [
  * in, so nothing is held open past its window and no frame is composited twice.
  */
 function sequence(shots: number, style: number, w: number, h: number): string[] {
-  const { hold, step, crossfade } = shotTiming(shots);
+  const { seconds, hold, step, crossfade } = shotTiming(shots);
   const frames = Math.round(hold * FPS);
   const at = (n: number) => (n * step).toFixed(3);
 
@@ -158,7 +164,7 @@ function sequence(shots: number, style: number, w: number, h: number): string[] 
       the second shot is opaque over them from the moment they begin.
     */
     return i === 0
-      ? `${head},tpad=stop_duration=${(STORY_SECONDS - hold).toFixed(3)}:stop_mode=clone,format=yuv420p[s0]`
+      ? `${head},tpad=stop_duration=${(seconds - hold).toFixed(3)}:stop_mode=clone,format=yuv420p[s0]`
       : `${head},format=yuva420p,fade=t=in:st=${at(i)}:d=${crossfade.toFixed(3)}:alpha=1[s${i}]`;
   });
 
@@ -347,7 +353,7 @@ export async function storyVideo(
         ...layers.flatMap((_, i) => ["-i", path.join(dir, `${i}.png`)]),
         "-filter_complex", graph(STYLES[styleIndex], styleIndex, sources.length, width, height, box),
         "-r", String(FPS),
-        "-t", String(STORY_SECONDS),
+        "-t", String(storySeconds(sources.length)),
         "-c:v", "libx264", "-preset", "superfast", "-crf", "21", "-maxrate", "3M", "-bufsize", "6M",
         "-pix_fmt", "yuv420p", "-movflags", "+faststart",
         out,
