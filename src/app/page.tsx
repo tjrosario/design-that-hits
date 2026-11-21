@@ -20,6 +20,8 @@ import { listingPath } from "@/lib/slug";
 import { ShopFront } from "@/components/ShopFront";
 import { JsonLd } from "@/components/JsonLd";
 import { HeroCarousel } from "@/components/HeroCarousel";
+import { HeroSnow } from "@/components/HeroSnow";
+import { heroPromo, promoBody } from "@/lib/hero";
 import type { Listing } from "@/types/etsy";
 import { SITE_SHARE_IMAGE } from "@/lib/images";
 import { ORGANIZATION_ID, WEBSITE_ID } from "@/lib/site-graph";
@@ -218,6 +220,10 @@ export default async function HomePage({ searchParams }: HomeProps) {
   const params = await searchParams;
   const parsed = parseQuery(params);
 
+  /* What the hero is selling today, or null to keep the standing one. Read before the
+     queries below, because it decides which listings the hero showcase asks for. */
+  const promo = heroPromo();
+
   /*
     Every query the page needs, in one round. The hero used to be awaited on its own after
     this block resolved, which made it a second serial hop for no reason — nothing in it
@@ -231,7 +237,14 @@ export default async function HomePage({ searchParams }: HomeProps) {
     // Fetched independently of the grid. Sourcing the hero from initialData meant it went
     // blank on the Best Sellers / Trending routes, where initialData is deliberately null
     // so the grid can rank on the client.
-    getListings({ limit: 12, sortOn: "created", sortOrder: "desc" }),
+    // Newest first, narrowed to the promoted occasion so a Christmas hero shows
+    // Christmas rather than whatever happens to have been published most recently.
+    getListings({
+      limit: 12,
+      occasions: promo ? [promo.slug] : undefined,
+      sortOn: "created",
+      sortOrder: "desc",
+    }),
     parsed.pill === "best" || parsed.pill === "trending"
       ? Promise.resolve(null)
       : getListings({
@@ -281,6 +294,10 @@ export default async function HomePage({ searchParams }: HomeProps) {
   // Time-bounded, so the strip is absent on a quiet fortnight rather than relabelling
   // the top of the grid as a drop.
   const dropped = await justDropped(8);
+
+  /* The promoted occasion's own collection, which carries the live count the hero quotes
+     so the number is never a hand-written claim that drifts from the catalogue. */
+  const promoCollection = promo ? collections.find((c) => c.slug === promo.slug) : undefined;
 
   const heroListings = (heroResult.ok ? heroResult.data.listings : [])
     .filter((l) => l.image)
@@ -341,7 +358,11 @@ export default async function HomePage({ searchParams }: HomeProps) {
       {/* Hero — text first on mobile, side-by-side from md up */}
       <section className="mx-auto max-w-screen-xl px-4 sm:px-5 pt-4 pb-8 sm:pb-10">
         <div
-          className="relative overflow-hidden rounded-[26px] sm:rounded-[32px] flex flex-col md:flex-row md:items-stretch md:min-h-[520px]"
+          /* The promo's own colours, so a Christmas headline is not wearing the
+             accent of whatever holiday the calendar is currently on. */
+          className={`relative overflow-hidden rounded-[26px] sm:rounded-[32px] flex flex-col md:flex-row md:items-stretch md:min-h-[520px]${
+            promo?.slug === "christmas" ? " hero-christmas" : ""
+          }`}
           style={{
             background: "var(--bg-elevated)",
             border: "1px solid var(--border-soft)",
@@ -355,36 +376,53 @@ export default async function HomePage({ searchParams }: HomeProps) {
             aria-hidden="true"
           />
 
+          {/* Snow, only while Christmas is the thing being sold. Pure CSS, and gone
+              entirely under prefers-reduced-motion; see `.hero-snow` in globals.css. */}
+          {promo?.slug === "christmas" && <HeroSnow />}
+
           {/* Text */}
           <div className="relative z-10 flex flex-col justify-center w-full md:w-[55%] px-6 py-12 sm:px-9 sm:py-14 md:px-12 md:py-20">
-            <p className="eyebrow mb-4 sm:mb-5 fade-up">The Special Taste</p>
+            <p className="eyebrow mb-4 sm:mb-5 fade-up">
+              {promo ? promo.eyebrow : "The Special Taste"}
+            </p>
 
             <h1
               className="display-title mb-5 rise-up"
               style={{ fontSize: "clamp(2.5rem, 7.5vw, 4.5rem)" }}
             >
-              Get Your Own
-              <br />
-              Bite of <span className="display-accent">Satisfaction</span>
+              {promo ? (
+                <>
+                  {promo.title.lead}
+                  <br />
+                  <span className="display-accent">{promo.title.accent}</span>
+                </>
+              ) : (
+                <>
+                  Get Your Own
+                  <br />
+                  Bite of <span className="display-accent">Satisfaction</span>
+                </>
+              )}
             </h1>
 
             <p
               className="text-sm sm:text-base leading-relaxed mb-8 fade-up-3"
               style={{ color: "var(--text-soft)", maxWidth: "32rem" }}
             >
-              Unique gifts, wrapping paper and party designs that make every occasion feel
-              extra special. Printed on demand, shipped from our Etsy shop.
+              {promo
+                ? promoBody(promo, promoCollection?.count ?? 0)
+                : "Unique gifts, wrapping paper and party designs that make every occasion feel extra special. Printed on demand, shipped from our Etsy shop."}
             </p>
 
             <div className="fade-up-3 flex flex-wrap items-center gap-3">
-              <a href="#listings" className="btn-cta">
-                Browse Designs
+              <Link href={promo ? collectionPath(promo.slug) : "#listings"} className="btn-cta">
+                {promo ? promo.cta : "Browse Designs"}
                 <span className="arrow-circle" aria-hidden="true">
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H7M17 7v10" />
                   </svg>
                 </span>
-              </a>
+              </Link>
               <a
                 href="https://designthathits.etsy.com"
                 target="_blank"

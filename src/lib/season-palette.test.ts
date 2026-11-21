@@ -326,3 +326,32 @@ describe("the schedule inlined into the head", () => {
     expect(scheduleLiteral(2026).length).toBeLessThan(3000);
   });
 });
+
+describe("the hero's Christmas palette", () => {
+  /** The scoped block, which duplicates the holiday palette so only the hero changes. */
+  function heroTokens(light: boolean): Record<string, string> {
+    const pattern = light
+      ? /:root\[data-theme="light"\] \.hero-christmas\s*\{([\s\S]*?)\n  \}/
+      : /\n  \.hero-christmas\s*\{([\s\S]*?)\n  \}/;
+    const match = css.match(pattern);
+    if (!match) throw new Error(`no hero block for ${light ? "light" : "dark"}`);
+    return tokensIn(match[1]);
+  }
+
+  for (const light of [false, true]) {
+    it(`matches the christmas palette exactly in ${light ? "light" : "dark"}`, () => {
+      /*
+        The hero copies the palette rather than referencing it, because a :root block
+        cannot be re-scoped to a subtree. This is what stops the copy drifting: every
+        contrast pair the palette proves is then proven for the hero too.
+      */
+      const palette = blocks.find((b) => b.kind === "holiday" && b.id === "christmas" && b.light === light);
+      expect(palette, "no christmas palette block").toBeTruthy();
+      /* Only the colour tokens: the hero also redeclares the gradients, because a
+         custom property bakes its var() references where it is declared. */
+      const brandOnly = (t: Record<string, string>) =>
+        Object.fromEntries(Object.entries(t).filter(([k]) => k.startsWith("--brand")));
+      expect(brandOnly(heroTokens(light))).toEqual(brandOnly(palette!.tokens));
+    });
+  }
+});
