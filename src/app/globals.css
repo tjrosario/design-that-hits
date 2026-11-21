@@ -404,6 +404,19 @@
     --brand-ink:      #FFFFFF;
     --brand-on-light: #BB1B30;
     --brand-wash:     rgba(187, 27, 48, 0.08);
+
+    /* The light hero keeps its own softer alphas, as the :root light block does. */
+    --gradient-hero:
+      radial-gradient(
+        ellipse 80% 60% at 75% 35%,
+        color-mix(in srgb, var(--brand) 14%, transparent) 0%,
+        transparent 65%
+      ),
+      radial-gradient(
+        ellipse 60% 50% at 10% 80%,
+        color-mix(in srgb, var(--brand-soft) 12%, transparent) 0%,
+        transparent 60%
+      );
   }
 
   html {
@@ -475,6 +488,12 @@
       animation: none !important;
       opacity: 1 !important;
       transform: none !important;
+    }
+
+    /* Snow is motion and nothing else, so it goes rather than resolving to a still
+       frame: the rule above would otherwise leave eighteen flakes stopped at the top. */
+    .hero-snow {
+      display: none !important;
     }
   }
 }
@@ -903,6 +922,112 @@
     /* Opacity only. A cross-fade needs both slides painted at once, so every slide stays
        in the layout and visibility is driven purely by alpha. */
     transition: opacity 1.1s ease-in-out;
+  }
+
+  /*
+    Christmas colours for the hero alone, while Christmas is the thing being sold.
+
+    The site's palette tracks the calendar, which is right: in Thanksgiving week it is
+    orange, and on 10 December it is Hanukkah blue, because a holiday that has arrived
+    outranks one still being led up to. The hero sells against a different clock, and a
+    Christmas headline wearing the Thanksgiving accent reads as a mistake. Scoped to the
+    panel rather than :root, so only the thing making the claim changes colour.
+
+    The values are the `data-holiday="christmas"` palette verbatim. season-palette.test.ts
+    asserts they stay identical to it, so this copy cannot drift out of contrast.
+  */
+  .hero-christmas {
+    --brand:          #E75A6D;
+    --brand-strong:   #2C9658;
+    --brand-soft:     #F07579;
+    --brand-ink:      #1A1216;
+    --brand-on-light: #AA182C;
+    --brand-wash:     rgba(231, 90, 109, 0.12);
+
+    /*
+      Redeclared, not inherited. A custom property's var() references are substituted
+      where it is declared, so the :root copies of these had already baked in :root's
+      --brand: the button and the glow stayed orange while the headline went red.
+    */
+    --gradient-brand: linear-gradient(135deg, var(--brand) 0%, var(--brand-strong) 100%);
+    --gradient-hero:
+      radial-gradient(
+        ellipse 80% 60% at 75% 35%,
+        color-mix(in srgb, var(--brand) 28%, transparent) 0%,
+        transparent 65%
+      ),
+      radial-gradient(
+        ellipse 60% 50% at 10% 80%,
+        color-mix(in srgb, var(--brand-strong) 18%, transparent) 0%,
+        transparent 60%
+      );
+  }
+
+  :root[data-theme="light"] .hero-christmas {
+    --brand:          #BB1B30;
+    --brand-strong:   #1F6B3F;
+    --brand-soft:     #EC5156;
+    --brand-ink:      #FFFFFF;
+    --brand-on-light: #BB1B30;
+    --brand-wash:     rgba(187, 27, 48, 0.08);
+  }
+
+  /* ── Hero snow ────────────────────────────────────────────────────────────── */
+
+  /*
+    Falls only while Christmas is being promoted, because the hero renders it only then.
+
+    Sized in container units so one flake crosses the panel whatever height the hero
+    settles at, and animated on a transform alone so the compositor runs it without
+    waking the main thread. Sits above the product carousel and below the text, which is
+    the one order that reads as snow in front of the photo rather than over the headline.
+  */
+  /*
+    The flake is a mask rather than a coloured image, so one shape serves both themes.
+    Painted white it vanished in light mode, where the hero panel is pure white.
+  */
+  .hero-snow {
+    container-type: size;
+    z-index: 5;
+    --snow-color: #ffffff;
+    --snowflake: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-42 -42 84 84'><g stroke='%23ffffff' stroke-width='5' stroke-linecap='round' fill='none'><path d='M0 -38V38M-11 -28.5L0 -19L11 -28.5M-11 28.5L0 19L11 28.5'/><g transform='rotate(60)'><path d='M0 -38V38M-11 -28.5L0 -19L11 -28.5M-11 28.5L0 19L11 28.5'/></g><g transform='rotate(120)'><path d='M0 -38V38M-11 -28.5L0 -19L11 -28.5M-11 28.5L0 19L11 28.5'/></g></g></svg>");
+  }
+
+  :root[data-theme="light"] .hero-snow {
+    --snow-color: #93b0cc;
+  }
+
+  .hero-snow span {
+    position: absolute;
+    top: -12%;
+    left: var(--x);
+    width: var(--size);
+    height: var(--size);
+    opacity: var(--fade);
+    background-color: var(--snow-color);
+    -webkit-mask-image: var(--snowflake);
+    mask-image: var(--snowflake);
+    mask-size: contain;
+    mask-position: center;
+    mask-repeat: no-repeat;
+    animation: hero-fall var(--duration) linear var(--delay) infinite;
+  }
+
+  .hero-snow span:nth-child(3n + 2) {
+    --snowflake: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='5' fill='%23ffffff'/></svg>");
+  }
+
+  @keyframes hero-fall {
+    to {
+      transform: translate3d(var(--drift), 130cqh, 0) rotate(var(--spin));
+    }
+  }
+
+  /* A phone shows the hero text over the panel, so fewer flakes and less of them. */
+  @media (width < 40rem) {
+    .hero-snow span:nth-child(n + 11) {
+      display: none;
+    }
   }
 
   /*
