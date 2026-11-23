@@ -52,7 +52,7 @@ const PEOPLE =
 const MAX_AUDIENCE = 44;
 
 /** Carries the emoji for a design whose subject no rule names, but which has a season. */
-const OCCASION_EMOJI: Record<string, string> = {
+export const OCCASION_EMOJI: Record<string, string> = {
   christmas: "\u{1F384}",
   halloween: "\u{1F383}",
   birthday: "\u{1F382}",
@@ -66,7 +66,7 @@ const GIFT = "\u{1F381}";
   What the thing is. `buy` is phrased to take "for <audience>" after it, and `alone` is
   the whole ask for a design with no audience to name.
 */
-const PRODUCT_CTA: Record<string, { buy: string; alone: string }> = {
+export const PRODUCT_CTA: Record<string, { buy: string; alone: string }> = {
   "wrapping-paper": { buy: "Wrap a gift", alone: "Wrap something in it" },
   apparel: { buy: "Grab a tee", alone: "Wear the design" },
   hat: { buy: "Grab a cap", alone: "Wear it out" },
@@ -80,7 +80,7 @@ const PRODUCT_CTA: Record<string, { buy: string; alone: string }> = {
   digital: { buy: "Download it", alone: "Download it today" },
 };
 
-const PRODUCT_FALLBACK = { buy: "Grab this design", alone: "Shop this design" };
+export const PRODUCT_FALLBACK = { buy: "Grab this design", alone: "Shop this design" };
 
 /*
   Spaces and tabs collapse, newlines survive. The cue regex stops at a line break, and
@@ -133,7 +133,25 @@ export function audienceFor(listing: Listing): string {
   }
 
   picks.sort((a, b) => b.score - a.score);
-  return picks[0]?.item ?? "";
+  return picks[0] ? uncapitalise(picks[0].item, listing.description ?? "") : "";
+}
+
+/**
+ * Drops the capital a seller's title-casing left on the audience's first word.
+ *
+ * The phrase is read mid-sentence, so "Wrap a gift for Casino lovers" looks like a typo.
+ * Lowercasing unconditionally would write "for vegas lovers", though, so the word has to
+ * earn it: it is only lowercased when the description itself also writes it that way
+ * somewhere. A seller types "casino" in running prose and never types "Vegas".
+ */
+function uncapitalise(phrase: string, description: string): string {
+  const [word] = phrase.split(" ");
+  if (!/^[A-Z][a-z]/.test(word)) return phrase;
+  const lower = word.toLowerCase();
+  /* Matched at a word start but open-ended at the tail, because the running prose carries
+     the plural: a hedgehog paper writes "hedgehogs" and never the bare singular. */
+  const written = new RegExp(`(?<![\\p{L}'])${lower}`, "u").test(description);
+  return written ? lower + phrase.slice(word.length) : phrase;
 }
 
 export function ctaFor(listing: Listing, occasion: string | null): string {

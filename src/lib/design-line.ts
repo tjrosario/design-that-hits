@@ -27,6 +27,30 @@ import type { Listing } from "@/types/etsy";
  */
 const MAX_CHARS = 150;
 
+export interface LineOptions {
+  /** Overrides the card's band. A caption has a paragraph, not 45% of a frame. */
+  maxChars?: number;
+  /**
+   * Whether the sentence has to use the word design, pattern, print and so on.
+   *
+   * On for the card, where the line sits alone over the artwork and a sentence about
+   * anything else reads as a non sequitur. Off for a caption, which is read beside the
+   * product photo, so a sentence that describes what is drawn without naming it as a
+   * design still lands.
+   */
+  requireDesignWord?: boolean;
+  /**
+   * Whether an emoji counts as the full stop a seller never typed.
+   *
+   * Sellers punctuate with emoji, and some descriptions carry no full stop at all: every
+   * sentence of the wedding paper's ends in one, so the guard below that drops unfinished
+   * lines dropped the whole description. Off for the card, which would then have to be
+   * re-read across 418 listings and every cached image redrawn; on for a caption, where
+   * the only cost of a new candidate is better copy.
+   */
+  emojiTerminates?: boolean;
+}
+
 /** Shortest line still worth printing. Below this a sentence says nothing a title has not. */
 const MIN_CHARS = 40;
 
@@ -65,6 +89,9 @@ const CONCRETE =
 const TAIL =
   /,\s+(including|featuring|plus|along with|complete with|making it|perfect for|ideal for|so you|all against|and plenty)\b.*$/i;
 
+/** An emoji closing a line, which is how a seller who types no full stops ends a sentence. */
+const TERMINAL_EMOJI = /\p{Extended_Pictographic}[\p{Default_Ignorable_Code_Point}\s]*$/u;
+
 /** A full stop, or an emoji standing in for one before the next capital letter. */
 const BOUNDARY = /(?<=[.!?])\s+|(?<=\p{Extended_Pictographic}\p{Default_Ignorable_Code_Point}?)\s*(?=[A-Z])/u;
 
@@ -93,33 +120,37 @@ function clean(sentence: string): string {
  * sentence with an emoji instead of a full stop often enough that removing those first
  * welds two sentences into one: "...timeless minimalism Soft white tones...".
  */
-function sentences(description: string): string[] {
+function sentences(description: string, emojiTerminates = false): string[] {
   const out: string[] = [];
   for (const block of parseDescription(description)) {
     if (block.kind !== "paragraph") continue;
     for (const line of block.text.split("\n")) {
       for (const part of line.split(BOUNDARY)) {
         const text = clean(part);
-        if (text) out.push(text);
+        if (!text) continue;
+        // The emoji the split consumed was this sentence's full stop, so put one back.
+        const ended = emojiTerminates && TERMINAL_EMOJI.test(part) && !/[.!?]$/.test(text);
+        out.push(ended ? `${text}.` : text);
       }
     }
   }
   return out;
 }
 
-export function designLine(listing: Listing): string {
+export function designLine(listing: Listing, options: LineOptions = {}): string {
+  const { maxChars = MAX_CHARS, requireDesignWord = true, emojiTerminates = false } = options;
   const candidates: { text: string; score: number }[] = [];
 
-  for (const sentence of sentences(listing.description ?? "")) {
-    if (!DESIGN.test(sentence)) continue;
+  for (const sentence of sentences(listing.description ?? "", emojiTerminates)) {
+    if (requireDesignWord && !DESIGN.test(sentence)) continue;
     if (LOGISTICS.test(sentence) || DEPENDENT.test(sentence)) continue;
     if (DANGLING.test(sentence) || EMPTY.test(sentence)) continue;
     /* No terminal punctuation means this is a heading or a line the seller never
        finished, not a sentence a card can print. */
     if (!/[.!?]$/.test(sentence)) continue;
 
-    const text = sentence.length <= MAX_CHARS ? sentence : sentence.replace(TAIL, ".");
-    if (text.length < MIN_CHARS || text.length > MAX_CHARS) continue;
+    const text = sentence.length <= maxChars ? sentence : sentence.replace(TAIL, ".");
+    if (text.length < MIN_CHARS || text.length > maxChars) continue;
 
     // A describing sentence always beats a vague one; among equals, the fuller one wins.
     candidates.push({ text, score: (CONCRETE.test(text) ? 1000 : 0) + text.length });
