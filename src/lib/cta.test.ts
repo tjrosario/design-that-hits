@@ -64,6 +64,22 @@ describe("audienceFor", () => {
     const long = "Perfect for anyone whose guinea pigs are unquestionably part of the family celebrations.";
     expect(audienceFor(listing("Guinea Pig Wrapping Paper", long))).toBe("");
   });
+
+  it("drops a capital the seller's title-casing left mid-sentence", () => {
+    // "Wrap a gift for Casino lovers" reads as a typo wherever the phrase is used.
+    const d = "Perfect for Casino lovers. The casino tables are drawn in gold.";
+    expect(audienceFor(listing("Casino Wrapping Paper", d))).toBe("casino lovers");
+  });
+
+  it("keeps the capital on a word the description never writes in lower case", () => {
+    /*
+      The test that stops the rule above from writing "for vegas lovers". The word earns
+      its lowercase only by appearing that way in the seller's own running prose, and a
+      proper noun never does.
+    */
+    const d = "Perfect for Vegas lovers and high rollers. Vegas nights, drawn in neon.";
+    expect(audienceFor(listing("Vegas Wrapping Paper", d))).toBe("Vegas lovers and high rollers");
+  });
 });
 
 describe("ctaFor", () => {

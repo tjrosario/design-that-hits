@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { NEW_ARRIVALS_DAYS } from "@/lib/arrivals";
+import { captionLine } from "@/lib/caption";
 import { deriveProductType, occasionLabel } from "@/lib/facets";
 import { getAllListings } from "@/lib/shop";
 import { shopToday, toISODate } from "@/lib/shop-time";
@@ -121,16 +122,52 @@ describe("storyCards", () => {
     }
   });
 
-  it("only claims a print-and-ship story for wrapping paper, as /contact does", async () => {
+  /*
+    Every caption used to close on how the design was made, which meant every post the
+    shop has ever written ended with the same sentence. It is true and it is useless: it
+    reads identically under 418 different designs and says nothing about any of them.
+  */
+  it("makes no fulfilment claim in a caption, on either platform", async () => {
+    for (const when of [DECEMBER, JULY]) {
+      const cards = await storyCards(when);
+      for (const card of cards) {
+        for (const version of card.versions) {
+          for (const platform of platforms) {
+            const { title, text } = version.captions[platform];
+            expect(`${title ?? ""} ${text}`, card.id).not.toMatch(
+              /printed on demand|shipped from|ships? from|instant digital download/i
+            );
+          }
+        }
+      }
+    }
+  });
+
+  it("says something about the design itself, taken from its own description", async () => {
     const listings = await getAllListings();
     for (const when of [DECEMBER, JULY]) {
       const cards = await storyCards(when);
       for (const card of cards) {
         const listing = listings.find((l) => listingSlug(l) === card.id)!;
-        const wrapping = deriveProductType(listing) === "wrapping-paper";
+        const line = captionLine(listing);
         for (const version of card.versions) {
-          const ships = /shipped from the US/.test(version.captions.tiktok.text);
-          expect(ships, `${card.id} (${deriveProductType(listing)})`).toBe(wrapping);
+          // Only when the description holds one. A caption is shorter, never invented.
+          expect(version.captions.tiktok.text.includes(line), card.id).toBe(Boolean(line));
+        }
+      }
+    }
+  });
+
+  it("opens every caption with an emoji, so a post is never a bare product name", async () => {
+    for (const when of [DECEMBER, JULY]) {
+      const cards = await storyCards(when);
+      for (const card of cards) {
+        for (const version of card.versions) {
+          for (const platform of platforms) {
+            const { title, text } = version.captions[platform];
+            expect(text, card.id).toMatch(/^\p{Extended_Pictographic}/u);
+            if (title) expect(title, card.id).toMatch(/^\p{Extended_Pictographic}/u);
+          }
         }
       }
     }

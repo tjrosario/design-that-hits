@@ -133,7 +133,11 @@ export function CaptionTabs({
               >
                 {caption.title ? "Description" : "Caption"}
               </p>
-              <p className="mt-1 text-sm leading-relaxed" style={{ color: "var(--text-soft)" }}>
+              {/* The caption is written as three short lines, so the breaks have to survive. */}
+              <p
+                className="mt-1 whitespace-pre-line text-sm leading-relaxed"
+                style={{ color: "var(--text-soft)" }}
+              >
                 {caption.text}
               </p>
               <p className="mt-2 text-sm font-semibold" style={{ color: "var(--brand)" }}>

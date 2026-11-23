@@ -12,6 +12,7 @@
  */
 
 import { newArrivals } from "@/lib/arrivals";
+import { captionLines, type Angle } from "@/lib/caption";
 import { ctaFor } from "@/lib/cta";
 import { designLine } from "@/lib/design-line";
 import { musicFor } from "@/lib/music";
@@ -26,7 +27,6 @@ import {
 } from "@/lib/facets";
 import { clampName } from "@/lib/pinterest";
 import { relevantOccasions } from "@/lib/seasonal";
-import { SHIPPING_ESTIMATE_PRODUCT_TYPE } from "@/lib/shipping";
 import { currentTheme } from "@/lib/season";
 import { getAllListings } from "@/lib/shop";
 import { shopToday, toISODate } from "@/lib/shop-time";
@@ -165,27 +165,6 @@ export function storyLink(listing: Listing, platform: Platform): string {
 }
 
 /**
- * How each kind of listing is made, as the caption's closing sentence.
- *
- * Scoped the way /contact scopes its claims: a file is not printed, and the US origin is
- * only verified for the wrapping paper blueprint. The card itself no longer prints this.
- * A caption is read once beside a post, where a fulfilment claim answers the first
- * question a buyer has; the card is pixels that stay on the design for seven seconds, and
- * they are better spent on what the design actually looks like.
- */
-const MADE = {
-  paper: { sentence: "Printed on demand and shipped from the US." },
-  digital: { sentence: "An instant digital download on Etsy." },
-  other: { sentence: "Printed on demand. Find it on Etsy." },
-} as const;
-
-function madeKind(listing: Listing): keyof typeof MADE {
-  const type = deriveProductType(listing);
-  if (type === SHIPPING_ESTIMATE_PRODUCT_TYPE) return "paper";
-  return type === "digital" ? "digital" : "other";
-}
-
-/**
  * The one line under the design's name.
  *
  * Empty for a listing whose description holds no sentence that stands alone on a card.
@@ -195,14 +174,6 @@ function detailLines(listing: Listing): string[] {
   const line = designLine(listing);
   return line ? [line] : [];
 }
-
-/*
-  Three angles on the same design, so a card can be posted more than once without
-  repeating itself. Each is a function of facts already in the listing: what it is, what
-  it is for, and that it is new. Nothing claims a design sells well, because the catalog
-  carries no view or favourite counts to support it.
-*/
-type Angle = "design" | "occasion" | "arrival";
 
 function eyebrowFor(listing: Listing, angle: Angle, occasion: string | null): string {
   const type = deriveProductType(listing);
@@ -217,25 +188,14 @@ function captionsFor(
   angle: Angle,
   occasion: string | null
 ): Record<Platform, Caption> {
-  const name = listingName(listing);
-
-  /*
-    The name alone, never "printed on <product type>". Those labels are plural categories
-    rather than materials, so the sentence came out as "Golf Shirt, printed on t-shirts &
-    apparel" and, worse, "printed on digital downloads". The eyebrow carries the category.
-  */
-  const opener =
-    angle === "arrival"
-      ? `Just added: ${name}.`
-      : angle === "occasion" && occasion
-        ? `${occasionLabel(occasion)} sorted. ${name}.`
-        : `${name}.`;
-
-  // Only the caption carries this; the card gives the space to the design instead.
-  const text = `${opener} ${MADE[madeKind(listing)].sentence}`;
+  /* Both platforms take the same body. What differs is the surface around it: TikTok
+     wants a short title above its description, and Instagram carries the ask on a link
+     sticker rather than in the text. */
+  const lines = captionLines(listing, angle, occasion);
+  const text = lines.join("\n");
   return {
     tiktok: {
-      title: clampCaption(opener, TIKTOK_TITLE_MAX),
+      title: clampCaption(lines[0], TIKTOK_TITLE_MAX),
       text,
       hashtags: tagsFor(listing, "tiktok", occasion),
     },
