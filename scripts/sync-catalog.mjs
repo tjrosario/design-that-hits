@@ -396,6 +396,30 @@ function normaliseTitle(title) {
 }
 
 /**
+ * The date a new listing gets when its import carries none.
+ *
+ * Etsy's CSV export has no publish date, and stamping `now` would tell the site every
+ * imported row dropped today, handing them the hero carousel and "just dropped". The
+ * catalog's most common date is the marker its last dateless import left, so a new row
+ * joins that cohort, which `src/lib/arrivals.ts` reads as imported rather than published.
+ * Only a first import, into an empty catalog, can honestly use today.
+ */
+function importEpoch(catalog) {
+  const counts = new Map();
+  for (const listing of catalog.listings) {
+    if (!listing.createdAt) continue;
+    counts.set(listing.createdAt, (counts.get(listing.createdAt) ?? 0) + 1);
+  }
+
+  let best = null;
+  for (const [stamp, n] of counts) {
+    // Oldest wins a tie, so the marker stays put as later imports add their own.
+    if (!best || n > best.n || (n === best.n && stamp < best.stamp)) best = { stamp, n };
+  }
+  return best ? best.stamp : Math.floor(Date.now() / 1000);
+}
+
+/**
  * Upserts incoming listings into the catalog.
  *
  * Matching is by listing ID when the incoming item has one (RSS), falling back to a
@@ -430,6 +454,8 @@ function mergeListings(catalog, incoming, { source, existingOnly = false }) {
   const claimed = new Set();
 
   const summary = { added: 0, updated: 0, unchanged: 0, searchLinked: 0, upgraded: 0, skipped: 0 };
+
+  const dateless = importEpoch(catalog);
 
   /**
    * Finds the catalog entry an incoming item refers to.
@@ -504,7 +530,7 @@ function mergeListings(catalog, incoming, { source, existingOnly = false }) {
         url: item.url,
         price: item.price,
         currency: item.currency,
-        createdAt: item.createdAt ?? Math.floor(Date.now() / 1000),
+        createdAt: item.createdAt ?? dateless,
         updatedAt: item.updatedAt ?? Math.floor(Date.now() / 1000),
         sectionId: item.sectionId ?? null,
         tags: item.tags ?? [],
