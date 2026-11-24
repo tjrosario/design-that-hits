@@ -13,9 +13,10 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { ImageResponse } from "next/og";
-import { STORY_BG, STORY_PALETTES, STORY_TEXT } from "@/lib/story-palette";
+import { kitFor, ribbonFor } from "@/lib/story-kit";
+import { STORY_TEXT } from "@/lib/story-palette";
 import type { Layout, Part } from "@/lib/story";
-import type { PaletteId } from "@/lib/story-palette";
+import type { KitId } from "@/lib/story-kit";
 import type { PinPhoto } from "@/lib/pin-photo";
 
 /* Read once per lambda rather than per request, the way the pin-image route does.
@@ -24,7 +25,7 @@ let fonts: Promise<[Buffer, Buffer]> | null = null;
 function loadFonts() {
   const dir = path.join(process.cwd(), "src/assets/fonts");
   fonts ??= Promise.all([
-    readFile(path.join(dir, "playfair-700.ttf")),
+    readFile(path.join(dir, "fredoka-600.ttf")),
     readFile(path.join(dir, "poppins-600.ttf")),
   ]);
   return fonts;
@@ -41,7 +42,7 @@ export interface StoryArt {
 export interface StoryOptions {
   width: number;
   height: number;
-  palette: PaletteId;
+  palette: KitId;
   layout: Layout;
   headers: Record<string, string>;
   part?: Part;
@@ -97,12 +98,20 @@ export function bandBox(layout: Layout, width: number, height: number) {
   return { height: box, top: height - box };
 }
 
+/**
+ * How many blocks the ribbon is cut into.
+ *
+ * 18 across 1080 is 60px a block, which reads as gift-wrap ribbon at a thumbnail size
+ * rather than as the stripes on a deckchair.
+ */
+const RIBBON_SEGMENTS = 18;
+
 export async function storyImage(
   { eyebrow, title, lines, photo }: StoryArt,
   { width, height, palette, layout, headers, part }: StoryOptions
 ) {
-  const [playfair, poppins] = await loadFonts();
-  const colors = STORY_PALETTES[palette];
+  const [fredoka, poppins] = await loadFonts();
+  const kit = kitFor(palette);
   const story = height > width;
   // Type is sized off the width both formats share, then opened up on the taller canvas.
   const k = (width / 1080) * (story ? 1.12 : 1);
@@ -134,49 +143,27 @@ export async function storyImage(
   ) : null;
 
   /*
-    The eyebrow sits directly on the photo in `edge`, where brand pink over a pale ribbon
-    measured about 1.1:1. A filled pill fixes that for any photo, because ink on brand is
-    a pair season-palette.test.ts already holds to AA in all fifteen palettes.
+    A filled pill in every layout, tilted a couple of degrees so it reads as a label stuck
+    on rather than a caption typed under. It is also the only pair of colours on the card
+    that has to hold up over an unknown photo, and ink on brand is one `story-kit.test.ts`
+    holds to AA for every kit.
   */
-  const onPhoto = layout === "edge";
-
-  /* Only the stacked layouts have the room. `banner` draws a brand rule along the band's
-     top edge instead, and a dash there was clipped by it; `edge` has the pill. */
-  const accent = (layout === "panel" || layout === "frame") && (
-    <div
-      key="accent"
-      style={{
-        width: px(84),
-        height: px(6),
-        marginBottom: px(24),
-        borderRadius: px(3),
-        background: colors.brand,
-        opacity: shown("eyebrow"),
-      }}
-    />
-  );
-
   const label = (
     <div
       key="label"
       style={{
         display: "flex",
-        fontFamily: "Poppins",
+        fontFamily: "Fredoka",
         fontSize: px(26),
-        letterSpacing: px(6),
+        letterSpacing: px(5),
         textTransform: "uppercase",
         opacity: shown("eyebrow"),
-        ...(onPhoto
-          ? {
-              background: colors.brand,
-              color: colors.ink,
-              // Less on the right: the letter spacing already trails the last character.
-              padding: `${px(11)}px ${px(14)}px ${px(11)}px ${px(22)}px`,
-              borderRadius: px(100),
-            }
-          // Pays back the letter spacing that trails the last character, so the glyphs
-          // sit on the centre line rather than half a letter-space to the left of it.
-          : { color: colors.brand, paddingLeft: px(6) }),
+        background: kit.brand,
+        color: kit.ink,
+        // Less on the right: the letter spacing already trails the last character.
+        padding: `${px(11)}px ${px(16)}px ${px(11)}px ${px(24)}px`,
+        borderRadius: px(100),
+        transform: "rotate(-2deg)",
       }}
     >
       {eyebrow}
@@ -187,8 +174,8 @@ export async function storyImage(
     <div
       style={{
         display: "flex",
-        marginTop: px(22),
-        fontFamily: "Playfair Display",
+        marginTop: px(26),
+        fontFamily: "Fredoka",
         fontSize: px(layout === "frame" ? 62 : 70),
         lineHeight: 1.1,
         letterSpacing: "-0.015em",
@@ -253,7 +240,6 @@ export async function storyImage(
 
   const text = (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-      {accent}
       {label}
       {heading}
       {details}
@@ -268,13 +254,10 @@ export async function storyImage(
   */
   const band =
     layout === "banner"
-      ? {
-          background: paint ? STORY_BG : "transparent",
-          borderTop: `${px(6)}px solid ${paint ? colors.brand : "transparent"}`,
-        }
+      ? { background: paint ? kit.canvas : "transparent" }
       : layout === "edge" && paint
         ? {
-            backgroundImage: `linear-gradient(to top, ${STORY_BG} 0%, ${STORY_BG}F2 50%, ${STORY_BG}00 100%)`,
+            backgroundImage: `linear-gradient(to top, ${kit.canvas} 0%, ${kit.canvas}F2 50%, ${kit.canvas}00 100%)`,
           }
         // Left out rather than set to undefined: satori reads every declared style value
         // and an explicit undefined throws while parsing it.
@@ -295,7 +278,7 @@ export async function storyImage(
         width,
         height,
         display: "flex",
-        backgroundImage: `linear-gradient(160deg, ${colors.strong} 0%, ${STORY_BG} 62%)`,
+        backgroundImage: `linear-gradient(160deg, ${kit.strong} 0%, ${kit.canvas} 62%)`,
       }}
     />
   );
@@ -311,7 +294,7 @@ export async function storyImage(
         alignItems: "center",
         justifyContent: "center",
         overflow: "hidden",
-        background: STORY_BG,
+        background: kit.canvas,
         width: photoWidth,
         height: photoHeight,
         borderRadius: layout === "frame" ? px(28) : 0,
@@ -344,6 +327,42 @@ export async function storyImage(
     </div>
   );
 
+  /*
+    The seam between the photo and the words, where the two layouts that have a hard edge
+    get a band of ribbon. `edge` fades into the photo and `frame` floats above a wash, so
+    neither has an edge to put one on. It belongs to the `wash` part, which is the layer
+    an animated story composites under its text.
+  */
+  const ribbonTop =
+    layout === "banner" ? height - bandHeight : layout === "panel" ? photoHeight : null;
+  const ribbonColors = ribbonFor(kit);
+  const ribbon = ribbonTop !== null && paint && (
+    <div
+      key="ribbon"
+      style={{
+        position: "absolute",
+        top: ribbonTop,
+        left: 0,
+        width,
+        height: px(14),
+        display: "flex",
+        overflow: "hidden",
+      }}
+    >
+      {Array.from({ length: RIBBON_SEGMENTS }, (_, i) => (
+        <div
+          key={i}
+          style={{
+            display: "flex",
+            width: width / RIBBON_SEGMENTS,
+            height: px(14),
+            background: ribbonColors[i % ribbonColors.length],
+          }}
+        />
+      ))}
+    </div>
+  );
+
   return new ImageResponse(
     (
       <div
@@ -353,7 +372,7 @@ export async function storyImage(
           width,
           height,
           position: "relative",
-          background: part ? "transparent" : STORY_BG,
+          background: part ? "transparent" : kit.canvas,
           fontFamily: "Poppins",
         }}
       >
@@ -361,13 +380,15 @@ export async function storyImage(
         {spacer}
         {photoLayer}
         {words}
+        {/* After the band, which is opaque and would otherwise paint over its own edge. */}
+        {ribbon}
       </div>
     ),
     {
       width,
       height,
       fonts: [
-        { name: "Playfair Display", data: playfair, weight: 700, style: "normal" },
+        { name: "Fredoka", data: fredoka, weight: 600, style: "normal" },
         { name: "Poppins", data: poppins, weight: 600, style: "normal" },
       ],
       headers,
