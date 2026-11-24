@@ -31,7 +31,8 @@ import { currentTheme } from "@/lib/season";
 import { getAllListings } from "@/lib/shop";
 import { shopToday, toISODate } from "@/lib/shop-time";
 import { listingName, listingPath, listingSlug } from "@/lib/slug";
-import { paletteIdFor, STORY_PALETTES, type PaletteId } from "@/lib/story-palette";
+import { kitFor, type KitId } from "@/lib/story-kit";
+import { paletteIdFor, type PaletteId } from "@/lib/story-palette";
 import type { Listing } from "@/types/etsy";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://designthathits.com";
@@ -58,7 +59,7 @@ export type Layout = (typeof LAYOUTS)[number];
 export type Part = "wash" | "eyebrow" | "title" | "details";
 
 /** Part of every image's version hash. Bump it whenever the drawing changes, so caches refresh. */
-export const STORY_DESIGN = "s3";
+export const STORY_DESIGN = "s4";
 
 export const platforms = ["tiktok", "instagram"] as const;
 export type Platform = (typeof platforms)[number];
@@ -81,7 +82,7 @@ export interface StoryVersion {
   /** One sentence about the design, empty when the description holds none worth printing. */
   lines: string[];
   layout: Layout;
-  palette: PaletteId;
+  palette: KitId;
   captions: Record<Platform, Caption>;
 }
 
@@ -123,13 +124,64 @@ export interface StoryCard {
   versions: StoryVersion[];
 }
 
-/* Occasions the palette can theme. Birthday and graduation have no block in globals.css,
-   so a card for either keeps whatever palette the site is wearing today. */
-const OCCASION_PALETTES: Record<string, PaletteId> = {
+/*
+  The three occasions that are also a look.
+
+  Christmas, Halloween and Valentine's carry colours of their own that a shopper reads
+  before any word on the card, and they outrank the design's theme: a goth Christmas paper
+  posted in December is a Christmas paper first.
+*/
+const OCCASION_KITS: Record<string, KitId> = {
   christmas: "christmas",
   halloween: "halloween",
   valentines: "valentines",
 };
+
+/*
+  The occasions people shop by rather than decorate by.
+
+  A birthday has no agreed palette the way Christmas does, so the design's own theme is
+  the better guide and these are read only after it. They catch the designs no theme rule
+  matches, which would otherwise wear whatever the calendar is wearing: a birthday paper
+  posted in late November came out in Thanksgiving browns. Most birthday designs never
+  reach here, because their tags carry a theme — the shop's are mostly gothic or glam.
+*/
+const PLAIN_OCCASION_KITS: Record<string, KitId> = {
+  birthday: "birthday",
+  graduation: "graduation",
+};
+
+/*
+  Themes with a kit of their own, which is most of the catalog: gothic, glam, retro,
+  floral and cottagecore, plus cats and dogs sharing one. A theme with no entry falls
+  through to the calendar, which is what every listing did before.
+*/
+const THEME_KIT_IDS: Record<string, KitId> = {
+  gothic: "gothic",
+  glam: "glam",
+  retro: "retro",
+  floral: "floral",
+  cottagecore: "cottagecore",
+  cats: "pets",
+  dogs: "pets",
+};
+
+/**
+ * The kit a card is drawn in: its occasion's, then its theme's, then today's.
+ *
+ * Every card used to take the third branch unless it was one of three holidays, so the
+ * whole page was drawn in one accent and differed only by photo.
+ */
+function kitIdFor(listing: Listing, occasion: string | null, today: PaletteId): KitId {
+  const dated = occasion ? OCCASION_KITS[occasion] : undefined;
+  if (dated) return dated;
+
+  const theme = primaryTheme(listing);
+  const themed = theme ? THEME_KIT_IDS[theme] : undefined;
+  if (themed) return themed;
+
+  return (occasion ? PLAIN_OCCASION_KITS[occasion] : undefined) ?? today;
+}
 
 /** Five per platform: the design's own first, then the shop's, capped like the feed's tags. */
 const DEFAULT_TAGS: Record<Platform, string[]> = {
@@ -248,9 +300,9 @@ function versionsFor(
   occasion: string | null
 ): StoryVersion[] {
   const start = seed(listingSlug(listing));
-  // A design for a holiday the palette knows is drawn in that holiday's colours whatever
-  // the calendar says, so a Christmas card never goes out wearing the fall accent.
-  const palette = (occasion ? OCCASION_PALETTES[occasion] : undefined) ?? today;
+  // A design for a holiday the kits know is drawn in that holiday's colours whatever the
+  // calendar says, so a Christmas card never goes out wearing the fall accent.
+  const palette = kitIdFor(listing, occasion, today);
 
   /*
     An angle only appears when it is true of this listing. Without the occasion guard a
@@ -387,7 +439,10 @@ export function storyVersion(card: StoryCard, version: number, format: StoryForm
     ...v.lines,
     card.photo,
     v.palette,
-    STORY_PALETTES[v.palette].brand,
+    /* Both, not just the accent: the canvas is most of the card's pixels now, and a
+       canvas-only edit would otherwise serve from a year-long immutable cache. */
+    kitFor(v.palette).brand,
+    kitFor(v.palette).canvas,
     v.layout,
     STORY_DESIGN,
     format,

@@ -25,9 +25,15 @@ export interface StoryPalette {
   ink: string;
 }
 
-/** The canvas every story is drawn on, from the base `:root` block. */
+/**
+ * The page's own canvas, from the base `:root` block.
+ *
+ * Story cards no longer use it: each is drawn on its kit's canvas (`lib/story-kit.ts`).
+ * It stays because `story-palette.test.ts` asserts this file still matches the stylesheet,
+ * and that parity is the point of the file.
+ */
 export const STORY_BG = "#0E0C0F";
-/** Body copy on that canvas, from the base `:root` block. */
+/** Body copy on a dark canvas, from the base `:root` block. */
 export const STORY_TEXT = "#F8F5F7";
 
 export const STORY_PALETTES: Record<PaletteId, StoryPalette> = {

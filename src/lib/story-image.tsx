@@ -13,9 +13,10 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { ImageResponse } from "next/og";
-import { STORY_BG, STORY_PALETTES, STORY_TEXT } from "@/lib/story-palette";
+import { kitFor, ribbonFor } from "@/lib/story-kit";
+import { STORY_TEXT } from "@/lib/story-palette";
 import type { Layout, Part } from "@/lib/story";
-import type { PaletteId } from "@/lib/story-palette";
+import type { KitId } from "@/lib/story-kit";
 import type { PinPhoto } from "@/lib/pin-photo";
 
 /* Read once per lambda rather than per request, the way the pin-image route does.
@@ -24,7 +25,7 @@ let fonts: Promise<[Buffer, Buffer]> | null = null;
 function loadFonts() {
   const dir = path.join(process.cwd(), "src/assets/fonts");
   fonts ??= Promise.all([
-    readFile(path.join(dir, "playfair-700.ttf")),
+    readFile(path.join(dir, "fredoka-600.ttf")),
     readFile(path.join(dir, "poppins-600.ttf")),
   ]);
   return fonts;
@@ -41,7 +42,7 @@ export interface StoryArt {
 export interface StoryOptions {
   width: number;
   height: number;
-  palette: PaletteId;
+  palette: KitId;
   layout: Layout;
   headers: Record<string, string>;
   part?: Part;
@@ -92,17 +93,53 @@ const BAND_SHARE: Record<"banner" | "edge", { story: number; square: number }> =
 export function bandBox(layout: Layout, width: number, height: number) {
   if (layout === "panel" || layout === "frame") return null;
   const share = BAND_SHARE[layout][height > width ? "story" : "square"];
-  // A little past the band, so a three-line name that fills it is not clipped at the top.
-  const box = Math.min(height, Math.round(height * share) + Math.round(height * 0.06));
+  /* A little past the band, so a name that fills it is not clipped at the top. 8%, not
+     6%: the eyebrow is a pill now, which stands ~30px taller than the bare line it
+     replaced, and a four-line name in Fredoka reached past the old margin. */
+  const box = Math.min(height, Math.round(height * share) + Math.round(height * 0.08));
   return { height: box, top: height - box };
+}
+
+/**
+ * How many blocks the ribbon is cut into.
+ *
+ * 18 across 1080 is 60px a block, which reads as gift-wrap ribbon at a thumbnail size
+ * rather than as the stripes on a deckchair.
+ */
+const RIBBON_SEGMENTS = 18;
+
+/** How thick the ribbon is, before the format's own scaling. */
+const RIBBON_HEIGHT = 14;
+
+/**
+ * Where the ribbon goes, or null for the two layouts with no seam to mark.
+ *
+ * It ends where the words begin rather than starting there, so the band can never paint
+ * over it and the eyebrow, which overruns the band's top edge on about a quarter of the
+ * catalog's titles, lands on the ribbon rather than under a stripe through its middle.
+ * Exported because `story-kit.test.ts` holds it clear of the band.
+ */
+export function seamTop(layout: Layout, width: number, height: number): number | null {
+  const story = height > width;
+  if (layout === "banner") return height - Math.round(height * BAND_SHARE.banner[story ? "story" : "square"]);
+  if (layout === "panel") return Math.round(height * PHOTO_SHARE.panel[story ? "story" : "square"]);
+  // `edge` fades into the photo and `frame` floats above a wash: neither has an edge.
+  return null;
+}
+
+export function ribbonBox(layout: Layout, width: number, height: number) {
+  const seam = seamTop(layout, width, height);
+  if (seam === null) return null;
+  const thickness = Math.round(RIBBON_HEIGHT * (width / 1080) * (height > width ? 1.12 : 1));
+  return { top: seam - thickness, height: thickness };
 }
 
 export async function storyImage(
   { eyebrow, title, lines, photo }: StoryArt,
   { width, height, palette, layout, headers, part }: StoryOptions
 ) {
-  const [playfair, poppins] = await loadFonts();
-  const colors = STORY_PALETTES[palette];
+  const [fredoka, poppins] = await loadFonts();
+  const kit = kitFor(palette);
   const story = height > width;
   // Type is sized off the width both formats share, then opened up on the taller canvas.
   const k = (width / 1080) * (story ? 1.12 : 1);
@@ -134,49 +171,27 @@ export async function storyImage(
   ) : null;
 
   /*
-    The eyebrow sits directly on the photo in `edge`, where brand pink over a pale ribbon
-    measured about 1.1:1. A filled pill fixes that for any photo, because ink on brand is
-    a pair season-palette.test.ts already holds to AA in all fifteen palettes.
+    A filled pill in every layout, tilted a couple of degrees so it reads as a label stuck
+    on rather than a caption typed under. It is also the only pair of colours on the card
+    that has to hold up over an unknown photo, and ink on brand is one `story-kit.test.ts`
+    holds to AA for every kit.
   */
-  const onPhoto = layout === "edge";
-
-  /* Only the stacked layouts have the room. `banner` draws a brand rule along the band's
-     top edge instead, and a dash there was clipped by it; `edge` has the pill. */
-  const accent = (layout === "panel" || layout === "frame") && (
-    <div
-      key="accent"
-      style={{
-        width: px(84),
-        height: px(6),
-        marginBottom: px(24),
-        borderRadius: px(3),
-        background: colors.brand,
-        opacity: shown("eyebrow"),
-      }}
-    />
-  );
-
   const label = (
     <div
       key="label"
       style={{
         display: "flex",
-        fontFamily: "Poppins",
+        fontFamily: "Fredoka",
         fontSize: px(26),
-        letterSpacing: px(6),
+        letterSpacing: px(5),
         textTransform: "uppercase",
         opacity: shown("eyebrow"),
-        ...(onPhoto
-          ? {
-              background: colors.brand,
-              color: colors.ink,
-              // Less on the right: the letter spacing already trails the last character.
-              padding: `${px(11)}px ${px(14)}px ${px(11)}px ${px(22)}px`,
-              borderRadius: px(100),
-            }
-          // Pays back the letter spacing that trails the last character, so the glyphs
-          // sit on the centre line rather than half a letter-space to the left of it.
-          : { color: colors.brand, paddingLeft: px(6) }),
+        background: kit.brand,
+        color: kit.ink,
+        // Less on the right: the letter spacing already trails the last character.
+        padding: `${px(11)}px ${px(16)}px ${px(11)}px ${px(24)}px`,
+        borderRadius: px(100),
+        transform: "rotate(-2deg)",
       }}
     >
       {eyebrow}
@@ -187,8 +202,8 @@ export async function storyImage(
     <div
       style={{
         display: "flex",
-        marginTop: px(22),
-        fontFamily: "Playfair Display",
+        marginTop: px(26),
+        fontFamily: "Fredoka",
         fontSize: px(layout === "frame" ? 62 : 70),
         lineHeight: 1.1,
         letterSpacing: "-0.015em",
@@ -253,7 +268,6 @@ export async function storyImage(
 
   const text = (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-      {accent}
       {label}
       {heading}
       {details}
@@ -262,19 +276,16 @@ export async function storyImage(
 
   /*
     The band behind the words. The stacked layouts sit on the page canvas and need none.
-    `banner` paints a solid block under a brand rule; `edge` fades to transparent well
-    before it reaches the middle of the photo, and is dense enough by the eyebrow's line
+    `banner` paints a solid block, with the ribbon along its top edge; `edge` fades to
+    transparent well before it reaches the middle of the photo, and is dense enough by the eyebrow's line
     that the small uppercase type on it still reads over a pale pattern.
   */
   const band =
     layout === "banner"
-      ? {
-          background: paint ? STORY_BG : "transparent",
-          borderTop: `${px(6)}px solid ${paint ? colors.brand : "transparent"}`,
-        }
+      ? { background: paint ? kit.canvas : "transparent" }
       : layout === "edge" && paint
         ? {
-            backgroundImage: `linear-gradient(to top, ${STORY_BG} 0%, ${STORY_BG}F2 50%, ${STORY_BG}00 100%)`,
+            backgroundImage: `linear-gradient(to top, ${kit.canvas} 0%, ${kit.canvas}F2 50%, ${kit.canvas}00 100%)`,
           }
         // Left out rather than set to undefined: satori reads every declared style value
         // and an explicit undefined throws while parsing it.
@@ -295,7 +306,7 @@ export async function storyImage(
         width,
         height,
         display: "flex",
-        backgroundImage: `linear-gradient(160deg, ${colors.strong} 0%, ${STORY_BG} 62%)`,
+        backgroundImage: `linear-gradient(160deg, ${kit.strong} 0%, ${kit.canvas} 62%)`,
       }}
     />
   );
@@ -311,7 +322,7 @@ export async function storyImage(
         alignItems: "center",
         justifyContent: "center",
         overflow: "hidden",
-        background: STORY_BG,
+        background: kit.canvas,
         width: photoWidth,
         height: photoHeight,
         borderRadius: layout === "frame" ? px(28) : 0,
@@ -344,6 +355,42 @@ export async function storyImage(
     </div>
   );
 
+  /*
+    The seam between the photo and the words, where the two layouts that have a hard edge
+    get a band of ribbon. `edge` fades into the photo and `frame` floats above a wash, so
+    neither has an edge to put one on. It belongs to the `wash` part, which is the layer
+    an animated story composites under its text, and it is drawn before the words for the
+    same reason: the two outputs then agree about which is on top.
+  */
+  const box = ribbonBox(layout, width, height);
+  const ribbonColors = ribbonFor(kit);
+  const ribbon = box && paint && (
+    <div
+      key="ribbon"
+      style={{
+        position: "absolute",
+        top: box.top,
+        left: 0,
+        width,
+        height: box.height,
+        display: "flex",
+        overflow: "hidden",
+      }}
+    >
+      {Array.from({ length: RIBBON_SEGMENTS }, (_, i) => (
+        <div
+          key={i}
+          style={{
+            display: "flex",
+            width: width / RIBBON_SEGMENTS,
+            height: box.height,
+            background: ribbonColors[i % ribbonColors.length],
+          }}
+        />
+      ))}
+    </div>
+  );
+
   return new ImageResponse(
     (
       <div
@@ -353,13 +400,16 @@ export async function storyImage(
           width,
           height,
           position: "relative",
-          background: part ? "transparent" : STORY_BG,
+          background: part ? "transparent" : kit.canvas,
           fontFamily: "Poppins",
         }}
       >
         {wash}
         {spacer}
         {photoLayer}
+        {/* Before the words: an eyebrow that overruns the band sits on the ribbon, which
+            is the order the video composites its layers in. */}
+        {ribbon}
         {words}
       </div>
     ),
@@ -367,7 +417,7 @@ export async function storyImage(
       width,
       height,
       fonts: [
-        { name: "Playfair Display", data: playfair, weight: 700, style: "normal" },
+        { name: "Fredoka", data: fredoka, weight: 600, style: "normal" },
         { name: "Poppins", data: poppins, weight: 600, style: "normal" },
       ],
       headers,
