@@ -152,7 +152,9 @@ describe("storyCards", () => {
         const line = captionLine(listing);
         for (const version of card.versions) {
           // Only when the description holds one. A caption is shorter, never invented.
-          expect(version.captions.tiktok.text.includes(line), card.id).toBe(Boolean(line));
+          if (line) expect(version.captions.tiktok.text, card.id).toContain(line);
+          // No usable sentence leaves the opener and the ask, and no empty line between.
+          else expect(version.captions.tiktok.text.split("\n"), card.id).toHaveLength(2);
         }
       }
     }

@@ -94,7 +94,8 @@ export function reviewedIds(): Set<number> {
   ]);
 }
 
-function normalizeTitle(title: string): string {
+/** Shared with lib/shop.ts, which matches feed items to CSV rows by title. */
+export function normalizeTitle(title: string): string {
   return title.replace(/\s+/g, " ").trim().toLowerCase();
 }
 

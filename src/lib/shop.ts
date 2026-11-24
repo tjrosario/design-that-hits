@@ -31,6 +31,7 @@ import type { FetchListingsResult, ListingsQueryOptions, ShopErrorCode, ShopResu
 import { isPermanentShopError } from "@/types/shop";
 import * as catalogSource from "./catalog";
 import * as etsySource from "./etsy";
+import { normalizeTitle } from "@/lib/duplicates";
 import { withDisplayNames } from "@/lib/slug";
 import { fetchRssListings } from "./rss";
 
@@ -121,17 +122,37 @@ export function mergeRssOverCatalog(catalogListings: Listing[], rssListings: Lis
   if (rssListings.length === 0) return catalogListings;
 
   const byId = new Map(catalogListings.map((listing) => [listing.id, listing]));
+
+  /*
+    A CSV-imported listing has no Etsy ID, so it carries a synthetic one derived from its
+    title, which a feed item's real ID never matches. Title is the only field the two
+    sides share, so search-linked entries are indexed by it too and each may be claimed
+    once. Without that the feed copy lands as a second product, the same paper under two
+    slugs and two pages.
+  */
+  const byTitle = new Map<string, Listing>();
+  for (const listing of catalogListings) {
+    if (catalogSource.hasRealEtsyId(listing)) continue;
+    const key = normalizeTitle(listing.title);
+    if (key && !byTitle.has(key)) byTitle.set(key, listing);
+  }
+
   const merged: Listing[] = [];
 
   for (const fresh of rssListings) {
-    const existing = byId.get(fresh.id);
+    const key = normalizeTitle(fresh.title);
+    const existing = byId.get(fresh.id) ?? byTitle.get(key);
 
     if (!existing) {
       merged.push(fresh);
       continue;
     }
 
-    byId.set(fresh.id, {
+    byTitle.delete(key);
+
+    /* Keyed by the entry's own ID, not the feed's: a title match means the two differ,
+       and the entry's ID is what its page is already built and linked under. */
+    byId.set(existing.id, {
       ...existing,
       title: fresh.title || existing.title,
       description: fresh.description || existing.description,
