@@ -109,4 +109,34 @@ describe("ribbon geometry", () => {
       expect(ribbonBox("frame", width, height)).toBeNull();
     }
   });
+
+  /*
+    Measured rows, not a formula.
+
+    Comparing the box to `seamTop` alone proves only that the two agree, which they do
+    however wrong `seamTop` is: a mutation that swapped the banner and panel seams, or
+    dropped the story format's 1.12 scaling, passed that check. These are the rows the
+    ribbon actually occupies on the two formats, so a change to any share, to the
+    thickness or to the scaling has to be meant.
+  */
+  it("puts the ribbon on known rows", () => {
+    const story = STORY_FORMATS.story;
+    const square = STORY_FORMATS.square;
+
+    expect(ribbonBox("banner", story.width, story.height)).toEqual({ top: 1040, height: 16 });
+    expect(ribbonBox("banner", square.width, square.height)).toEqual({ top: 504, height: 14 });
+    expect(ribbonBox("panel", story.width, story.height)).toEqual({ top: 1059, height: 16 });
+    expect(ribbonBox("panel", square.width, square.height)).toEqual({ top: 591, height: 14 });
+  });
+
+  /* The two layouts with a hard edge must each HAVE one. A seam that went null took the
+     ribbon with it and left the first test asserting nothing. */
+  it("always draws a ribbon on the layouts with a seam", () => {
+    for (const layout of ["banner", "panel"] as const) {
+      for (const { width, height } of formats) {
+        expect(seamTop(layout, width, height), `${layout} ${width}x${height}`).toBeGreaterThan(0);
+        expect(ribbonBox(layout, width, height), `${layout} ${width}x${height}`).not.toBeNull();
+      }
+    }
+  });
 });
