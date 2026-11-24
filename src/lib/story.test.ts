@@ -95,6 +95,40 @@ describe("storyCards", () => {
     }
   });
 
+  /*
+    The whole page used to be drawn in one kit. Only three occasions had a palette and
+    every other card fell through to the calendar's, so in late November a golf shirt, a
+    wedding paper and a goth birthday were the same card in the same orange.
+  */
+  it("draws the page in more than one kit", async () => {
+    for (const when of [DECEMBER, JULY]) {
+      const cards = await storyCards(when);
+      const kits = new Set(cards.flatMap((c) => c.versions.map((v) => v.palette)));
+      expect(kits.size, when.toISOString().slice(0, 10)).toBeGreaterThan(1);
+    }
+  });
+
+  /* A design for a dated holiday wears that holiday whatever its theme is, because that
+     is what a shopper is looking for. A goth Christmas paper is a Christmas paper. */
+  it("lets a dated occasion outrank the design's theme", async () => {
+    for (const when of [DECEMBER, JULY]) {
+      for (const card of await storyCards(when)) {
+        if (!card.id.includes("christmas")) continue;
+        for (const v of card.versions) expect(v.palette, card.id).toBe("christmas");
+      }
+    }
+  });
+
+  /* Birthday is read only after the theme, so the shop's goth and glam birthday papers
+     keep their own look instead of all sharing one party palette. */
+  it("lets a theme outrank an undated occasion", async () => {
+    const cards = await storyCards(JULY);
+    const goth = cards.filter((c) => c.id.includes("goth") && !c.id.includes("christmas"));
+    for (const card of goth) {
+      for (const v of card.versions) expect(v.palette, card.id).toBe("gothic");
+    }
+  });
+
   it("never repeats a version, since posting both would post the same caption twice", async () => {
     for (const when of [DECEMBER, JULY]) {
       const cards = await storyCards(when);

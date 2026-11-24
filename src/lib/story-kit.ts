@@ -48,13 +48,19 @@ const SEASONAL_CANVAS: Record<PaletteId, string> = {
 };
 
 /**
- * Kits for the themes the catalog carries but the calendar does not.
+ * Kits with no block in `globals.css`, because the page has never needed colours for them.
  *
- * Only themes with enough designs to be worth their own look are here: gothic (151),
- * glam (134), retro (108), floral (86), pets (cats and dogs, 137 together) and
- * cottagecore (44). The rest fall back, because a kit nobody sees is a kit nobody
- * maintains. `ink` is the colour drawn on `brand`, and every pair is held to AA by
- * `story-kit.test.ts`.
+ * Six are themes the catalog carries in volume and that read as a look: gothic (151
+ * designs), glam (134), retro (108), floral (86), pets (cats and dogs, 137 together) and
+ * cottagecore (44). `food` (76) and `minimalist` (67) are larger than cottagecore and are
+ * still left out: neither names a palette anyone would recognise, and a kit that is only
+ * a guess is worse than the calendar's.
+ *
+ * The last two are occasions rather than themes. Birthday and graduation have no block
+ * either, and they sit here so `lib/story.ts` has something to fall back to for a design
+ * whose theme it does not recognise.
+ *
+ * `ink` is the colour drawn on `brand`, and `story-kit.test.ts` holds every pair to AA.
  */
 const THEME_KITS = {
   gothic: { canvas: "#15090F", brand: "#F0479A", strong: "#9B3FD4", ink: "#15090F" },

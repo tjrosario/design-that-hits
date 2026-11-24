@@ -93,8 +93,10 @@ const BAND_SHARE: Record<"banner" | "edge", { story: number; square: number }> =
 export function bandBox(layout: Layout, width: number, height: number) {
   if (layout === "panel" || layout === "frame") return null;
   const share = BAND_SHARE[layout][height > width ? "story" : "square"];
-  // A little past the band, so a three-line name that fills it is not clipped at the top.
-  const box = Math.min(height, Math.round(height * share) + Math.round(height * 0.06));
+  /* A little past the band, so a name that fills it is not clipped at the top. 8%, not
+     6%: the eyebrow is a pill now, which stands ~30px taller than the bare line it
+     replaced, and a four-line name in Fredoka reached past the old margin. */
+  const box = Math.min(height, Math.round(height * share) + Math.round(height * 0.08));
   return { height: box, top: height - box };
 }
 
@@ -105,6 +107,32 @@ export function bandBox(layout: Layout, width: number, height: number) {
  * rather than as the stripes on a deckchair.
  */
 const RIBBON_SEGMENTS = 18;
+
+/** How thick the ribbon is, before the format's own scaling. */
+const RIBBON_HEIGHT = 14;
+
+/**
+ * Where the ribbon goes, or null for the two layouts with no seam to mark.
+ *
+ * It ends where the words begin rather than starting there, so the band can never paint
+ * over it and the eyebrow, which overruns the band's top edge on about a quarter of the
+ * catalog's titles, lands on the ribbon rather than under a stripe through its middle.
+ * Exported because `story-kit.test.ts` holds it clear of the band.
+ */
+export function seamTop(layout: Layout, width: number, height: number): number | null {
+  const story = height > width;
+  if (layout === "banner") return height - Math.round(height * BAND_SHARE.banner[story ? "story" : "square"]);
+  if (layout === "panel") return Math.round(height * PHOTO_SHARE.panel[story ? "story" : "square"]);
+  // `edge` fades into the photo and `frame` floats above a wash: neither has an edge.
+  return null;
+}
+
+export function ribbonBox(layout: Layout, width: number, height: number) {
+  const seam = seamTop(layout, width, height);
+  if (seam === null) return null;
+  const thickness = Math.round(RIBBON_HEIGHT * (width / 1080) * (height > width ? 1.12 : 1));
+  return { top: seam - thickness, height: thickness };
+}
 
 export async function storyImage(
   { eyebrow, title, lines, photo }: StoryArt,
@@ -248,8 +276,8 @@ export async function storyImage(
 
   /*
     The band behind the words. The stacked layouts sit on the page canvas and need none.
-    `banner` paints a solid block under a brand rule; `edge` fades to transparent well
-    before it reaches the middle of the photo, and is dense enough by the eyebrow's line
+    `banner` paints a solid block, with the ribbon along its top edge; `edge` fades to
+    transparent well before it reaches the middle of the photo, and is dense enough by the eyebrow's line
     that the small uppercase type on it still reads over a pale pattern.
   */
   const band =
@@ -331,20 +359,20 @@ export async function storyImage(
     The seam between the photo and the words, where the two layouts that have a hard edge
     get a band of ribbon. `edge` fades into the photo and `frame` floats above a wash, so
     neither has an edge to put one on. It belongs to the `wash` part, which is the layer
-    an animated story composites under its text.
+    an animated story composites under its text, and it is drawn before the words for the
+    same reason: the two outputs then agree about which is on top.
   */
-  const ribbonTop =
-    layout === "banner" ? height - bandHeight : layout === "panel" ? photoHeight : null;
+  const box = ribbonBox(layout, width, height);
   const ribbonColors = ribbonFor(kit);
-  const ribbon = ribbonTop !== null && paint && (
+  const ribbon = box && paint && (
     <div
       key="ribbon"
       style={{
         position: "absolute",
-        top: ribbonTop,
+        top: box.top,
         left: 0,
         width,
-        height: px(14),
+        height: box.height,
         display: "flex",
         overflow: "hidden",
       }}
@@ -355,7 +383,7 @@ export async function storyImage(
           style={{
             display: "flex",
             width: width / RIBBON_SEGMENTS,
-            height: px(14),
+            height: box.height,
             background: ribbonColors[i % ribbonColors.length],
           }}
         />
@@ -379,9 +407,10 @@ export async function storyImage(
         {wash}
         {spacer}
         {photoLayer}
-        {words}
-        {/* After the band, which is opaque and would otherwise paint over its own edge. */}
+        {/* Before the words: an eyebrow that overruns the band sits on the ribbon, which
+            is the order the video composites its layers in. */}
         {ribbon}
+        {words}
       </div>
     ),
     {

@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { ribbonBox, seamTop } from "@/lib/story-image";
+import { LAYOUTS, STORY_FORMATS } from "@/lib/story";
 import { KIT_IDS, kitFor, ribbonFor } from "@/lib/story-kit";
 import { STORY_PALETTES, STORY_TEXT } from "@/lib/story-palette";
 
@@ -73,5 +75,38 @@ describe("story kits", () => {
   it("alternates the ribbon so neither accent touches itself", () => {
     const kit = kitFor("christmas");
     expect(ribbonFor(kit)).toEqual([kit.brand, STORY_TEXT, kit.strong, STORY_TEXT]);
+  });
+});
+
+describe("ribbon geometry", () => {
+  const formats = Object.values(STORY_FORMATS);
+
+  /*
+    The ribbon drawn ON the seam rather than above it printed a red, white and green
+    stripe through the eyebrow pill, which overruns the band's top edge on about a
+    quarter of the catalog's titles. It also disagreed with the video, where the eyebrow
+    is a later layer and covered the ribbon instead. Ending at the seam settles both.
+  */
+  it("stops where the words start, in every layout and format", () => {
+    for (const layout of LAYOUTS) {
+      for (const { width, height } of formats) {
+        const box = ribbonBox(layout, width, height);
+        const seam = seamTop(layout, width, height);
+        if (seam === null) {
+          expect(box, `${layout} ${width}x${height}`).toBeNull();
+          continue;
+        }
+        expect(box, `${layout} ${width}x${height}`).not.toBeNull();
+        expect(box!.top + box!.height, `${layout} ${width}x${height}`).toBe(seam);
+        expect(box!.top, `${layout} ${width}x${height}`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("gives the two layouts with no hard edge no ribbon at all", () => {
+    for (const { width, height } of formats) {
+      expect(ribbonBox("edge", width, height)).toBeNull();
+      expect(ribbonBox("frame", width, height)).toBeNull();
+    }
   });
 });

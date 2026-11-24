@@ -141,9 +141,10 @@ const OCCASION_KITS: Record<string, KitId> = {
   The occasions people shop by rather than decorate by.
 
   A birthday has no agreed palette the way Christmas does, so the design's own theme is
-  the better guide and these are consulted only after it. They exist at all because a
-  birthday design with no theme would otherwise wear whatever the calendar is wearing,
-  which is how a Sweet 16 paper went out in Thanksgiving browns.
+  the better guide and these are read only after it. They catch the designs no theme rule
+  matches, which would otherwise wear whatever the calendar is wearing: a birthday paper
+  posted in late November came out in Thanksgiving browns. Most birthday designs never
+  reach here, because their tags carry a theme — the shop's are mostly gothic or glam.
 */
 const PLAIN_OCCASION_KITS: Record<string, KitId> = {
   birthday: "birthday",
@@ -155,7 +156,7 @@ const PLAIN_OCCASION_KITS: Record<string, KitId> = {
   floral and cottagecore, plus cats and dogs sharing one. A theme with no entry falls
   through to the calendar, which is what every listing did before.
 */
-const THEME_KITS: Record<string, KitId> = {
+const THEME_KIT_IDS: Record<string, KitId> = {
   gothic: "gothic",
   glam: "glam",
   retro: "retro",
@@ -176,7 +177,7 @@ function kitIdFor(listing: Listing, occasion: string | null, today: PaletteId): 
   if (dated) return dated;
 
   const theme = primaryTheme(listing);
-  const themed = theme ? THEME_KITS[theme] : undefined;
+  const themed = theme ? THEME_KIT_IDS[theme] : undefined;
   if (themed) return themed;
 
   return (occasion ? PLAIN_OCCASION_KITS[occasion] : undefined) ?? today;
@@ -438,7 +439,10 @@ export function storyVersion(card: StoryCard, version: number, format: StoryForm
     ...v.lines,
     card.photo,
     v.palette,
+    /* Both, not just the accent: the canvas is most of the card's pixels now, and a
+       canvas-only edit would otherwise serve from a year-long immutable cache. */
     kitFor(v.palette).brand,
+    kitFor(v.palette).canvas,
     v.layout,
     STORY_DESIGN,
     format,
