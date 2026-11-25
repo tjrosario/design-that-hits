@@ -55,11 +55,14 @@ export type StoryFormat = keyof typeof STORY_FORMATS;
 export const LAYOUTS = ["banner", "panel", "edge", "frame"] as const;
 export type Layout = (typeof LAYOUTS)[number];
 
+/** The two that give the photo its own area, so nothing is ever drawn over the design. */
+const STACKED_LAYOUTS = ["panel", "frame"] as const;
+
 /** The separately drawn layers of an animated story, matching the video's filter inputs. */
 export type Part = "wash" | "eyebrow" | "title" | "details";
 
 /** Part of every image's version hash. Bump it whenever the drawing changes, so caches refresh. */
-export const STORY_DESIGN = "s4";
+export const STORY_DESIGN = "s5";
 
 export const platforms = ["tiktok", "instagram"] as const;
 export type Platform = (typeof platforms)[number];
@@ -152,9 +155,8 @@ const PLAIN_OCCASION_KITS: Record<string, KitId> = {
 };
 
 /*
-  Themes with a kit of their own, which is most of the catalog: gothic, glam, retro,
-  floral and cottagecore, plus cats and dogs sharing one. A theme with no entry falls
-  through to the calendar, which is what every listing did before.
+  Ten of the catalog's fourteen themes, onto nine kits, since cats and dogs share one. A
+  theme with no entry, and a design with no theme, wears whatever the calendar is wearing.
 */
 const THEME_KIT_IDS: Record<string, KitId> = {
   gothic: "gothic",
@@ -162,6 +164,9 @@ const THEME_KIT_IDS: Record<string, KitId> = {
   retro: "retro",
   floral: "floral",
   cottagecore: "cottagecore",
+  wildlife: "wildlife",
+  food: "food",
+  minimalist: "minimalist",
   cats: "pets",
   dogs: "pets",
 };
@@ -181,6 +186,21 @@ function kitIdFor(listing: Listing, occasion: string | null, today: PaletteId): 
   if (themed) return themed;
 
   return (occasion ? PLAIN_OCCASION_KITS[occasion] : undefined) ?? today;
+}
+
+/*
+  The layouts a listing cycles through, from wherever its own seed lands. Wrapping paper
+  repeats, so the pattern a full-bleed layout's words cover still shows above them; a
+  mockup carries one graphic exactly where both bands land.
+*/
+function rotationFor(listing: Listing, seed: number): readonly Layout[] {
+  // Either end, so the mockup cards on a page are not all composed the same way.
+  if (deriveProductType(listing) !== "wrapping-paper") {
+    return seed % 2 ? ["frame", "panel"] : STACKED_LAYOUTS;
+  }
+  // An even start, where the full-bleed layouts sit, so version 0 can always be animated.
+  const at = (seed * 2) % LAYOUTS.length;
+  return [...LAYOUTS.slice(at), ...LAYOUTS.slice(0, at)];
 }
 
 /** Five per platform: the design's own first, then the shop's, capped like the feed's tags. */
@@ -313,16 +333,13 @@ function versionsFor(
     (a) => (a !== "arrival" || fresh) && (a !== "occasion" || Boolean(occasion))
   );
 
+  const rotation = rotationFor(listing, start);
+
   return angles.map((angle, i) => ({
     eyebrow: eyebrowFor(listing, angle, occasion),
     title: clampName(listingName(listing)),
     lines: detailLines(listing),
-    /*
-      `start * 2` is even, so version 0 always lands on a full-bleed layout and every
-      card offers an animated story even when it has only one version. The versions then
-      alternate full-bleed and stacked.
-    */
-    layout: LAYOUTS[(start * 2 + i) % LAYOUTS.length],
+    layout: rotation[i % rotation.length],
     palette,
     captions: captionsFor(listing, angle, occasion),
   }));

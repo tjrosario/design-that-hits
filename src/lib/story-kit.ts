@@ -48,19 +48,8 @@ const SEASONAL_CANVAS: Record<PaletteId, string> = {
 };
 
 /**
- * Kits with no block in `globals.css`, because the page has never needed colours for them.
- *
- * Six are themes the catalog carries in volume and that read as a look: gothic (151
- * designs), glam (134), retro (108), floral (86), pets (cats and dogs, 137 together) and
- * cottagecore (44). `food` (76) and `minimalist` (67) are larger than cottagecore and are
- * still left out: neither names a palette anyone would recognise, and a kit that is only
- * a guess is worse than the calendar's.
- *
- * The last two are occasions rather than themes. Birthday and graduation have no block
- * either, and they sit here so `lib/story.ts` has something to fall back to for a design
- * whose theme it does not recognise.
- *
- * `ink` is the colour drawn on `brand`, and `story-kit.test.ts` holds every pair to AA.
+ * Kits with no block in `globals.css`: nine catalog themes, plus the two occasions that
+ * have no palette of their own. `ink` is drawn on `brand`, held to AA by the kit test.
  */
 const THEME_KITS = {
   gothic: { canvas: "#15090F", brand: "#F0479A", strong: "#9B3FD4", ink: "#15090F" },
@@ -69,6 +58,12 @@ const THEME_KITS = {
   floral: { canvas: "#241526", brand: "#F2789F", strong: "#8CB861", ink: "#1A1216" },
   pets: { canvas: "#1C1410", brand: "#F6A05A", strong: "#68B7AE", ink: "#1A1216" },
   cottagecore: { canvas: "#1B2317", brand: "#E3B23C", strong: "#C97B5A", ink: "#1A1216" },
+  // Amber and moss on forest, for the woodland animals that are most of this theme.
+  wildlife: { canvas: "#102418", brand: "#E8A33C", strong: "#6FAE62", ink: "#1A1216" },
+  // Cocoa, gingerbread and coffee are the catalog's food, so caramel and berry on brown.
+  food: { canvas: "#2A1710", brand: "#F2C18A", strong: "#D4564B", ink: "#1A1216" },
+  // The absence of colour is the look, so this one is charcoal, off-white and taupe.
+  minimalist: { canvas: "#16181B", brand: "#C9C3B8", strong: "#7D8B94", ink: "#1A1216" },
   birthday: { canvas: "#1A0F2B", brand: "#FFC53D", strong: "#4ECDC4", ink: "#1A1216" },
   graduation: { canvas: "#101828", brand: "#E9C46A", strong: "#7C96F0", ink: "#1A1216" },
 } as const;
