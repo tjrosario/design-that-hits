@@ -106,7 +106,7 @@ describe("ctaFor", () => {
   });
 
   it("reads a golf design as golf, not as birds", () => {
-    // "Birdies" is a golf score. The shop's themed facets file this shirt under wildlife.
+    // "Birdies" is a golf score, and the themed facets lead this shirt with golf too.
     const golf = listing(
       "Birdies & Bourbon Golf Club Shirt",
       "Vintage birds perched above crossed golf clubs, for the course and the clubhouse."

@@ -155,7 +155,7 @@ const PLAIN_OCCASION_KITS: Record<string, KitId> = {
 };
 
 /*
-  Ten of the catalog's fourteen themes, onto nine kits, since cats and dogs share one. A
+  Eleven of the catalog's fifteen themes, onto ten kits, since cats and dogs share one. A
   theme with no entry, and a design with no theme, wears whatever the calendar is wearing.
 */
 const THEME_KIT_IDS: Record<string, KitId> = {
@@ -165,6 +165,7 @@ const THEME_KIT_IDS: Record<string, KitId> = {
   floral: "floral",
   cottagecore: "cottagecore",
   wildlife: "wildlife",
+  golf: "golf",
   food: "food",
   minimalist: "minimalist",
   cats: "pets",
