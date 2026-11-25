@@ -48,7 +48,7 @@ const SEASONAL_CANVAS: Record<PaletteId, string> = {
 };
 
 /**
- * Kits with no block in `globals.css`: nine catalog themes, plus the two occasions that
+ * Kits with no block in `globals.css`: ten catalog themes, plus the two occasions that
  * have no palette of their own. `ink` is drawn on `brand`, held to AA by the kit test.
  */
 const THEME_KITS = {
@@ -64,6 +64,9 @@ const THEME_KITS = {
   food: { canvas: "#2A1710", brand: "#F2C18A", strong: "#D4564B", ink: "#1A1216" },
   // The absence of colour is the look, so this one is charcoal, off-white and taupe.
   minimalist: { canvas: "#16181B", brand: "#C9C3B8", strong: "#7D8B94", ink: "#1A1216" },
+  // Clubhouse navy, champagne and sage. The accents carry it: the canvas sits near
+  // `winter`, and a fairway green would have sat nearer `wildlife`.
+  golf: { canvas: "#0E2230", brand: "#E6D5A2", strong: "#5FA88C", ink: "#1A1216" },
   birthday: { canvas: "#1A0F2B", brand: "#FFC53D", strong: "#4ECDC4", ink: "#1A1216" },
   graduation: { canvas: "#101828", brand: "#E9C46A", strong: "#7C96F0", ink: "#1A1216" },
 } as const;

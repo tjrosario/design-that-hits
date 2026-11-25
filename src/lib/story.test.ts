@@ -29,7 +29,7 @@ const DECEMBER = new Date("2026-12-10T12:00:00Z");
    fallback covers about 141 days a year and is where the occasion bugs showed up. */
 const JULY = new Date("2026-07-14T12:00:00Z");
 /* Late November: the only window whose card set carries apparel, which is where the
-   layouts that cover a design and the themes with no kit of their own both show up. */
+   layouts that cover a design and the golf kit both show up. */
 const NOVEMBER = new Date("2026-11-24T12:00:00Z");
 /* Mid-May: the graduation window, and the only one whose card set reaches a minimalist
    design. Graduation is read after the theme, so the theme's own kit is what shows. */
@@ -159,12 +159,13 @@ describe("storyCards", () => {
   });
 
   /*
-    Woodland, food and minimalist designs each wear their own kit, which carries the same
-    name as the theme. Every one of the three is reached, so none of them goes unchecked.
+    Golf, food and minimalist designs each wear their own kit, named for the theme. All
+    three are reached here. `wildlife` is mapped but unlisted: no card set in the year
+    reaches it, because every woodland design is Christmas or is never selected.
   */
-  it("draws a woodland, food or minimalist design in that theme's kit", async () => {
+  it("draws a golf, food or minimalist design in that theme's kit", async () => {
     const bySlug = new Map((await getAllListings()).map((l) => [listingSlug(l), l]));
-    const wanted = ["wildlife", "food", "minimalist"];
+    const wanted = ["golf", "food", "minimalist"];
     const seen = new Set<string>();
     for (const when of [NOVEMBER, JULY, GRADUATION]) {
       for (const card of await storyCards(when)) {

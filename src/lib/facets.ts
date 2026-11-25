@@ -62,8 +62,12 @@ const THEME_RULES: { id: string; label: string; pattern: RegExp }[] = [
   // `victorian` is deliberately absent. Victorian carolers and vintage angels are not
   // gothic; they belong to `retro`, which already matches them on `vintage`.
   { id: "gothic", label: "Gothic & Dark", pattern: /gothic|\bgoth\b|skull|macabre|spooky|dark_/i },
-  // Labelled for what it holds. `vintage` is the dominant match here and `y2k` matches
-  // nothing, so the label names vintage rather than promising a Y2K shelf.
+  // Above `wildlife`, where `\bbird` also matches "Birdies" at the same index, so array
+  // order breaks the tie; and above `retro`, so a "Vintage Golf Shirt" leads with golf.
+  // `golf` is open-ended for golfer and golfing; the scores are closed, so bogeyman is out.
+  { id: "golf", label: "Golf", pattern: /\bgolf|\bbirdies?\b|\bbogeys?\b|country club/i },
+  // Labelled for what it holds: `vintage` is the dominant match and `y2k` carries one
+  // shirt, so the label names vintage rather than promising a Y2K shelf.
   { id: "retro", label: "Retro & Vintage", pattern: /retro|\b90s\b|\by2k\b|vaporwave|pixel|vintage|nostalg/i },
   { id: "floral", label: "Floral & Botanical", pattern: /floral|botanical|flower|peony|rose\b|garden/i },
   { id: "minimalist", label: "Minimalist", pattern: /minimal|modern|simple|clean_|geometric/i },
@@ -88,7 +92,8 @@ const THEME_RULES: { id: string; label: string; pattern: RegExp }[] = [
     `reindeer` is listed separately because `\bdeer\b` does not match it, and reindeer are
     the most Christmas of the woodland motifs. `forest` is qualified rather than bare: on
     its own it matches the tags on Husky, Great Dane and Norwegian Forest Cat designs,
-    which are pets. No `owl` token, because the catalog has no owl designs.
+    which are pets. `\bbird` catches the golf shirts' "Birdies", and those designs do
+    draw birds, so it stays; `golf` sits above this rule to name them golf first.
   */
   {
     id: "wildlife",

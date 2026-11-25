@@ -109,15 +109,18 @@ const INTROS: Record<string, string> = {
   music: "Guitars acoustic and electric, techno and house, and one mariachi Christmas. Wrapping paper for a gift that is probably music.",
   food: "Food and drink designs, from coffee obsession to pan dulce and late-night pizza. Nobody has ever regretted a snack.",
   wildlife: "Reindeer above all, then moose, woodland animals and one teddy bear. Cozy nature without the taxidermy.",
+  golf: "Golf shirts for the round and the clubhouse afterward, most of them a pun and a drink: birdies and bourbon, pars and prosecco, bogeys and brews. Vintage sporting club art, usually an animal or two holding crossed clubs.",
   glam: "Glam and elegant designs with shine to them. Gold, glitter and sparkle, for occasions that call for a little excess.",
   family: "Matching designs for families and couples. The same design across everyone, which is either charming or deeply embarrassing depending on the teenager.",
 };
 
+/** What a collection with no hand-written intro of its own falls back to. */
+export function genericIntro(label: string): string {
+  return `${label} designs from Design That Hits, printed on demand and shipped from our Etsy shop.`;
+}
+
 function introFor(collection: Collection): string {
-  return (
-    INTROS[collection.slug] ??
-    `${collection.label} designs from Design That Hits, printed on demand and shipped from our Etsy shop.`
-  );
+  return INTROS[collection.slug] ?? genericIntro(collection.label);
 }
 
 function toCollection(kind: CollectionKind, option: FacetOption): Collection {

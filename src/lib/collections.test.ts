@@ -6,6 +6,8 @@ import {
   intersectionQuery,
   intersectionSpec,
   belongsTo,
+  collectionIntro,
+  genericIntro,
   MIN_INTERSECTION_PRODUCTS,
 } from "@/lib/collections";
 import { getAllListings } from "@/lib/shop";
@@ -90,6 +92,26 @@ describe("intersection queries", () => {
   it("publishes nothing below the product threshold", async () => {
     for (const i of await getIntersections()) {
       expect(i.count).toBeGreaterThanOrEqual(MIN_INTERSECTION_PRODUCTS);
+    }
+  });
+});
+
+/*
+  A theme with no hand-written intro still renders: it falls back to one generic sentence
+  built from its label. That is a thin landing page on a shop whose themed collections are
+  the search surface, so every published theme is held to having copy of its own.
+*/
+describe("collection intros", () => {
+  it("writes a real intro for every theme, not the generic fallback", async () => {
+    const themes = (await getCollections()).filter((c) => c.kind === "theme");
+    expect(themes.length, "no theme collection to check").toBeGreaterThan(0);
+
+    /* Through `genericIntro`, not a copy of its wording: a literal here would stop
+       matching the moment the fallback is reworded, and then pass for every theme. */
+    for (const c of themes) {
+      expect(collectionIntro(c), `${c.slug} has no intro of its own`).not.toBe(
+        genericIntro(c.label)
+      );
     }
   });
 });
