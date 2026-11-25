@@ -72,6 +72,20 @@ describe("story kits", () => {
     }
   });
 
+  /*
+    Both accents are drawn as solid blocks on the canvas: the eyebrow pill, the ribbon and
+    `frame`'s wash. WCAG's bar for a block rather than type is 3:1.
+  */
+  it("keeps both accents visible against the canvas", () => {
+    for (const id of KIT_IDS) {
+      const kit = kitFor(id);
+      for (const [name, color] of [["brand", kit.brand], ["strong", kit.strong]]) {
+        const ratio = contrast(color, kit.canvas);
+        expect(ratio, `${id} ${name}: ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(3);
+      }
+    }
+  });
+
   it("alternates the ribbon so neither accent touches itself", () => {
     const kit = kitFor("christmas");
     expect(ribbonFor(kit)).toEqual([kit.brand, STORY_TEXT, kit.strong, STORY_TEXT]);

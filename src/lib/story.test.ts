@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { NEW_ARRIVALS_DAYS } from "@/lib/arrivals";
 import { captionLine } from "@/lib/caption";
-import { deriveProductType, occasionLabel } from "@/lib/facets";
+import { deriveProductType, occasionLabel, primaryTheme } from "@/lib/facets";
 import { getAllListings } from "@/lib/shop";
 import { shopToday, toISODate } from "@/lib/shop-time";
 import { listingName, listingSlug } from "@/lib/slug";
@@ -20,12 +20,23 @@ import {
   shopDayStart,
   videoVersion,
 } from "@/lib/story";
+import { currentTheme } from "@/lib/season";
+import { paletteIdFor } from "@/lib/story-palette";
 
 /* Mid-December: Christmas is in season, so the catalog has plenty to build cards from. */
 const DECEMBER = new Date("2026-12-10T12:00:00Z");
 /* Mid-July: no dated window is open, so `relevantOccasions` falls back to birthday. That
    fallback covers about 141 days a year and is where the occasion bugs showed up. */
 const JULY = new Date("2026-07-14T12:00:00Z");
+/* Late November: the only window whose card set carries apparel, which is where the
+   layouts that cover a design and the themes with no kit of their own both show up. */
+const NOVEMBER = new Date("2026-11-24T12:00:00Z");
+/* Mid-May: the graduation window, and the only one whose card set reaches a minimalist
+   design. Graduation is read after the theme, so the theme's own kit is what shows. */
+const GRADUATION = new Date("2026-05-05T12:00:00Z");
+
+/** The occasions that outrank the design's theme, so a kit test has to skip them. */
+const OUTRANKING = ["christmas", "halloween", "valentines"];
 
 describe("toHashtag", () => {
   it("drops everything a tag cannot carry", () => {
@@ -80,19 +91,47 @@ describe("storyCards", () => {
   });
 
   /*
-    Full-bleed layouts sit at the even indices and a version's layout is `start*2 + i`,
-    so version 0 always lands on one and every card offers an animated story even when it
-    has a single version. Reordering LAYOUTS silently breaks that.
+    A pattern card's rotation starts at an even index, so version 0 lands on a full-bleed
+    layout and the card can be animated. Reordering LAYOUTS silently breaks that.
   */
   it("puts the full-bleed layouts at the even indices", () => {
     expect(LAYOUTS).toEqual(["banner", "panel", "edge", "frame"]);
   });
 
-  it("gives every card a first version that can be animated", async () => {
-    for (const when of [DECEMBER, JULY]) {
-      const cards = await storyCards(when);
-      for (const card of cards) expect(animatable(card, 0)).toBe(true);
+  /* Only a pattern card takes a full-bleed layout, so only a pattern card can be animated.
+     Asserted both ways, since a rule that lets everything through proves nothing. */
+  it("offers an animated first version to the pattern cards and no others", async () => {
+    const bySlug = new Map((await getAllListings()).map((l) => [listingSlug(l), l]));
+    let mockups = 0;
+    for (const when of [DECEMBER, JULY, NOVEMBER]) {
+      for (const card of await storyCards(when)) {
+        const paper = deriveProductType(bySlug.get(card.id)!) === "wrapping-paper";
+        if (!paper) mockups++;
+        expect(animatable(card, 0), card.id).toBe(paper);
+      }
     }
+    // Without a mockup to refuse, this says only what the rule it replaced already said.
+    expect(mockups, "no mockup in any card set to check").toBeGreaterThan(0);
+  });
+
+  /*
+    A mockup shows one graphic in the middle of a shirt or a mug, which is where both
+    full-bleed bands land: a golf shirt went out with its own lettering under the headline.
+  */
+  it("never lays a band over a design that is not a repeating pattern", async () => {
+    const bySlug = new Map((await getAllListings()).map((l) => [listingSlug(l), l]));
+    const cards = await storyCards(NOVEMBER);
+    const mockups = cards.filter((c) => deriveProductType(bySlug.get(c.id)!) !== "wrapping-paper");
+    expect(mockups.length, "no mockup in the card set to check").toBeGreaterThan(0);
+    for (const card of mockups) {
+      // Named, not compared against the constant the code reads: that holds whatever it holds.
+      for (const v of card.versions) expect(["panel", "frame"], card.id).toContain(v.layout);
+    }
+
+    /* The seed still picks which of the two a mockup opens on, so a page of shirts is not
+       a page of one composition repeated. */
+    const opens = new Set(mockups.map((c) => c.versions[0].layout));
+    expect(opens.size, "every mockup card opens on the same layout").toBeGreaterThan(1);
   });
 
   /*
@@ -117,6 +156,28 @@ describe("storyCards", () => {
         for (const v of card.versions) expect(v.palette, card.id).toBe("christmas");
       }
     }
+  });
+
+  /*
+    Woodland, food and minimalist designs each wear their own kit, which carries the same
+    name as the theme. Every one of the three is reached, so none of them goes unchecked.
+  */
+  it("draws a woodland, food or minimalist design in that theme's kit", async () => {
+    const bySlug = new Map((await getAllListings()).map((l) => [listingSlug(l), l]));
+    const wanted = ["wildlife", "food", "minimalist"];
+    const seen = new Set<string>();
+    for (const when of [NOVEMBER, JULY, GRADUATION]) {
+      for (const card of await storyCards(when)) {
+        if (card.occasion && OUTRANKING.includes(card.occasion)) continue;
+        const theme = primaryTheme(bySlug.get(card.id)!) ?? "";
+        if (!wanted.includes(theme)) continue;
+        seen.add(theme);
+        for (const v of card.versions) expect(v.palette, card.id).toBe(theme);
+      }
+    }
+    expect([...seen].sort(), "a theme no card set reaches is a theme nothing checks").toEqual(
+      [...wanted].sort()
+    );
   });
 
   /* Birthday is read only after the theme, so the shop's goth and glam birthday papers
